@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>高级调优方法与黑箱优化（Advanced Tuning Methods and Black Box Optimization）</title>
+<script>
+(function(){
+  var saved = localStorage.getItem("mlr3-theme");
+  if (saved === null) saved = "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+})();
+</script>
+<style>
+:root {
+  --bg: #1e2228; --fg: #d8dee4; --muted: #9aa4b0;
+  --panel: #262c34; --panel2: #2e3540; --border: #3a4350;
+  --accent: #4ea1ff; --accent2: #8f7ae6;
+  --code-bg: #161a20; --code-fg: #d8dee4;
+  --note-bg: #2a3450; --note-border: #5a7fff;
+  --callout-bg: #2b3826; --callout-border: #6bbf59;
+  --table-head: #2e3540; --table-row: #262c34; --link: #6cb0ff;
+  --h-border: #3a4350;
+}
+[data-theme="light"] {
+  --bg: #f7f8fa; --fg: #24292f; --muted: #57606a;
+  --panel: #ffffff; --panel2: #f0f2f5; --border: #d9dee3;
+  --accent: #0969da; --accent2: #8250df;
+  --code-bg: #f3f4f6; --code-fg: #24292f;
+  --note-bg: #eef2ff; --note-border: #5a7fff;
+  --callout-bg: #eff7ec; --callout-border: #6bbf59;
+  --table-head: #eef1f4; --table-row: #ffffff; --link: #0969da;
+  --h-border: #d9dee3;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  line-height: 1.78; font-size: 16px;
+  transition: background .2s, color .2s;
+}
+.container { max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+/* 顶栏 */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+}
+.topbar .brand { font-weight: 600; font-size: 15px; color: var(--fg); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+.topbar .brand .logo { color: var(--accent); }
+.topbar .right { display: flex; align-items: center; gap: 10px; }
+.topbar .home-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+.topbar .home-link:hover { color: var(--accent); }
+.theme-toggle {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+/* 章头 */
+.header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
+.header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
+.header-block h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.35; }
+.header-block .subtitle { color: var(--muted); font-size: 14px; }
+/* 章节导航 */
+.chnav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0 6px; flex-wrap: wrap; }
+.chnav a {
+  background: var(--panel); border: 1px solid var(--border); color: var(--fg);
+  text-decoration: none; font-size: 14px; padding: 10px 16px; border-radius: 8px;
+  max-width: 46%; display: block;
+}
+.chnav a:hover { border-color: var(--accent); color: var(--accent); }
+.chnav .dir { color: var(--muted); font-size: 12px; display: block; }
+.chnav .ch { font-weight: 600; }
+.chnav a.disabled { opacity: .4; pointer-events: none; }
+/* 正文 */
+main { padding: 0 0 20px; }
+main h1 { font-size: 26px; margin: 40px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--h-border); }
+main h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--h-border); }
+main h3 { font-size: 18px; margin: 28px 0 10px; }
+main h4 { font-size: 16px; margin: 22px 0 8px; color: var(--accent); }
+main p { margin: 10px 0; }
+main a { color: var(--link); text-decoration: none; }
+main a:hover { text-decoration: underline; }
+main strong { font-weight: 600; }
+main ul, main ol { padding-left: 26px; }
+main li { margin: 5px 0; }
+main blockquote {
+  margin: 12px 0; padding: 10px 16px; border-left: 4px solid var(--border);
+  background: var(--panel2); color: var(--muted); border-radius: 0 6px 6px 0;
+}
+main hr { border: none; border-top: 1px solid var(--border); margin: 26px 0; }
+main img { max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 6px; }
+main table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+main th { background: var(--table-head); font-weight: 600; }
+main th, main td { border: 1px solid var(--border); padding: 7px 11px; }
+main tr:nth-child(even) td { background: var(--table-row); }
+/* 代码 */
+pre {
+  background: var(--code-bg); color: var(--code-fg);
+  padding: 14px 16px; border-radius: 8px; overflow-x: auto;
+  border: 1px solid var(--border); font-size: 13.5px; line-height: 1.6;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+code {
+  font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+  background: var(--panel2); color: var(--accent);
+  padding: 2px 5px; border-radius: 4px; font-size: 13.5px;
+}
+pre code { background: none; color: var(--code-fg); padding: 0; }
+/* 代码块容器（Quarto 结构） */
+.sourceCode { margin: 14px 0; }
+.sourceCode pre { margin: 0; }
+/* 输出块 */
+.cell { margin: 6px 0; }
+.cell-output { margin: 0 0 6px; }
+.cell-output pre { background: var(--panel2); border-style: dashed; }
+.cell-output-stderr { border-color: #d29922; }
+.cell-output-stdout pre { border-color: var(--border); }
+/* figure */
+figure { margin: 18px 0; text-align: center; }
+figure img { margin: 0 auto; }
+figcaption, .caption { color: var(--muted); font-size: 13px; margin-top: 6px; text-align: center; }
+.quarto-float { margin: 18px 0; }
+.quarto-figure { margin: 18px 0; text-align: center; }
+/* 背景与解释（译者注）框 */
+.bg-note {
+  background: var(--note-bg); border: 1px solid var(--note-border);
+  border-radius: 8px; padding: 14px 18px; margin: 18px 0;
+  font-size: 15px;
+}
+.bg-note p { margin: 6px 0; }
+.bg-note .bg-title { font-weight: 600; color: var(--accent); }
+/* 原书 callout 提示框 */
+.callout {
+  border-radius: 8px; padding: 12px 18px; margin: 16px 0;
+  border-left: 5px solid var(--accent); background: var(--panel2);
+}
+.callout-tip { border-left-color: #6bbf59; }
+.callout-note { border-left-color: var(--accent); }
+.callout-warning { border-left-color: #d29922; }
+.callout-important { border-left-color: #e05d5d; }
+.callout-header { font-weight: 600; margin-bottom: 4px; }
+.callout-title-container { display: inline; }
+.callout-body p { margin: 6px 0; }
+.callout-icon-container { display: none; }
+/* 脚注 */
+.footnote-ref { font-size: 12px; vertical-align: super; }
+/* 页脚 */
+.footer {
+  margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 13px; text-align: center;
+}
+.footer .lic { margin-top: 6px; font-size: 12px; }
+/* 表格滚动 */
+main table { display: block; overflow-x: auto; }
+/* banner 样式（原书 callout 可能以其他名目出现） */
+[class*="callout"] > p:first-child { margin-top: 4px; }
+</style>
+<script>
+function toggleTheme(){
+  var cur = document.documentElement.getAttribute("data-theme");
+  var next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("mlr3-theme", next);
+}
+</script>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <div class="right">
+    <a class="home-link" href="index.html">目录</a>
+    <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
+  </div>
+</div>
+<div class="container">
+  <div class="header-block">
+    <div class="part">第二部分 调优与特征选择</div>
+    <h1>高级调优方法与黑箱优化（Advanced Tuning Methods and Black Box Optimization）</h1>
+    <div class="subtitle">《Applied Machine Learning Using mlr3 in R》中文翻译 · 章节 第 5 章 高级调优方法与黑箱优化</div>
+  </div>
+  <main>
+<p><strong>Lennart Schneider</strong> <br><em>慕尼黑路德维希-马克西米利安大学（Ludwig-Maximilians-Universität München）与慕尼黑机器学习中心（Munich Center for Machine Learning，MCML）</em></p>
+<p><strong>Marc Becker</strong> <br><em>慕尼黑路德维希-马克西米利安大学与慕尼黑机器学习中心（MCML）</em> <br><br></p>
+<p>在了解了 <a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a> 的基本用法之后，现在我们来转向更高级的方法。我们将在 <a href="#sec-tuning-errors" class="quarto-xref"><span>第 5.1 节</span></a> 中继续研究单目标调优，但会考虑当实验出错时会发生什么，以及如何防止致命错误。然后，我们将把 <a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a> 的方法论扩展为多目标调优——在 <a href="#sec-multi-metrics-tuning" class="quarto-xref"><span>第 5.2 节</span></a> 中，多个度量可以同时被优化，我们将展示如何通过使用我们已经用过的相同类和方法来相对简单地处理这个问题。最后两节将专注于特定的优化方法。<a href="#sec-hyperband" class="quarto-xref"><span>第 5.3 节</span></a> 详细介绍了多保真度调优和超带调优器（Hyperband tuner），并通过 <a href="https://mlr3hyperband.mlr-org.com"><code>mlr3hyperband</code></a> 进行实践演示。最后，<a href="#sec-bayesian-optimization" class="quarto-xref"><span>第 5.4 节</span></a> 深入探讨了黑箱贝叶斯优化（Bayesian Optimization）。这一节理论性更强，以便说明 <a href="https://mlr3mbo.mlr-org.com"><code>mlr3mbo</code></a> 中类和方法的设计动机。</p>
+<section id="sec-tuning-errors" class="level2 page-columns page-full" data-number="5.1"><h2 data-number="5.1" class="anchored" data-anchor-id="sec-tuning-errors">
+<span class="header-section-number">5.1</span> 错误处理与内存管理（Error Handling and Memory Management）</h2>
+<p>在本节中，我们将了解如何使用 <code>mlr3</code> 来确保调优工作流高效且稳健。具体来说，我们将考虑如何启用一些特性，以预防在实验中途出现导致不可恢复数据丢失的致命错误，以及如何管理可能占用大量计算机内存的调优实验。</p>
+<section id="sec-encapsulation-fallback" class="level3" data-number="5.1.1"><h3 data-number="5.1.1" class="anchored" data-anchor-id="sec-encapsulation-fallback">
+<span class="header-section-number">5.1.1</span> 封装（Encapsulation）与回退学习器（Fallback Learner）</h3>
+<p>错误处理在 <a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-error-handling" class="quarto-xref"><span>第 10.2 节</span></a> 中有详细讨论，但它在调优语境中非常重要，因此这里我们将实际演示如何使用封装和回退学习器，并解释为什么它们在超参数优化（HPO）过程中必不可少。</p>
+<p>即使在简单的机器学习问题中，也有很多可能出错的地方。例如，当学习器不收敛、内存耗尽，或由于底层数据的问题而以错误终止时。一个常见的问题是：当测试数据中出现了训练数据中不存在的因子水平（factor level）时，学习器会失败——因为针对这些新的因子水平没有训练过权重/系数，模型在这种情况下就会出错：</p>
+<div class="cell">
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_pen</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"penguins"</span><span class="op">)</span></span>
+<span><span class="co"># 移除含缺失值的行</span></span>
+<span><span class="va">tsk_pen</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="va">tsk_pen</span><span class="op">$</span><span class="va">row_ids</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/stats/complete.cases.html">complete.cases</a></span><span class="op">(</span><span class="va">tsk_pen</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co"># 创建自定义重采样：测试数据中含新的因子水平</span></span>
+<span><span class="va">rsmp_custom</span> <span class="op">=</span> <span class="fu">rsmp</span><span class="op">(</span><span class="st">"custom"</span><span class="op">)</span></span>
+<span><span class="va">rsmp_custom</span><span class="op">$</span><span class="fu">instantiate</span><span class="op">(</span><span class="va">tsk_pen</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">tsk_pen</span><span class="op">$</span><span class="va">row_ids</span><span class="op">[</span><span class="va">tsk_pen</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">island</span> <span class="op">!=</span> <span class="st">"Torgersen"</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">tsk_pen</span><span class="op">$</span><span class="va">row_ids</span><span class="op">[</span><span class="va">tsk_pen</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">island</span> <span class="op">==</span> <span class="st">"Torgersen"</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">msr_ce</span> <span class="op">=</span> <span class="fu">msr</span><span class="op">(</span><span class="st">"classif.ce"</span><span class="op">)</span></span>
+<span><span class="va">tnr_random</span> <span class="op">=</span> <span class="fu">tnr</span><span class="op">(</span><span class="st">"random_search"</span><span class="op">)</span></span>
+<span><span class="va">learner</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.lda"</span>, method <span class="op">=</span> <span class="st">"t"</span>, nu <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="fl">3</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">tune</span><span class="op">(</span><span class="va">tnr_random</span>, <span class="va">tsk_pen</span>, <span class="va">learner</span>, <span class="va">rsmp_custom</span>, <span class="va">msr_ce</span>, <span class="fl">10</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `lda.default()`:
+! variable 6 appears to be constant within groups</code></pre>
+</div>
+</div>
+<p>在上面的例子中，我们可以看到调优过程中断了，我们丢失了关于超参数优化过程的所有信息。在嵌套重采样（nested resampling）或基准测试（benchmarking）中，这种情况更糟，因为错误可能导致我们在多个配置、甚至多个学习器和任务上的所有进度都丢失。</p>
+<p>封装（Encapsulation，见<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-encapsulation" class="quarto-xref"><span>第 10.2.1 节</span></a>）允许隔离并处理错误，而不会中断调优过程。我们可以通过 <code>$encapsulate()</code> 方法告知学习器封装错误，如下所示：</p>
+<div class="cell">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">learner</span><span class="op">$</span><span class="fu">encapsulate</span><span class="op">(</span>method <span class="op">=</span> <span class="st">"evaluate"</span>, fallback <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.featureless"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>请注意，传入 <code>"evaluate"</code> 即告知学习器在训练和预测两个阶段都建立封装（其他封装选项见 <a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-error-handling" class="quarto-xref"><span>第 10.2 节</span></a>）。</p>
+<p>另一个 HPO 中难以轻易解决的常见问题是学习器不收敛，进程无限期地运行下去。我们可以通过设置学习器的 <code>timeout</code> 字段来防止这种情况发生——该字段指示学习器在运行达到该时长（以秒为单位）时停止。同样，训练和预测的时限可以分别设置：</p>
+<div class="cell">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">learner</span><span class="op">$</span><span class="va">timeout</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>train <span class="op">=</span> <span class="fl">30</span>, predict <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>现在，如果发生错误或达到模型超时阈值，学习器不会中断，而是在发现错误时不进行预测，对于出错的重采样迭代，结果为 <code>NA</code>。当这种情况发生时，由于我们无法跨重采样迭代聚合结果，超参数优化实验将会失败。因此，选择一个回退学习器（Fallback Learner，见<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-fallback" class="quarto-xref"><span>第 10.2.2 节</span></a>）至关重要——回退学习器是在目标学习器失败时将拟合的学习器。</p>
+<p>一种常见做法是使用无特征基线（featureless baseline，<code>lrn("regr.featureless")</code> 或 <code>lrn("classif.featureless")</code>）。我们使用 <code>lrn("classif.featureless")</code>，它总是预测众数类别。</p>
+<p>现在我们可以运行实验，并在归档（archive）中查看调优期间发生的错误。</p>
+<div class="cell">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">instance</span> <span class="op">=</span> <span class="fu">tune</span><span class="op">(</span><span class="va">tnr_random</span>, <span class="va">tsk_pen</span>, <span class="va">learner</span>, <span class="va">rsmp_custom</span>, <span class="va">msr_ce</span>,</span>
+<span>  <span class="fl">10</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">as.data.table</span><span class="op">(</span><span class="va">instance</span><span class="op">$</span><span class="va">archive</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="fu">.</span><span class="op">(</span><span class="va">df</span>, <span class="va">classif.ce</span>, <span class="va">errors</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>              df classif.ce errors
+1: &lt;function[1]&gt;          1      1
+2: &lt;function[1]&gt;          1      1
+3: &lt;function[1]&gt;          1      1</code></pre>
+</div>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># 阅读第一个重采样结果中的错误</span></span>
+<span><span class="va">instance</span><span class="op">$</span><span class="va">archive</span><span class="op">$</span><span class="fu">resample_result</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">$</span><span class="va">errors</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   iteration                                       condition
+1:         1 variable 6 appears to be constant within groups</code></pre>
+</div>
+</div>
+<p>学习器在没有中断的情况下完成了调优，因为错误被封装并记录了下来，然后用回退学习器进行了拟合和预测：</p>
+<div class="cell">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">instance</span><span class="op">$</span><span class="va">result</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   nu learner_param_vals  x_domain classif.ce
+1:  9          &lt;list[2]&gt; &lt;list[1]&gt;          1</code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>这里的「学习器失败」场景在真实数据分析中非常常见：测试/验证集中出现了训练集从未见到的类别水平，例如训练时 <code>island</code> 变量只有两个取值、而验证集出现了第三个岛名。对线性判别分析（LDA）这类需要为每个因子水平估计系数的模型来说，这会导致无法预测。用 <code>$encapsulate(method = "evaluate", fallback = ...)</code> 之后，出错的那次迭代会被记录、并使用回退学习器补预测，最终调优仍能给出总体结果；而若不做封装，整个 <code>tune()</code> 会直接崩溃。折中的代价是：出错迭代的性能值来自回退模型而不是真正的学习器，解读结果时要留意日志中的 <code>errors</code> 列。</p>
+</div>
+</section><section id="sec-memory-management" class="level3" data-number="5.1.2"><h3 data-number="5.1.2" class="anchored" data-anchor-id="sec-memory-management">
+<span class="header-section-number">5.1.2</span> 内存管理（Memory Management）</h3>
+<p>运行大型调优实验会消耗大量内存，尤其是使用嵌套重采样时。大部分内存被模型占用，因为每次重采样迭代都会创建一个新模型。因此，默认情况下存储模型是被禁用的，而且在大多数情况下也没有必要。函数 <a href="https://mlr3tuning.mlr-org.com/reference/ti.html"><code>ti()</code></a> 和 <a href="https://mlr3tuning.mlr-org.com/reference/auto_tuner.html"><code>auto_tuner()</code></a> 中的 <code>store_models</code> 选项允许我们启用模型的存储。</p>
+<p>归档为每个被评估的超参数配置存储一个 <a href="https://mlr3.mlr-org.com/reference/ResampleResult.html"><code>ResampleResult</code></a>。其中包含的 <a href="https://mlr3.mlr-org.com/reference/Prediction.html"><code>Prediction</code></a> 对象也可能占用大量内存，尤其是当数据集很大、重采样迭代很多时。我们可以通过将 <code>store_benchmark_result = FALSE</code> 设置在 <code><a href="https://mlr3tuning.mlr-org.com/reference/ti.html">ti()</a></code> 和 <code><a href="https://mlr3tuning.mlr-org.com/reference/auto_tuner.html">auto_tuner()</a></code> 函数中来禁用重采样结果的存储。注意，没有重采样结果，就无法再用另一个度量给配置打分。</p>
+<p>当我们在外部重采样迭代很多的情况下运行嵌套重采样时，在 <code><a href="https://mlr3tuning.mlr-org.com/reference/auto_tuner.html">auto_tuner()</a></code> 函数中设置 <code>store_tuning_instance = FALSE</code> 可以节省额外的内存。但是，函数 <a href="https://mlr3tuning.mlr-org.com/reference/extract_inner_tuning_results.html"><code>extract_inner_tuning_results()</code></a> 和 <a href="https://mlr3tuning.mlr-org.com/reference/extract_inner_tuning_archives.html"><code>extract_inner_tuning_archives()</code></a> 将不再可用。</p>
+<p>选项 <code>store_models = TRUE</code> 会把 <code>store_benchmark_result</code> 和 <code>store_tuning_instance</code> 都设为 <code>TRUE</code>，因为模型被存储在基准结果中，而基准结果又是实例的一部分。这也意味着 <code>store_benchmark_result = TRUE</code> 会把 <code>store_tuning_instance</code> 设为 <code>TRUE</code>。</p>
+<p>最后，我们可以在 <a href="https://mlr3.mlr-org.com/reference/resample.html"><code>resample()</code></a> 或 <a href="https://mlr3.mlr-org.com/reference/benchmark.html"><code>benchmark()</code></a> 函数中设置 <code>store_models = FALSE</code>，以在运行嵌套重采样时禁用自动调优器（auto tuner）的存储。这样我们仍然可以访问聚合性能（<code>rr$aggregate()</code>），但会丢失关于内部重采样的信息。</p>
+</section></section><section id="sec-multi-metrics-tuning" class="level2 page-columns page-full" data-number="5.2"><h2 data-number="5.2" class="anchored" data-anchor-id="sec-multi-metrics-tuning">
+<span class="header-section-number">5.2</span> 多目标调优（Multi-Objective Tuning）</h2>
+<p>到目前为止，我们都只考虑了针对一个度量来优化模型，但多准则（multi-criteria），即多目标优化（multi-objective optimization），也是可行的。多目标优化的一个简单例子是优化一个分类器，使其同时最大化真阳性（true positive）预测并最小化假阴性（false negative）预测。另一个例子：考虑一个单目标问题——调优神经网络以最小化分类误差。性能最好的模型很可能是相当复杂的，可能有多个层，这会带来诸如在资源受限的设备上难以部署等缺点。在这种情况下，我们可能希望同时最小化分类误差和模型复杂度。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">多目标（Multi-objective）</span></div></div>
+<p>根据定义，对多个度量的优化意味着这些度量之间会存在竞争（否则我们只会优化其中一个），因此一般来说不存在能同时优化所有度量的<em>单一</em>配置。因此，我们转而关注帕累托最优性（Pareto optimality）这一概念。如果某个超参数配置所得到的模型在所有度量上都不差于另一个配置，并且至少在某一度量上严格更优，那么就说该配置<em>帕累托支配</em>（Pareto-dominate）另一个配置。例如，假设我们为配置 A 和 B 最小化分类误差 CE 和复杂度 CP，其中 CE 分别为 <span class="math inline">\(CE_A\)</span> 和 <span class="math inline">\(CE_B\)</span>，CP 分别为 <span class="math inline">\(CP_A\)</span> 和 <span class="math inline">\(CP_B\)</span>。那么，如果：1）<span class="math inline">\(CE_A \leq CE_B\)</span> 且 <span class="math inline">\(CP_A &lt; CP_B\)</span>；或 2）<span class="math inline">\(CE_A &lt; CE_B\)</span> 且 <span class="math inline">\(CP_A \leq CP_B\)</span>，则 A 帕累托支配 B。所有不被任何其他配置帕累托支配的配置称为<em>帕累托有效</em>（Pareto-efficient）配置，所有这些配置的集合称为<em>帕累托集</em>（Pareto set）。与帕累托集相对应的度量值被称为帕累托前沿（Pareto front）。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">帕累托前沿（Pareto front）</span></div></div>
+<p>多目标超参数优化的目标是找到一组非支配解，使得它们对应的度量值逼近帕累托前沿。我们现在将演示多目标超参数优化：在 <code>tsk("sonar")</code> 上调优一个决策树，目标为分类误差（作为模型性能的度量）和所选特征的数量（作为模型复杂度的度量；在决策树中，所选特征数量可以直接通过计算不同分裂变量的个数得到）。多目标超参数优化的方法学细节可参见 <span class="citation" data-cites="karl2022">Karl et al. (<a href="../references.html#ref-karl2022" role="doc-biblioref">2022</a>)</span> 和 <span class="citation" data-cites="Morales2022">Morales-Hernández, Van Nieuwenhuyse, and Rojas Gonzalez (<a href="../references.html#ref-Morales2022" role="doc-biblioref">2022</a>)</span>。</p>
+<p>我们将调优 <code>cp</code>、<code>minsplit</code> 和 <code>maxdepth</code>：</p>
+<div class="cell">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">learner</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.rpart"</span>, cp <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="fl">1e-04</span>, <span class="fl">1e-1</span><span class="op">)</span>,</span>
+<span>  minsplit <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="fl">2</span>, <span class="fl">64</span><span class="op">)</span>, maxdepth <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="fl">1</span>, <span class="fl">30</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">measures</span> <span class="op">=</span> <span class="fu">msrs</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"classif.ce"</span>, <span class="st">"selected_features"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>由于我们是针对多个度量进行调优，函数 <code><a href="https://mlr3tuning.mlr-org.com/reference/ti.html">ti()</a></code> 会自动创建一个 <a href="https://mlr3tuning.mlr-org.com/reference/TuningInstanceBatchMultiCrit.html"><code>TuningInstanceBatchMultiCrit</code></a>，而不是 <a href="https://mlr3tuning.mlr-org.com/reference/TuningInstanceBatchSingleCrit.html"><code>TuningInstanceBatchSingleCrit</code></a>。下面我们设置 <code>store_models = TRUE</code>，因为所选特征度量需要用到它。</p>
+<div class="cell">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">instance</span> <span class="op">=</span> <span class="fu">ti</span><span class="op">(</span></span>
+<span>  task <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"sonar"</span><span class="op">)</span>,</span>
+<span>  learner <span class="op">=</span> <span class="va">learner</span>,</span>
+<span>  resampling <span class="op">=</span> <span class="fu">rsmp</span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>,</span>
+<span>  measures <span class="op">=</span> <span class="va">measures</span>,</span>
+<span>  terminator <span class="op">=</span> <span class="fu">trm</span><span class="op">(</span><span class="st">"evals"</span>, n_evals <span class="op">=</span> <span class="fl">30</span><span class="op">)</span>,</span>
+<span>  store_models <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">instance</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;TuningInstanceBatchMultiCrit&gt; ───────────────────────────────────────
+• State: Not optimized
+• Objective: &lt;ObjectiveTuningBatch&gt;
+• Search Space:
+         id    class lower upper nlevels
+1:       cp ParamDbl 1e-04   0.1     Inf
+2: maxdepth ParamInt 1e+00  30.0      30
+3: minsplit ParamInt 2e+00  64.0      63
+• Terminator: &lt;TerminatorEvals&gt; (n_evals=30, k=0)</code></pre>
+</div>
+</div>
+<p>然后我们可以像往常一样选择和调优一个调优算法：</p>
+<div class="cell">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tuner</span> <span class="op">=</span> <span class="fu">tnr</span><span class="op">(</span><span class="st">"random_search"</span><span class="op">)</span></span>
+<span><span class="va">tuner</span><span class="op">$</span><span class="fu">optimize</span><span class="op">(</span><span class="va">instance</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>最后，我们检查表现最好的配置，即帕累托集，并可视化对应的估计帕累托前沿（见<a href="#fig-pareto" class="quarto-xref">图&nbsp;<span>5.1</span></a>）。注意，<code>selected_features</code> 度量在折之间取平均，因此归档中的值不一定总是整数。</p>
+<div class="cell">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">instance</span><span class="op">$</span><span class="va">archive</span><span class="op">$</span><span class="fu">best</span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">cp</span>, <span class="va">minsplit</span>, <span class="va">maxdepth</span>, <span class="va">classif.ce</span>,</span>
+<span>  <span class="va">selected_features</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        cp minsplit maxdepth classif.ce selected_features
+1: 0.01091        8       15     0.2400             8.667
+2: 0.03505        5        8     0.2446             6.667
+3: 0.06275       15        1     0.2784             1.000
+4: 0.03671        7        9     0.2446             6.667
+5: 0.03653        4       10     0.2446             6.667
+6: 0.09033       64        1     0.2784             1.000
+7: 0.04139       37        1     0.2784             1.000</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-pareto" class="quarto-float quarto-figure quarto-figure-center anchored" alt="散点图，x 轴为 selected_features，y 轴为 classif.ce。图中约 15 个白点和两个黑点，黑点由一条线相连，位置约在 (1, 0.26) 和 (2.5, 0.25)。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pareto-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/advanced_tuning_methods_and_black_box_optimization_files/figure-html/fig-pareto-1.png" class="img-fluid figure-img" style="width:100.0%" alt="散点图，x 轴为 selected_features，y 轴为 classif.ce。图中约 15 个白点和两个黑点，黑点由一条线相连，位置约在 (1, 0.26) 和 (2.5, 0.25)。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pareto-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;5.1：所选特征与分类误差的帕累托前沿。白点代表已测试的配置，每个黑点单独代表一个帕累托最优配置，所有黑点合在一起代表近似的帕累托前沿。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>从帕累托前沿中决定部署哪些配置由你决定。根据定义，不存在唯一最优配置，因此这可能取决于你的使用场景。例如，如果你更愿意以较高的误差为代价换取较低的复杂度，那么你可能会偏好 <code>selected_features = 1</code> 的配置。</p>
+<p>你可以选择一个配置，并通过 <code>$result_learner_param_vals</code> 将其传给一个学习器进行训练。因此，如果我们想选择第二个配置，可以运行：</p>
+<div class="cell">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">learner</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.rpart"</span><span class="op">)</span></span>
+<span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span> <span class="op">=</span> <span class="va">instance</span><span class="op">$</span><span class="va">result_learner_param_vals</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span></span></code></pre></div>
+</div>
+<p>由于多目标调优需要人工干预来选择配置，目前无法使用 <a href="https://mlr3tuning.mlr-org.com/reference/auto_tuner.html"><code>auto_tuner()</code></a>。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>多目标优化与单目标优化的本质区别在于「最优解」不再是唯一的点，而是一族互不支配的解。帕累托前沿就是这族解在目标空间中的像：沿任一方向改进一个目标，必然以恶化另一个目标为代价。例如本例中，分类误差最小时（0.24）需要约 8.7 个特征；若希望只用 1 个特征，误差就要上升到 0.278。图中黑点构成的折线正是这种权衡的可视化。工程实践中并不存在「免费午餐」——最终选哪个点要做业务决策（例如可解释性、部署成本、硬件限制）。这正是「帕累托集/前沿」一词并列出现的原因：集合在参数空间，前沿在目标空间。</p>
+</div>
+</section><section id="sec-hyperband" class="level2 page-columns page-full" data-number="5.3"><h2 data-number="5.3" class="anchored" data-anchor-id="sec-hyperband">
+<span class="header-section-number">5.3</span> 通过超带进行多保真度调优（Multi-Fidelity Tuning via Hyperband）</h2>
+<p>越来越大的数据集、搜索空间，以及越来越复杂的模型，使得超参数优化成为一项耗时且计算代价高昂的任务。为了应对这一问题，一些 HPO 方法利用在多个保真度水平（fidelity level）上评估配置的做法。多保真度 HPO 背后的动机是：低保真度模型的性能可以指示全保真度模型的性能，因此可以用它来使 HPO 更高效（我们很快会在超带中看到这一点）。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">多保真度 HPO（Multi-fidelity HPO）</span></div></div>
+<p>为了解释这些术语的含义并说明多保真度调优的动机，假设我们认为一个最多 1000 轮的梯度提升算法将非常适合我们的训练数据。但是，我们担心这个模型的调优和训练耗时太长。因此，我们想用一个训练更快的相似模型（设置更少的轮数）来估测这个模型的性能。在这个例子中，控制轮数的超参数就是<em>保真度参数</em>（fidelity parameter），因为它控制着模型性能与速度之间的权衡。该参数的不同配置被称为<em>保真度水平</em>。我们把有 1000 轮的模型称为处于<em>全保真度</em>（full-fidelity）的模型，并希望用不同保真度水平的模型来逼近它的性能。较低的保真度水平会产生训练更快的低保真度模型，但可能对全保真度模型的性能预测不佳。另一方面，较高的保真度水平会产生训练较慢的高保真度模型，但可能更好地指示全保真度模型的性能。</p>
+<p>其他具有天然保真度参数的常见模型包括神经网络（轮数 epochs）和随机森林（树的数目）。在任何算法运行前对数据进行子采样的比例，也可以看作是与模型无关的保真度参数，我们将在 <a href="../chapter8/non-sequential_pipelines_and_tuning.html#sec-hyperband-example-svm" class="quarto-xref"><span>第 8.4.4 节</span></a> 中回到这一点。</p><section id="hyperband-and-successive-halving" class="level3" data-number="5.3.1"><h3 data-number="5.3.1" class="anchored" data-anchor-id="hyperband-and-successive-halving">
+<span class="header-section-number">5.3.1</span> 超带与连续减半（Hyperband and Successive Halving）</h3>
+<p>一种流行的多保真度 HPO 算法是<em>超带</em>（Hyperband）<span class="citation" data-cites="li_2018">(<a href="../references.html#ref-li_2018" role="doc-biblioref">Li et al. 2018</a>)</span>。在低保真度下评估了随机采样的配置之后，超带迭代地将更多资源分配给有希望的配置，并提前终止表现不佳的配置。超带建立在 <span class="citation" data-cites="jamieson_2016">Jamieson and Talwalkar (<a href="../references.html#ref-jamieson_2016" role="doc-biblioref">2016</a>)</span> 提出的连续减半（Successive Halving）算法之上。连续减半算法需要初始化起始配置的数量 <span class="math inline">\(m_0\)</span>、每个阶段丢弃配置的比例 <span class="math inline">\(\eta\)</span>、以及单次评估的最小预算（budget，即保真度）<span class="math inline">\(r{_{0}}\)</span> 和最大预算 <span class="math inline">\(r{_{max}}\)</span>。算法首先采样 <span class="math inline">\(m_0\)</span> 个随机配置，并为它们分配最小预算 <span class="math inline">\(r{_{0}}\)</span>。评估这些配置后，丢弃表现最差的 <span class="math inline">\(\frac{\eta - 1}{\eta}\)</span> 比例的配置。剩余配置被提升到下一阶段（即下一个「括号」bracket），并用更大的预算进行评估。这个过程持续进行，直到一个或多个配置在最大预算 <span class="math inline">\(r{_{max}}\)</span> 下被评估，然后选择表现最好的配置。总阶段数是这样计算的：让每个阶段消耗大约相同的总预算。该方法的一大缺点是：尚不清楚是应该从大量配置（大的 <span class="math inline">\(m_0\)</span>）和较小预算开始更好，还是从较少配置（小的 <span class="math inline">\(m_0\)</span>）但更大预算开始更好。</p>
+<p>超带通过在不同预算水平 <span class="math inline">\(r_{0}\)</span> 下运行具有不同起始配置数量的连续减半来解决这个问题。算法使用相同的 <span class="math inline">\(\eta\)</span> 和 <span class="math inline">\(r_{max}\)</span> 参数进行初始化（但不使用 <span class="math inline">\(m_0\)</span>）。每个括号都以不同的预算 <span class="math inline">\(r_0\)</span> 开始，其中较小的值意味着可以评估更多的配置，因此探索性最强的括号（即阶段数最多的那个）被分配全局最小预算 <span class="math inline">\(r_{min}\)</span>。在每个括号中，起始预算按 <span class="math inline">\(\eta\)</span> 的因子递增，直到最后一个括号本质上是用全预算 <span class="math inline">\(r_{max}\)</span> 进行随机搜索。总括号数 <span class="math inline">\(s_{max} + 1\)</span> 计算为 <span class="math inline">\(s_{max} = {\log_\eta \frac{r_{max}}{r_{min}}}\)</span>。每个括号的起始配置数 <span class="math inline">\(m_0\)</span> 是这样计算的：每个括号使用大约相同的预算量。每个括号中的最优超参数配置是该括号最后阶段表现最好的配置。调优结束时全局的最优超参数配置，是所有括号中表现最好的配置。</p>
+<p><a href="#tbl-hyperband" class="quarto-xref">表&nbsp;<span>5.1</span></a> 给出了一个超带调度的示例，其中 <span class="math inline">\(s = 3\)</span> 是探索性最强的括号，而 <span class="math inline">\(s = 0\)</span> 本质上是用全预算进行随机搜索。<a href="#tbl-hyperband-eg" class="quarto-xref">表&nbsp;<span>5.2</span></a> 展示了如果我们调优 20 个不同的超参数配置，这个调度看起来是什么样子；注意表中每个条目都是一个唯一 ID，指代一个由多个待调优超参数组成的可能配置。</p>
+<div id="tbl-hyperband" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-hyperband-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+表&nbsp;5.1：超带调度，给出当 <span class="math inline">\(\eta = 2\)</span>、<span class="math inline">\(r{_{min}} = 1\)</span> 且 <span class="math inline">\(r{_{max}} = 8\)</span> 时，每个括号 <span class="math inline">\(s\)</span> 和阶段 <span class="math inline">\(i\)</span> 对应的配置数 <span class="math inline">\(m_{i}\)</span> 与资源 <span class="math inline">\(r_{i}\)</span>。
+</figcaption><div aria-describedby="tbl-hyperband-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 10%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th colspan="2"><span class="math inline">\(s = 3\)</span></th>
+<th colspan="2"><span class="math inline">\(s = 2\)</span></th>
+<th colspan="2"><span class="math inline">\(s = 1\)</span></th>
+<th colspan="2"><span class="math inline">\(s = 0\)</span></th>
+</tr>
+<tr class="even">
+<th><span class="math inline">\(i\)</span></th>
+<th><span class="math inline">\(m_{i}\)</span></th>
+<th><span class="math inline">\(r_{i}\)</span></th>
+<th><span class="math inline">\(m_{i}\)</span></th>
+<th><span class="math inline">\(r_{i}\)</span></th>
+<th><span class="math inline">\(m_{i}\)</span></th>
+<th><span class="math inline">\(r_{i}\)</span></th>
+<th><span class="math inline">\(m_{i}\)</span></th>
+<th><span class="math inline">\(r_{i}\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>8</td>
+<td>1</td>
+<td>6</td>
+<td>2</td>
+<td>4</td>
+<td>4</td>
+<td>4</td>
+<td>8</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>4</td>
+<td>2</td>
+<td>3</td>
+<td>4</td>
+<td>2</td>
+<td>8</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td>2</td>
+<td>4</td>
+<td>1</td>
+<td>8</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>3</td>
+<td>1</td>
+<td>8</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<div id="tbl-hyperband-eg" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-hyperband-eg-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+表&nbsp;5.2：根据 <a href="#tbl-hyperband" class="quarto-xref">表&nbsp;<span>5.1</span></a> 的调度，处于每个阶段和括号中的超参数配置。条目是已测试超参数配置（HPC）的唯一标识符。<span class="math inline">\(HPC^*_s\)</span> 是括号 <span class="math inline">\(s\)</span> 中的最优超参数配置，<span class="math inline">\(HPC^*\)</span> 是所有括号中的最优超参数配置。
+</figcaption><div aria-describedby="tbl-hyperband-eg-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 5%">
+<col style="width: 23%">
+<col style="width: 23%">
+<col style="width: 23%">
+<col style="width: 23%">
+</colgroup>
+<thead><tr class="header">
+<th></th>
+<th><span class="math inline">\(s = 3\)</span></th>
+<th><span class="math inline">\(s = 2\)</span></th>
+<th><span class="math inline">\(s = 1\)</span></th>
+<th><span class="math inline">\(s = 0\)</span></th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(i = 0\)</span></td>
+<td><span class="math inline">\(\{1, 2, 3, 4, 5, 6, 7, 8\}\)</span></td>
+<td><span class="math inline">\(\{9, 10, 11, 12, 13, 14\}\)</span></td>
+<td><span class="math inline">\(\{15, 16, 17, 18\}\)</span></td>
+<td><span class="math inline">\(\{19, 20, 21, 22\}\)</span></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(i = 1\)</span></td>
+<td><span class="math inline">\(\{1, 2, 7, 8\}\)</span></td>
+<td><span class="math inline">\(\{9, 14, 15\}\)</span></td>
+<td><span class="math inline">\(\{20, 21\}\)</span></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(i = 2\)</span></td>
+<td><span class="math inline">\(\{1, 8\}\)</span></td>
+<td><span class="math inline">\(\{15\}\)</span></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(i = 3\)</span></td>
+<td><span class="math inline">\(\{1\}\)</span></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(HPC^*_s\)</span></td>
+<td><span class="math inline">\(\{1\}\)</span></td>
+<td><span class="math inline">\(\{15\}\)</span></td>
+<td><span class="math inline">\(\{21\}\)</span></td>
+<td><span class="math inline">\(\{22\}\)</span></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(HPC^*\)</span></td>
+<td><span class="math inline">\(\{15\}\)</span></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>理解超带的关键是「预算」与「括号」这两个概念。预算指单次评估所能消耗的资源（如 XGBoost 的轮数、神经网络的 epoch 数），括号则对应一组连续减半过程的运行。表 5.1 中，当 <span class="math inline">\(\eta = 2\)</span> 时每进入下一阶段，配置数减半而预算倍增：<span class="math inline">\(s = 3\)</span> 括号从 8 个配置、每配置预算 1 开始，逐轮淘汰，最终留下 1 个配置用满预算 8 评估。与普通连续减半相比，超带的核心改进是不再需要人为决定「初始配置数 vs 初始预算」的取舍：它一次性并行运行多个不同初始预算的括号，既能充分探索（小预算、多配置），也能精细利用（大预算、少配置）。最后在跨括号比较时，表 5.2 中 <span class="math inline">\(HPC^* = \{15\}\)</span> 恰来自 <span class="math inline">\(s = 2\)</span> 而非全预算的 <span class="math inline">\(s = 1\)</span> 或 <span class="math inline">\(s = 0\)</span>，这正说明多括号同时进行是有价值的。</p>
+</div>
+</section><section id="mlr3hyperband" class="level3" data-number="5.3.2"><h3 data-number="5.3.2" class="anchored" data-anchor-id="mlr3hyperband">
+<span class="header-section-number">5.3.2</span> mlr3hyperband</h3>
+<p>连续减半和超带算法在 <a href="https://mlr3hyperband.mlr-org.com"><code>mlr3hyperband</code></a> 中分别实现为 <code>tnr("successive_halving")</code> 和 <code>tnr("hyperband")</code>；在本节中，我们只演示超带方法。</p>
+<p>通过例子，我们将在 <code>tsk("sonar")</code> 上优化 <code>lrn("classif.xgboost")</code>，并使用提升迭代数（<code>nrounds</code>）作为保真度参数——这是一个合适的选择，因为增加迭代次数会增加模型训练时间，但通常也会提升性能。超带会将越来越多的提升迭代分配给表现良好的超参数配置。</p>
+<p>我们将加载学习器并定义搜索空间。我们指定从 16（<span class="math inline">\(r_{min}\)</span>）到 128（<span class="math inline">\(r_{max}\)</span>）轮提升迭代的范围，并用 <code>"budget"</code> 标记该参数，以将其标识为保真度参数。对于其他超参数，我们采用来自 <span class="citation" data-cites="hpo_practical">Bischl et al. (<a href="../references.html#ref-hpo_practical" role="doc-biblioref">2023</a>)</span> 的 XGBoost 搜索空间，它通常对广泛的数据集都能良好工作。</p>
+<div class="cell">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3hyperband.mlr-org.com">mlr3hyperband</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">learner</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.xgboost"</span><span class="op">)</span></span>
+<span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">set_values</span><span class="op">(</span></span>
+<span>  nrounds           <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="fu">p_int</span><span class="op">(</span><span class="fl">16</span>, <span class="fl">128</span>, tags <span class="op">=</span> <span class="st">"budget"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  eta               <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="fl">1e-4</span>, <span class="fl">1</span>, logscale <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>  max_depth         <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="fl">1</span>, <span class="fl">20</span><span class="op">)</span>,</span>
+<span>  colsample_bytree  <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="fl">1e-1</span>, <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  colsample_bylevel <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="fl">1e-1</span>, <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  lambda            <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="fl">1e-3</span>, <span class="fl">1e3</span>, logscale <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>  alpha             <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="fl">1e-3</span>, <span class="fl">1e3</span>, logscale <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>  subsample         <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="fl">1e-1</span>, <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>现在我们构造调优实例和一个 <code>eta = 2</code> 的超带调优器。我们使用 <code>trm("none")</code> 并将 <code>repetitions</code> 控制参数设为 <code>1</code>，这样超带可以在所有括号都评估一次之后自行终止。注意，如果你想用一个终止器（例如基于运行时间）来停止优化，设置 <code>repetition = Inf</code> 可能很有用。<a href="https://mlr3hyperband.mlr-org.com/reference/hyperband_schedule.html"><code>hyperband_schedule()</code></a> 函数可以用来显示在给定保真度水平和预算增长因子下的调度。</p>
+<div class="cell">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">instance</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3tuning.mlr-org.com/reference/ti.html">ti</a></span><span class="op">(</span></span>
+<span>  task <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"sonar"</span><span class="op">)</span>,</span>
+<span>  learner <span class="op">=</span> <span class="va">learner</span>,</span>
+<span>  resampling <span class="op">=</span> <span class="fu">rsmp</span><span class="op">(</span><span class="st">"holdout"</span><span class="op">)</span>,</span>
+<span>  measures <span class="op">=</span> <span class="fu">msr</span><span class="op">(</span><span class="st">"classif.ce"</span><span class="op">)</span>,</span>
+<span>  terminator <span class="op">=</span> <span class="fu"><a href="https://bbotk.mlr-org.com/reference/trm.html">trm</a></span><span class="op">(</span><span class="st">"none"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">tuner</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3tuning.mlr-org.com/reference/tnr.html">tnr</a></span><span class="op">(</span><span class="st">"hyperband"</span>, eta <span class="op">=</span> <span class="fl">2</span>, repetitions <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://mlr3hyperband.mlr-org.com/reference/hyperband_schedule.html">hyperband_schedule</a></span><span class="op">(</span>r_min <span class="op">=</span> <span class="fl">16</span>, r_max <span class="op">=</span> <span class="fl">128</span>, eta <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    bracket stage budget n
+ 1:       3     0     16 8
+ 2:       3     1     32 4
+ 3:       3     2     64 2
+ 4:       3     3    128 1
+ 5:       2     0     32 6
+ 6:       2     1     64 3
+ 7:       2     2    128 1
+ 8:       1     0     64 4
+ 9:       1     1    128 2
+10:       0     0    128 4</code></pre>
+</div>
+</div>
+<p>最后，我们可以像平常一样进行调优，并打印结果和归档。注意，超带运行产生的归档包含额外的 <code>bracket</code> 和 <code>stage</code> 列，它们将结果按相应的括号和阶段分解。</p>
+<div class="cell">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tuner</span><span class="op">$</span><span class="fu">optimize</span><span class="op">(</span><span class="va">instance</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    alpha colsample_bylevel colsample_bytree    eta lambda max_depth
+1: -1.307            0.4349           0.6609 -2.008  -2.05         3
+5 variables not shown: [nrounds, subsample, learner_param_vals, x_domain, classif.ce]</code></pre>
+</div>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">instance</span><span class="op">$</span><span class="va">result</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">classif.ce</span>, <span class="va">nrounds</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   classif.ce nrounds
+1:     0.1739      64</code></pre>
+</div>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">as.data.table</span><span class="op">(</span><span class="va">instance</span><span class="op">$</span><span class="va">archive</span><span class="op">)</span><span class="op">[</span>,</span>
+<span>  <span class="fu">.</span><span class="op">(</span><span class="va">bracket</span>, <span class="va">stage</span>, <span class="va">classif.ce</span>, <span class="va">eta</span>, <span class="va">max_depth</span>, <span class="va">colsample_bytree</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    bracket stage classif.ce     eta max_depth colsample_bytree
+ 1:       3     0     0.5072 -7.9211         9           0.9664
+ 2:       3     0     0.5072 -0.8478        10           0.6809
+ 3:       3     0     0.3043 -3.9656        15           0.1551
+ 4:       3     0     0.4203 -4.1605        19           0.4690
+ 5:       3     0     0.5072 -8.1343        13           0.4833
+---                                                            
+31:       0     0     0.5072 -8.1458        15           0.3877
+32:       3     3     0.1739 -2.0081         3           0.6609
+33:       2     2     0.2319 -3.3023        12           0.4068
+34:       1     1     0.2754 -4.0957         7           0.7380
+35:       1     1     0.2899 -3.1389         2           0.9027</code></pre>
+</div>
+</div>
+</section></section><section id="sec-bayesian-optimization" class="level2 page-columns page-full" data-number="5.4"><h2 data-number="5.4" class="anchored" data-anchor-id="sec-bayesian-optimization">
+<span class="header-section-number">5.4</span> 贝叶斯优化（Bayesian Optimization）</h2>
+<p>在本节中，我们将深入探讨贝叶斯优化（Bayesian Optimization，BO），也称为基于模型的优化（Model Based Optimization，MBO）。BO 的设计比我们到目前为止看到的其他调优方法更复杂，因此为了帮助说明动机，本节我们将在理论与方法上花费更多的时间。</p>
+<p>在超参数优化（<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>）中，学习器被传入一个超参数配置，并通过重采样技术在给定任务上进行评估，以估计其泛化性能，目标是找到最优的超参数配置。一般来说，超参数配置到性能的映射不存在解析描述，梯度信息也不可得。因此，HPO 是黑箱优化（black box optimization）的典型例子——黑箱优化考虑的函数的数学结构与解析描述是未知的或不可利用的。因此，唯一可观测的信息是给定输入值（即超参数配置）时函数的输出值（即泛化性能）。事实上，由于评估一个学习器的性能可能花费大量时间，HPO 是一个相当昂贵的黑箱优化问题。黑箱优化问题在现实世界中广泛存在，例如在工程中经常遇到：诸如碰撞测试或化学反应等模拟实验就属于这一类。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">黑箱优化（Black Box Optimization）</span></div></div>
+<p>存在许多可用于黑箱优化的优化算法类，它们在处理此问题的方式上各不相同；例如我们在<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>中看到了网格/随机搜索等方法，并简要讨论了进化策略（evolutionary strategies）。贝叶斯优化指的是一类样本高效（sample-efficient）的迭代式全局黑箱优化算法，它们依赖在观测数据上训练的「代理模型」（surrogate model）来建模黑箱函数。该代理模型通常是一个非线性回归模型，试图在有限观测数据下刻画未知函数。在每次迭代中，BO 算法都使用「采集函数」（acquisition function）来确定下一个待评估的候选点。该函数基于代理模型的预测来度量搜索空间中每个点的期望「效用」（utility）。算法随后选择采集函数值最好的候选点，在该点评估黑箱函数，然后更新代理模型。这个迭代过程持续进行，直到满足某个终止标准，例如达到预设的最大评估次数或达到期望的性能水平。BO 是一种强大的方法，通常能得到良好的优化性能，尤其是在黑箱评估成本昂贵且优化预算紧张的情况下。</p>
+<p>在本节剩余部分，我们将首先通过 <a href="https://bbotk.mlr-org.com"><code>bbotk</code></a> 包介绍黑箱优化，然后介绍 BO 算法的构成模块，考察它们在优化过程中的相互作用，之后我们用 <a href="https://mlr3mbo.mlr-org.com"><code>mlr3mbo</code></a> 将这些构建模块组装成一个现成可用的黑箱优化器。主要对如何利用 BO 做 HPO 感兴趣、而不想深究底层构建模块的读者，可以跳到 <a href="#sec-bayesian-tuning" class="quarto-xref"><span>第 5.4.4 节</span></a>。黑箱优化和 BO 的详细介绍见 <span class="citation" data-cites="hpo_practical">Bischl et al. (<a href="../references.html#ref-hpo_practical" role="doc-biblioref">2023</a>)</span>、<span class="citation" data-cites="hpo_automl">Feurer and Hutter (<a href="../references.html#ref-hpo_automl" role="doc-biblioref">2019</a>)</span> 和 <span class="citation" data-cites="garnett_2022">Garnett (<a href="../references.html#ref-garnett_2022" role="doc-biblioref">2022</a>)</span>。</p>
+<p>作为本节贯穿始末的运行示例，我们将优化正弦函数 <span class="math inline">\(f: [0, 1] \rightarrow \mathbb{R}, x \mapsto 2x * \sin(14x)\)</span>（见<a href="#fig-bayesian-optimization-sinusoidal" class="quarto-xref">图&nbsp;<span>5.2</span></a>），该函数具有两个局部最小值和一个全局最小值。</p>
+<section id="sec-black-box-optimization" class="level3 page-columns page-full" data-number="5.4.1"><h3 data-number="5.4.1" class="anchored" data-anchor-id="sec-black-box-optimization">
+<span class="header-section-number">5.4.1</span> 黑箱优化（Black Box Optimization）</h3>
+<p><a href="https://bbotk.mlr-org.com"><code>bbotk</code></a>（black box optimization toolkit，黑箱优化工具箱）包是 <code>mlr3</code> 生态系统中通用黑箱优化的主力包。该包的核心是以下 R6 类：</p>
+<ul>
+<li>
+<a href="https://bbotk.mlr-org.com/reference/OptimInstanceBatchSingleCrit.html"><code>OptimInstanceBatchSingleCrit</code></a> 和 <a href="https://bbotk.mlr-org.com/reference/OptimInstanceBatchMultiCrit.html"><code>OptimInstanceBatchMultiCrit</code></a>，用于构造描述优化问题并存储结果的优化实例（optimization instance）
+</li>
+<li>
+<a href="https://bbotk.mlr-org.com/reference/OptimizerBatch.html"><code>OptimizerBatch</code></a>，用于构造和配置优化算法。
+</li>
+</ul>
+<div class="no-row-height column-margin column-container"><span class="margin-aside">优化实例（Optimization Instance）</span></div><p>在阅读了<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>之后，这些类可能看起来很眼熟。事实上，<a href="https://mlr3tuning.mlr-org.com/reference/TuningInstanceBatchSingleCrit.html"><code>TuningInstanceBatchSingleCrit</code></a> 和 <a href="https://mlr3tuning.mlr-org.com/reference/TuningInstanceBatchMultiCrit.html"><code>TuningInstanceBatchMultiCrit</code></a> 继承自 <code>OptimInstanceBatchSingle/MultiCrit</code>，而 <a href="https://mlr3tuning.mlr-org.com/reference/TunerBatch.html"><code>TunerBatch</code></a> 紧密地基于 <code>OptimizerBatch</code>。</p>
+<p><code>OptimInstanceBatchSingleCrit</code> 依赖于一个 <a href="https://bbotk.mlr-org.com/reference/Objective.html"><code>Objective</code></a> 函数，它封装了从域（domain，所有可能的函数输入）到余域（codomain，所有可能的函数输出）的实际映射。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>Objective</code></span></div></div>
+<p>目标函数可以使用不同的类来创建，所有这些类都继承自 <a href="https://bbotk.mlr-org.com/reference/Objective.html"><code>Objective</code></a>。这些类提供了定义和评估目标函数的不同方式，选择正确的类会减少类型转换的开销：</p>
+<ul>
+<li>
+<a href="https://bbotk.mlr-org.com/reference/ObjectiveRFun.html"><code>ObjectiveRFun</code></a> 包装一个以列表为输入的函数，该列表描述<em>单个配置</em>，元素可以是任何类型。当底层函数评估机制是每次评估一个配置时，它很适用。
+</li>
+<li>
+<a href="https://bbotk.mlr-org.com/reference/ObjectiveRFunMany.html"><code>ObjectiveRFunMany</code></a> 包装一个以<em>多个配置</em>的列表为输入的函数，元素可以是任何类型甚至混合类型。当多个配置的评估可以并行化时，它很有用。
+</li>
+<li>
+<a href="https://bbotk.mlr-org.com/reference/ObjectiveRFunDt.html"><code>ObjectiveRFunDt</code></a> 包装一个在 <code>data.table</code> 上操作的函数。它允许直接在 <code>data.table</code> 对象上进行高效的向量化或批量评估，避免不必要的数据类型转换。
+</li>
+</ul>
+<p>为了开始将我们的问题转化为代码，我们将使用 <a href="https://bbotk.mlr-org.com/reference/ObjectiveRFun.html"><code>ObjectiveRFun</code></a> 类来接收单个配置作为输入。<code>Objective</code> 需要指定要优化的函数及其域和余域。通过用 <code>"minimize"</code> 或 <code>"maximize"</code> 标记余域，我们指定了优化方向。注意下面我们的优化函数接收一个 <code>list</code> 作为输入，其中只有一个名为 <code>x</code> 的元素。</p>
+<div class="cell">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://bbotk.mlr-org.com">bbotk</a></span><span class="op">)</span></span>
+<span><span class="va">sinus_1D</span> <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">xs</span><span class="op">)</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">xs</span><span class="op">$</span><span class="va">x</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html">sin</a></span><span class="op">(</span><span class="fl">14</span> <span class="op">*</span> <span class="va">xs</span><span class="op">$</span><span class="va">x</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">domain</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span>lower <span class="op">=</span> <span class="fl">0</span>, upper <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">codomain</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span>y <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span>tags <span class="op">=</span> <span class="st">"minimize"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">objective</span> <span class="op">=</span> <span class="va"><a href="https://bbotk.mlr-org.com/reference/ObjectiveRFun.html">ObjectiveRFun</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">sinus_1D</span>,</span>
+<span>  domain <span class="op">=</span> <span class="va">domain</span>, codomain <span class="op">=</span> <span class="va">codomain</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>我们可以通过生成一个点网格并在此网格上评估函数来可视化我们的目标函数（见<a href="#fig-bayesian-optimization-sinusoidal" class="quarto-xref">图&nbsp;<span>5.2</span></a>），这将帮助我们识别其局部最小值和全局最小值。</p>
+<div class="cell">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org">ggplot2</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">xydt</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_grid.html">generate_design_grid</a></span><span class="op">(</span><span class="va">domain</span>, resolution <span class="op">=</span> <span class="fl">1001</span><span class="op">)</span><span class="op">$</span><span class="va">data</span></span>
+<span><span class="va">xydt</span><span class="op">[</span>, <span class="va">y</span> <span class="op">:=</span> <span class="va">objective</span><span class="op">$</span><span class="fu">eval_dt</span><span class="op">(</span><span class="va">xydt</span><span class="op">)</span><span class="op">$</span><span class="va">y</span><span class="op">]</span></span>
+<span><span class="va">optima</span> <span class="op">=</span> <span class="fu">data.table</span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.3509406</span>, <span class="fl">0.7918238</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">optima</span><span class="op">[</span>, <span class="va">y</span> <span class="op">:=</span> <span class="va">objective</span><span class="op">$</span><span class="fu">eval_dt</span><span class="op">(</span><span class="va">optima</span><span class="op">)</span><span class="op">$</span><span class="va">y</span><span class="op">]</span></span>
+<span><span class="va">optima</span><span class="op">[</span>, <span class="va">type</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"local"</span>, <span class="st">"local"</span>, <span class="st">"global"</span><span class="op">)</span><span class="op">]</span></span>
+<span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, y <span class="op">=</span> <span class="va">y</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">xydt</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>pch <span class="op">=</span> <span class="va">type</span><span class="op">)</span>, color <span class="op">=</span> <span class="st">"black"</span>, size <span class="op">=</span> <span class="fl">4</span>, data <span class="op">=</span> <span class="va">optima</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-bayesian-optimization-sinusoidal" class="quarto-float quarto-figure quarto-figure-center anchored" alt="折线图，x 轴从 (0,1) 到 y 轴从 (-2,2)，分别标记为 'x' 和 'y'。该线从 (0,0) 处的局部最小值开始，上升后在 (0.35,-0.69) 附近有一个局部最小值，然后函数上升又下降到约 (0.79, -1.56) 处的全局最小值。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-bayesian-optimization-sinusoidal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/advanced_tuning_methods_and_black_box_optimization_files/figure-html/fig-bayesian-optimization-sinusoidal-1.png" class="img-fluid figure-img" style="width:100.0%" alt="折线图，x 轴从 (0,1) 到 y 轴从 (-2,2)，分别标记为 'x' 和 'y'。该线从 (0,0) 处的局部最小值开始，上升后在 (0.35,-0.69) 附近有一个局部最小值，然后函数上升又下降到约 (0.79, -1.56) 处的全局最小值。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bayesian-optimization-sinusoidal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;5.2：正弦函数的可视化。局部最小值用三角形表示，全局最小值用圆圈表示。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>全局最小点 0.792 对应域中函数值最低的点：</p>
+<div class="cell">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">xydt</span><span class="op">[</span><span class="va">y</span> <span class="op">==</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span>, <span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       x      y
+1: 0.792 -1.577</code></pre>
+</div>
+</div>
+<p>定义了目标函数之后，我们可以继续使用 <code>OptimInstanceBatchSingleCrit</code> 来优化它。该类允许我们包装目标函数并显式地指定搜索空间。搜索空间定义了我们想要优化的输入值的集合，它通常是域的子集或变换，虽然默认情况下整个域被当作搜索空间。在黑箱优化中，域（也因此包括搜索空间）通常具有有限的箱式约束（box constraints）。与 HPO 类似，变换有时可以用来更高效地搜索空间（<a href="../chapter4/hyperparameter_optimization.html#sec-logarithmic-transformations" class="quarto-xref"><span>第 4.1.5 节</span></a>）。</p>
+<p>在下文中，我们使用简单的随机搜索在整个域上优化正弦函数，并以通常的方式检查 <code>instance</code> 的结果（<a href="../chapter4/hyperparameter_optimization.html#sec-tuner" class="quarto-xref"><span>第 4.1.4 节</span></a>）。优化实例用 <a href="https://bbotk.mlr-org.com/reference/oi.html"><code>oi()</code></a> 函数构造。与调优器类似，<code>bbotk</code> 中的 <code>Optimizer</code> 被储存在 <a href="https://bbotk.mlr-org.com/reference/mlr_optimizers.html"><code>mlr_optimizers</code></a> 字典中，可以用 <a href="https://bbotk.mlr-org.com/reference/opt.html"><code>opt()</code></a> 构造。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://bbotk.mlr-org.com/reference/opt.html">opt()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">instance</span> <span class="op">=</span> <span class="fu"><a href="https://bbotk.mlr-org.com/reference/oi.html">oi</a></span><span class="op">(</span><span class="va">objective</span>,</span>
+<span>  search_space <span class="op">=</span> <span class="va">domain</span>,</span>
+<span>  terminator <span class="op">=</span> <span class="fu"><a href="https://bbotk.mlr-org.com/reference/trm.html">trm</a></span><span class="op">(</span><span class="st">"evals"</span>, n_evals <span class="op">=</span> <span class="fl">20</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">optimizer</span> <span class="op">=</span> <span class="fu"><a href="https://bbotk.mlr-org.com/reference/opt.html">opt</a></span><span class="op">(</span><span class="st">"random_search"</span>, batch_size <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span>
+<span><span class="va">optimizer</span><span class="op">$</span><span class="fu">optimize</span><span class="op">(</span><span class="va">instance</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>类似于我们可以用 <a href="https://mlr3tuning.mlr-org.com/reference/tune.html"><code>tune()</code></a> 构造调优实例，这里我们可以使用 <a href="https://bbotk.mlr-org.com/reference/bb_optimize.html"><code>bb_optimize()</code></a>，它返回一个列表，包含元素 <code>"par"</code>（找到的最佳参数）、<code>"val"</code>（最优结果）和 <code>"instance"</code>（优化实例）；<code>"par"</code> 和 <code>"val"</code> 中给定的值与 <code>instance$result</code> 中找到的值相同：</p>
+<div class="cell">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">optimal</span> <span class="op">=</span> <span class="fu"><a href="https://bbotk.mlr-org.com/reference/bb_optimize.html">bb_optimize</a></span><span class="op">(</span><span class="va">objective</span>, method <span class="op">=</span> <span class="st">"random_search"</span>,</span>
+<span>  max_evals <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span>
+<span><span class="va">optimal</span><span class="op">$</span><span class="va">instance</span><span class="op">$</span><span class="va">result</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        x  x_domain      y
+1: 0.7496 &lt;list[1]&gt; -1.315</code></pre>
+</div>
+</div>
+<p>现在我们已经介绍了基本的黑箱优化设置，可以引入任何贝叶斯优化算法的构建模块了。</p>
+</section><section id="sec-bayesian-optimization-blocks" class="level3 page-columns page-full" data-number="5.4.2"><h3 data-number="5.4.2" class="anchored" data-anchor-id="sec-bayesian-optimization-blocks">
+<span class="header-section-number">5.4.2</span> 贝叶斯优化的构建模块（Building Blocks of Bayesian Optimization）</h3>
+<p>贝叶斯优化（BO）是一种全局优化算法，通常遵循以下流程（见<a href="#fig-optimization-loop" class="quarto-xref">图&nbsp;<span>5.3</span></a>）：</p>
+<ol type="1">
+<li>生成并评估初始设计（initial design）</li>
+<li>循环：
+<ol type="a">
+<li>在所有迄今观测结果的归档上拟合一个代理模型，以建模未知的黑箱函数。</li>
+<li>优化一个采集函数，以确定搜索空间中哪些点是有前景的候选点，应在下一步中被评估。</li>
+<li>评估下一个候选点，并更新所有迄今观测结果的归档。</li>
+<li>检查给定的终止标准是否满足，若未满足则回到 (a)。</li>
+</ol>
+</li>
+</ol>
+<p>采集函数依赖于代理模型的均值与标准差预测，不需要评估真正的黑箱函数，因此优化它相对便宜。一个好的采集函数会平衡两种行为：一是<em>利用</em>（exploiting）已知性能良好且代理模型不确定性低的区域的先验知识；二是<em>探索</em>（exploring）尚未评估点的区域——这些区域的代理模型不确定性较高。</p>
+<p>我们把这些要素称为 BO 的「构建模块」，因为它是一种高度模块化的算法：只要上述结构到位，代理模型、采集函数和采集函数优化器都可以在一定程度上互换。<code>mlr3mbo</code> 的设计反映了这种模块化，其基类 <a href="https://mlr3mbo.mlr-org.com/reference/mlr_optimizers_mbo.html"><code>OptimizerMbo</code></a> 持有所有关键要素：BO 算法循环结构（<a href="https://mlr3mbo.mlr-org.com/reference/loop_function.html"><code>loop_function</code></a>）、<em>代理</em>模型（<a href="https://mlr3mbo.mlr-org.com/reference/Surrogate.html"><code>Surrogate</code></a>）、<em>采集函数</em>（<a href="https://mlr3mbo.mlr-org.com/reference/AcqFunction.html"><code>AcqFunction</code></a>）和<em>采集函数优化器</em>（<a href="https://mlr3mbo.mlr-org.com/reference/AcqOptimizer.html"><code>AcqOptimizer</code></a>）。在本节中，我们将更详细地解释这些构建模块，并探讨它们在优化过程中的相互作用。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-optimization-loop" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图为上述循环的图形化表示，从初始设计到代理模型，然后循环直到达到终止标准。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-optimization-loop-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/mlr3book_figures-10.svg" class="img-fluid figure-img" style="width:80.0%" alt="图为上述循环的图形化表示，从初始设计到代理模型，然后循环直到达到终止标准。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-optimization-loop-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;5.3：贝叶斯优化循环。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>图 5.3 展示了 BO 单次迭代的四要素循环：先出新手村——用随机/LHS/Sobol 等设计生成并评估若干初始点，为后续代理模型积累第一批「观测数据」；随后进入循环：① 用代理模型拟合已知观测，② 在此之上优化采集函数②，③ 评估选出的候选点并归档，④ 判断是否终止。注意代理模型与真实函数是两个不同对象：真实函数昂贵（eval 一次可能要训练一个完整模型），而代理函数便宜，能给出任意输入点的预测均值与不确定性；采集函数则在「均值低（好）」与「不确定性高（值得一试）」之间折中。</p>
+</div>
+<section id="sec-bayesian-optimization-initial" class="level4" data-number="5.4.2.1"><h4 data-number="5.4.2.1" class="anchored" data-anchor-id="sec-bayesian-optimization-initial">
+<span class="header-section-number">5.4.2.1</span> 初始设计（The Initial Design）</h4>
+<p>在拟合代理模型来建模未知黑箱函数之前，我们需要数据。在拟合代理模型之前被评估的初始点集称为初始设计。</p>
+<p><code>mlr3mbo</code> 允许你手动构造初始设计，或者让一个 <a href="https://mlr3mbo.mlr-org.com/reference/loop_function.html"><code>loop_function</code></a> 替你构造并评估它。在本节中，我们将演示第一种方法，它需要更多用户输入，但因此也允许对初始设计有更多控制。</p>
+<p>构造初始设计的一种简单方法，是使用 <a href="https://paradox.mlr-org.com"><code>paradox</code></a> 中的四个设计生成器之一：</p>
+<ul>
+<li>
+<a href="https://paradox.mlr-org.com/reference/generate_design_random.html"><code>generate_design_random()</code></a>：均匀随机地生成点
+</li>
+<li>
+<a href="https://paradox.mlr-org.com/reference/generate_design_grid.html"><code>generate_design_grid()</code></a>：在均匀大小的网格上生成点
+</li>
+<li>
+<a href="https://paradox.mlr-org.com/reference/generate_design_lhs.html"><code>generate_design_lhs()</code></a>：拉丁超立方采样（Latin hypercube sampling）<span class="citation" data-cites="Stein1987">(<a href="../references.html#ref-Stein1987" role="doc-biblioref">Stein 1987</a>)</span>
+</li>
+<li>
+<a href="https://paradox.mlr-org.com/reference/generate_design_sobol.html"><code>generate_design_sobol()</code></a>：Sobol 序列（Sobol sequence）<span class="citation" data-cites="Niederreiter1988">(<a href="../references.html#ref-Niederreiter1988" role="doc-biblioref">Niederreiter 1988</a>)</span>
+</li>
+</ul>
+<p><a href="#fig-bayesian-optimization-designs" class="quarto-xref">图&nbsp;<span>5.4</span></a> 展示了这四种方法生成的设计之间的差异，假设初始设计大小为 9，域是两个从 <span class="math inline">\(0\)</span> 到 <span class="math inline">\(1\)</span> 的数值变量。我们已经在 <a href="../chapter4/hyperparameter_optimization.html#sec-tuner" class="quarto-xref"><span>第 4.1.4 节</span></a> 中讨论了网格设计与随机设计的区别。LHS 设计将每个输入变量划分为大小相等的区间（见 <a href="#fig-bayesian-optimization-designs" class="quarto-xref">图&nbsp;<span>5.4</span></a> 中水平和垂直虚线），并确保每个区间恰好由一个样本点代表，从而得到均匀的边缘分布。此外，LHS 设计中两点之间的最小距离通常被最大化，从而实现对空间的充满填充（space-filling）覆盖。Sobol 设计的工作方式与 LHS 类似，但当维度数较大时，Sobol 能提供比 LHS 更好的覆盖。因此，通常推荐在 BO 中使用 LHS 或 Sobol 设计，但通常初始设计的影响会比 BO 的其他设计选择要小。随机设计可能已经足够好，但网格设计通常不被推荐。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-bayesian-optimization-designs" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图展示了四个网格，x 轴为 x_1，范围 0 到 1，y 轴为 x_2，范围 0 到 1。每个网格上方和右侧有表示边缘分布的条形。左上：「Random Design」九个点随机散落在网格中，覆盖不佳，边缘分布也是随机的。右上：「Grid Design」，点在网格上均匀分布，位置在 x_1=0、x_1=0.5、x_1=1 以及 x_2 相同的直线上。边缘分布显示在相应直线上各有三个长条。左下：「LHS Design」，点看似随机散布，但边缘分布完全相等，每条轴上都有等大小的条形。右下：「Sobol Design」，与「LHS Design」非常相似，但边缘分布中有一个条形比其他稍长。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-bayesian-optimization-designs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/advanced_tuning_methods_and_black_box_optimization_files/figure-html/fig-bayesian-optimization-designs-1.png" class="img-fluid figure-img" style="width:100.0%" alt="图展示了四个网格，x 轴为 x_1，范围 0 到 1，y 轴为 x_2，范围 0 到 1。每个网格上方和右侧有表示边缘分布的条形。左上：「Random Design」九个点随机散落在网格中，覆盖不佳，边缘分布也是随机的。右上：「Grid Design」，点在网格上均匀分布，位置在 x_1=0、x_1=0.5、x_1=1 以及 x_2 相同的直线上。边缘分布显示在相应直线上各有三个长条。左下：「LHS Design」，点看似随机散布，但边缘分布完全相等，每条轴上都有等大小的条形。右下：「Sobol Design」，与「LHS Design」非常相似，但边缘分布中有一个条形比其他稍长。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bayesian-optimization-designs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;5.4：比较在域为两个从 <span class="math inline">\(0\)</span> 到 <span class="math inline">\(1\)</span> 的数值变量上构造 9 个点的初始设计的不同采样器。虚线的水平和垂直直线将域划分为大小相等的箱子。顶部和右侧的直方图可视化了生成样本的边缘分布。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>无论你选择这些方法中的哪一种，结果都是一个 <a href="https://paradox.mlr-org.com/reference/Design.html"><code>Design</code></a> 对象，它主要只是围绕一个 <code>data.table</code> 的包装器：</p>
+<div class="cell">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">sample_domain</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span>x1 <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>, x2 <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_random.html">generate_design_random</a></span><span class="op">(</span><span class="va">sample_domain</span>, n <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">$</span><span class="va">data</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       x1     x2
+1: 0.8727 0.6231
+2: 0.5546 0.3110
+3: 0.7377 0.3922</code></pre>
+</div>
+</div>
+<p>因此，你也可以通过定义自己的 <code>data.table</code> 来指定一个完全自定义的初始设计。无论哪种方式，当手动构造初始设计时（而不是让 <code>loop_function</code> 自动处理），需要在优化它之前，先在一个 <a href="https://bbotk.mlr-org.com/reference/OptimInstance.html"><code>OptimInstance</code></a> 上对它进行评估。回到我们最小化正弦函数的运行示例，我们将用 <code>$eval_batch()</code> 评估一个自定义初始设计：</p>
+<div class="cell">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">instance</span> <span class="op">=</span> <span class="va"><a href="https://bbotk.mlr-org.com/reference/OptimInstanceSingleCrit.html">OptimInstanceSingleCrit</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">objective</span>,</span>
+<span>  terminator <span class="op">=</span> <span class="fu"><a href="https://bbotk.mlr-org.com/reference/trm.html">trm</a></span><span class="op">(</span><span class="st">"evals"</span>, n_evals <span class="op">=</span> <span class="fl">20</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>OptimInstanceSingleCrit is deprecated. Use OptimInstanceBatchSingleCrit instead.</code></pre>
+</div>
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">design</span> <span class="op">=</span> <span class="fu">data.table</span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">0.34</span>, <span class="fl">0.65</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">instance</span><span class="op">$</span><span class="fu">eval_batch</span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span>
+<span><span class="va">instance</span><span class="op">$</span><span class="va">archive</span><span class="op">$</span><span class="va">data</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      x       y  x_domain           timestamp batch_nr
+1: 0.10  0.1971 &lt;list[1]&gt; 2026-09-24 11:33:33        1
+2: 0.34 -0.6792 &lt;list[1]&gt; 2026-09-24 11:33:33        1
+3: 0.65  0.4148 &lt;list[1]&gt; 2026-09-24 11:33:33        1
+4: 1.00  1.9812 &lt;list[1]&gt; 2026-09-24 11:33:33        1</code></pre>
+</div>
+</div>
+<p>我们可以看到设计中的每个点是如何被正弦函数评估的，这给了我们数据，现在我们可以在该数据上拟合代理模型，从而启动迭代式 BO 算法。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>为什么 BO 需要「初始设计」？因为代理模型的第一个版本必须建立在观测数据之上，而在正式开始迭代之前我们没有任历史记录。初始设计的主要作用是让代理模型在一开始就对整个搜索空间有一个粗略但「空间均匀」的认识：若初始点全挤在一个角落，代理模型就会错误地以为别处还没被探索、采集函数也会把下一个候选点引向错误方向。LHS 的做法是先把每个维度的取值范围切成 n 等份，再在每个水平上只放一个点，这样任意维度上的边际分布都完全均匀；Sobol 序列则是一种低差异序列，在高维下覆盖更均匀。这也是为什么图 5.4 中「随机设计」的边缘直方图参差不齐，而 LHS/Sobol 的条形高度几乎一致。</p>
+</div>
+</section><section id="sec-bayesian-optimization-surrogate" class="level4 page-columns page-full" data-number="5.4.2.2"><h4 data-number="5.4.2.2" class="anchored" data-anchor-id="sec-bayesian-optimization-surrogate">
+<span class="header-section-number">5.4.2.2</span> 代理模型（Surrogate Model）</h4>
+<p>代理模型包装一个回归学习器，该学习器基于观测数据建模未知的黑箱函数。在 <code>mlr3mbo</code> 中，<a href="https://mlr3mbo.mlr-org.com/reference/SurrogateLearner.html"><code>SurrogateLearner</code></a> 是一个继承自基类 <a href="https://mlr3mbo.mlr-org.com/reference/Surrogate.html"><code>Surrogate</code></a> 的更高层 R6 类，用于构造和管理代理模型，包括在 BO 循环的每次迭代中自动构造学习器应在其上训练的 <code>TaskRegr</code>。</p>
+<p>任何 <code>mlr3</code> 中的回归学习器都可以使用。然而，大多数采集函数同时依赖于代理模型的均值与标准差预测，后者要求支持 <code>"se"</code> 的 <code>predict_type</code>。因此并不是所有学习器都适合所有场景。典型的用于代理模型的回归学习器选择包括：用于低到中等维度数值搜索空间的高斯过程（Gaussian process，<code>lrn("regr.km")</code>），以及用于更高维混合（和/或分层）搜索空间的随机森林（如 <code>lrn("regr.ranger")</code>）。高斯过程的详细导论见 <span class="citation" data-cites="williams_2006">Williams and Rasmussen (<a href="../references.html#ref-williams_2006" role="doc-biblioref">2006</a>)</span>，对 BO 中作为代理模型的高斯过程的深入聚焦见 <span class="citation" data-cites="garnett_2022">Garnett (<a href="../references.html#ref-garnett_2022" role="doc-biblioref">2022</a>)</span>。在本例中，我们使用带 Matérn 5/2 核（Matérn 5/2 kernel）的高斯过程，它使用 <code>BFGS</code> 作为优化器来寻找最优核参数，并设置 <code>trace = FALSE</code> 以避免拟合时输出过多内容。</p>
+<div class="cell">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_gp</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"regr.km"</span>, covtype <span class="op">=</span> <span class="st">"matern5_2"</span>, optim.method <span class="op">=</span> <span class="st">"BFGS"</span>,</span>
+<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>trace <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>一个 <code>SurrogateLearner</code> 可以通过把 <code>LearnerRegr</code> 对象传给糖函数 <code><a href="https://mlr3mbo.mlr-org.com/reference/srlrn.html">srlrn()</a></code> 来构造，同时传入实例的 <code>archive</code>：</p><div class="no-row-height column-margin column-container"><span class="margin-aside">srlrn()</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3mbo.mlr-org.com">mlr3mbo</a></span><span class="op">)</span></span>
+<span><span class="va">surrogate</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3mbo.mlr-org.com/reference/srlrn.html">srlrn</a></span><span class="op">(</span><span class="va">lrn_gp</span>, archive <span class="op">=</span> <span class="va">instance</span><span class="op">$</span><span class="va">archive</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>在内部，回归学习器在一个 <code>TaskRegr</code> 上拟合，其中特征是域的变量，目标是余域，数据来自被优化 <a href="https://bbotk.mlr-org.com/reference/OptimInstance.html"><code>OptimInstance</code></a> 的 <a href="https://bbotk.mlr-org.com/reference/Archive.html"><code>Archive</code></a>。</p>
+<p>在我们的运行示例中，我们已经在归档中初始化了初始设计，因此我们可以更新代理模型，其本质上就是拟合高斯过程。注意我们如何用 <code>$learner</code> 访问被包装的模型：</p>
+<div class="cell">
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">surrogate</span><span class="op">$</span><span class="fu">update</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">surrogate</span><span class="op">$</span><span class="va">learner</span><span class="op">$</span><span class="va">model</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+DiceKriging::km(design = data, response = truth, covtype = "matern5_2", 
+    optim.method = "BFGS", control = pv$control)
+
+Trend  coeff.:
+               Estimate
+ (Intercept)     0.7899
+
+Covar. type  : matern5_2 
+Covar. coeff.:
+               Estimate
+    theta(x)     0.3014
+
+Variance estimate: 1.07</code></pre>
+</div>
+</div>
+<p>介绍了代理模型的概念之后，我们现在可以转向采集函数，它利用代理模型的预测来决定下一步评估哪个候选点。</p>
+</section><section id="sec-bayesian-optimization-acquisition" class="level4 page-columns page-full" data-number="5.4.2.3"><h4 data-number="5.4.2.3" class="anchored" data-anchor-id="sec-bayesian-optimization-acquisition">
+<span class="header-section-number">5.4.2.3</span> 采集函数（Acquisition Function）</h4>
+<p>粗略地说，采集函数依赖于代理模型的预测，它量化了搜索空间中每个点如果在下一次迭代被评估的话，其期望的「效用」有多大。</p>
+<p>一个流行的例子是期望提升（expected improvement，EI）<span class="citation" data-cites="jones_1998">(<a href="../references.html#ref-jones_1998" role="doc-biblioref">Jones, Schonlau, and Welch 1998</a>)</span>，它告诉我们，给定代理模型的性能预测，一个候选点相对于到目前为止观测到的最佳函数值（即「在位者」（incumbent））能期望改进多少：</p>
+<p><span class="math display">\[
+\alpha_{\mathrm{EI}}(\mathbf{x}) = \mathbb{E} \left[ \max \left( f_{\mathrm{min}} - Y(\mathbf{x}), 0 \right) \right]
+\]</span></p>
+<p>这里，<span class="math inline">\(Y(\mathbf{x)}\)</span> 是代理模型在给定点 <span class="math inline">\(\mathbf{x}\)</span> 处的预测（一个随机变量；当使用高斯过程时服从正态分布），<span class="math inline">\(f_{\mathrm{min}}\)</span> 是到目前为止观测到的最佳函数值（假设最小化）。计算期望提升需要来自模型的均值和标准差预测。</p>
+<p>在 <code>mlr3mbo</code> 中，采集函数（类 <a href="https://mlr3mbo.mlr-org.com/reference/AcqFunction.html"><code>AcqFunction</code></a>）存储在 <a href="https://mlr3mbo.mlr-org.com/reference/mlr_acqfunctions.html"><code>mlr_acqfunctions</code></a> 字典中，可以用 <a href="https://mlr3mbo.mlr-org.com/reference/acqf.html"><code>acqf()</code></a> 构造，传入你想使用的方法的键以及我们的代理学习器。在我们的运行示例中，我们将使用期望提升（<code>acqf("ei")</code>）来选择下一个要评估的候选点。在此之前，我们必须更新（<code>$update()</code>）<code>AcqFunction</code> 对在位者的认识，以确保它仍然使用到目前为止观测到的最佳值。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://mlr3mbo.mlr-org.com/reference/acqf.html">acqf()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">acq_function</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3mbo.mlr-org.com/reference/acqf.html">acqf</a></span><span class="op">(</span><span class="st">"ei"</span>, surrogate <span class="op">=</span> <span class="va">surrogate</span><span class="op">)</span></span>
+<span><span class="va">acq_function</span><span class="op">$</span><span class="fu">update</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">acq_function</span><span class="op">$</span><span class="va">y_best</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -0.6792</code></pre>
+</div>
+</div>
+<p>你可以使用 <code>$eval_dt()</code> 来评估给定 <code>data.table</code> 域的采集函数。在 <a href="#fig-bayesian-optimization-ei" class="quarto-xref">图&nbsp;<span>5.5</span></a> 中，我们使用高斯过程预测的均值和标准差，在 <span class="math inline">\(0\)</span> 到 <span class="math inline">\(1</span> 之间均匀网格的点上评估了期望提升。我们可以看到，期望提升在高斯过程的均值预测（灰色虚线）较低的区域或不确定性较高的区域会很大。</p>
+<div class="cell">
+<div class="sourceCode" id="cb46"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">xydt</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_grid.html">generate_design_grid</a></span><span class="op">(</span><span class="va">domain</span>, resolution <span class="op">=</span> <span class="fl">1001</span><span class="op">)</span><span class="op">$</span><span class="va">data</span></span>
+<span><span class="co"># 评估我们的正弦函数</span></span>
+<span><span class="va">xydt</span><span class="op">[</span>, <span class="va">y</span> <span class="op">:=</span> <span class="va">objective</span><span class="op">$</span><span class="fu">eval_dt</span><span class="op">(</span><span class="va">xydt</span><span class="op">)</span><span class="op">$</span><span class="va">y</span><span class="op">]</span></span>
+<span><span class="co"># 评估期望提升</span></span>
+<span><span class="va">xydt</span><span class="op">[</span>, <span class="va">ei</span> <span class="op">:=</span>  <span class="va">acq_function</span><span class="op">$</span><span class="fu">eval_dt</span><span class="op">(</span><span class="va">xydt</span><span class="op">[</span>, <span class="st">"x"</span><span class="op">]</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co"># 根据我们的数据做预测</span></span>
+<span><span class="va">xydt</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"mean"</span>, <span class="st">"se"</span><span class="op">)</span> <span class="op">:=</span>  <span class="va">surrogate</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">xydt</span><span class="op">[</span>, <span class="st">"x"</span><span class="op">]</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">xydt</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       x        y        ei   mean     se
+1: 0.000 0.000000 4.642e-05 0.5191 0.3632
+2: 0.001 0.000028 4.171e-05 0.5166 0.3597
+3: 0.002 0.000112 3.738e-05 0.5142 0.3562</code></pre>
+</div>
+<div class="sourceCode" id="cb48"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">xydt</span>, mapping <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, y <span class="op">=</span> <span class="va">y</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html">geom_point</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">2</span>, data <span class="op">=</span> <span class="va">instance</span><span class="op">$</span><span class="va">archive</span><span class="op">$</span><span class="va">data</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">mean</span><span class="op">)</span>, colour <span class="op">=</span> <span class="st">"gray"</span>, linetype <span class="op">=</span> <span class="fl">2</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_ribbon.html">geom_ribbon</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>min <span class="op">=</span> <span class="va">mean</span> <span class="op">-</span> <span class="va">se</span>, max <span class="op">=</span> <span class="va">mean</span> <span class="op">+</span> <span class="va">se</span><span class="op">)</span>,</span>
+<span>    fill <span class="op">=</span> <span class="st">"gray"</span>, alpha <span class="op">=</span> <span class="fl">0.3</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">ei</span> <span class="op">*</span> <span class="fl">40</span><span class="op">)</span>, linewidth <span class="op">=</span> <span class="fl">1</span>, colour <span class="op">=</span> <span class="st">"darkgray"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html">scale_y_continuous</a></span><span class="op">(</span><span class="st">"y"</span>,</span>
+<span>    sec.axis <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/sec_axis.html">sec_axis</a></span><span class="op">(</span><span class="op">~</span> <span class="va">.</span> <span class="op">*</span> <span class="fl">0.025</span>, name <span class="op">=</span> <span class="st">"EI"</span>,</span>
+<span>      breaks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.025</span>, <span class="fl">0.05</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-bayesian-optimization-ei" class="quarto-float quarto-figure quarto-figure-center anchored" alt="之前绘制的正弦函数图，但现在有四个黑点，约在 (0.1, 0)、(0.3, -0.8)、(0.6, 0.5) 和 (1, 2) 处。这些点由一条黑色曲线连接。一条灰色虚线也大致呈 'u' 形穿过这些黑点，一条灰色带环绕其中表示不确定性。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-bayesian-optimization-ei-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/advanced_tuning_methods_and_black_box_optimization_files/figure-html/fig-bayesian-optimization-ei-1.png" class="img-fluid figure-img" style="width:100.0%" alt="之前绘制的正弦函数图，但现在有四个黑点，约在 (0.1, 0)、(0.3, -0.8)、(0.6, 0.5) 和 (1, 2) 处。这些点由一条黑色曲线连接。一条灰色虚线也大致呈 'u' 形穿过这些黑点，一条灰色带环绕其中表示不确定性。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bayesian-optimization-ei-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;5.5：基于在四个点（黑色）的初始设计上训练的高斯过程代理模型的均值与不确定性预测（灰色虚线）的期望提升（实心深灰线）。带状区域表示均值加减标准差预测。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>我们现在将继续优化采集函数本身，以找到期望提升最大的候选点。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>期望提升公式的含义：<span class="math inline">\(Y(\mathbf{x})\)</span> 是代理模型在点 <span class="math inline">\(\mathbf{x}\)</span> 处以随机变量形式给出的预测（高斯过程下即正态分布），<span class="math inline">\(f_{\mathrm{min}}\)</span> 是目前为止的最佳观测值。若候选点的预测之下 <span class="math inline">\(Y(\mathbf{x})\)</span> 有可能低于 <span class="math inline">\(f_{\mathrm{min}}\)</span>，就把能超出的部分当作「提升」，对全部可能性取期望。于是 EI 天然包含两项：均值项（越低越好——利用）与标准差项（越大越可能再下降——探索）。图 5.5 中 EI 峰值的两处，一处是均值预测最低的区域（利用），另一处是远离已有观测、不确定性带很宽的区域（探索）。</p>
+</div>
+</section><section id="sec-bayesian-optimization-acquisitionopt" class="level4 page-columns page-full" data-number="5.4.2.4"><h4 data-number="5.4.2.4" class="anchored" data-anchor-id="sec-bayesian-optimization-acquisitionopt">
+<span class="header-section-number">5.4.2.4</span> 采集函数优化器（Acquisition Function Optimizer）</h4>
+<p>采集函数优化器（类 <a href="https://mlr3mbo.mlr-org.com/reference/AcqOptimizer.html"><code>AcqOptimizer</code></a>）被用来优化采集函数，方法是在有限的计算预算内，高效地搜索潜在候选点所在的搜索空间。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>AcqOptimizer</code></span></div></div>
+<p>由于大多数常用采集函数具有非凸性质 <span class="citation" data-cites="garnett_2022">(<a href="../references.html#ref-garnett_2022" role="doc-biblioref">Garnett 2022</a>)</span>，通常采用全局优化技术来进行采集函数优化。广泛使用的采集函数优化方法包括：无导数全局优化方法，如分支定界（branch and bound）算法——例如 DIRECT 算法 <span class="citation" data-cites="jones_1993_lipschitzian">(<a href="../references.html#ref-jones_1993_lipschitzian" role="doc-biblioref">Jones, Perttunen, and Stuckman 1993</a>)</span>；以及多起点局部优化方法——例如从各种不同起点多次运行 L-BFGS-B 算法 <span class="citation" data-cites="byrd1995limited">(<a href="../references.html#ref-byrd1995limited" role="doc-biblioref">Byrd et al. 1995</a>)</span> 或局部搜索 <span class="citation" data-cites="kim_2021">(<a href="../references.html#ref-kim_2021" role="doc-biblioref">Kim and Choi 2021</a>)</span>。因此，采集函数的优化问题本身可以当作一个黑箱优化问题来处理，但它比原始问题便宜得多。</p>
+<p><code>AcqOptimizer</code> 对象用 <a href="https://mlr3mbo.mlr-org.com/reference/acqo.html"><code>acqo()</code></a> 构造，它接收一个 <a href="https://bbotk.mlr-org.com/reference/Optimizer.html"><code>Optimizer</code></a>、一个 <a href="https://bbotk.mlr-org.com/reference/Terminator.html"><code>Terminator</code></a> 和采集函数作为输入。优化器存储在 <a href="https://bbotk.mlr-org.com/reference/mlr_optimizers.html"><code>mlr_optimizers</code></a> 字典中，可以用糖函数 <a href="https://bbotk.mlr-org.com/reference/opt.html"><code>opt()</code></a> 构造。终止器与 <a href="../chapter4/hyperparameter_optimization.html#sec-terminator" class="quarto-xref"><span>第 4.1.2 节</span></a> 中介绍的相同。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://mlr3mbo.mlr-org.com/reference/acqo.html">acqo()</a></code></span><span class="margin-aside"><code><a href="https://bbotk.mlr-org.com/reference/opt.html">opt()</a></code></span></div></div>
+<p>下面我们使用 DIRECT 算法，并在采集函数优化持续 <code>100</code> 次迭代没有至少 <code>1e-5</code> 的改进时终止它。<code>$optimize()</code> 方法优化采集函数并返回下一个候选点。</p>
+<div class="cell">
+<div class="sourceCode" id="cb49"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">acq_optimizer</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3mbo.mlr-org.com/reference/acqo.html">acqo</a></span><span class="op">(</span></span>
+<span>  optimizer <span class="op">=</span> <span class="fu"><a href="https://bbotk.mlr-org.com/reference/opt.html">opt</a></span><span class="op">(</span><span class="st">"nloptr"</span>, algorithm <span class="op">=</span> <span class="st">"NLOPT_GN_ORIG_DIRECT"</span><span class="op">)</span>,</span>
+<span>  terminator <span class="op">=</span> <span class="fu"><a href="https://bbotk.mlr-org.com/reference/trm.html">trm</a></span><span class="op">(</span><span class="st">"stagnation"</span>, iters <span class="op">=</span> <span class="fl">100</span>, threshold <span class="op">=</span> <span class="fl">1e-5</span><span class="op">)</span>,</span>
+<span>  acq_function <span class="op">=</span> <span class="va">acq_function</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">candidate</span> <span class="op">=</span> <span class="va">acq_optimizer</span><span class="op">$</span><span class="fu">optimize</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">candidate</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        x  acq_ei .already_evaluated
+1: 0.4173 0.06074              FALSE</code></pre>
+</div>
+</div>
+<p>我们现在已经展示了如何手动运行 BO 算法循环的一次迭代。在实践中，人们会使用 <a href="https://mlr3mbo.mlr-org.com/reference/mlr_optimizers_mbo.html"><code>OptimizerMbo</code></a> 把这些模块组合在一起来自动化整个过程。在演示这个类之前，我们先退一步，介绍 <code>loop_function</code>，它告诉算法应该如何运行。</p>
+</section><section id="sec-bayesian-optimization-loop" class="level4" data-number="5.4.2.5"><h4 data-number="5.4.2.5" class="anchored" data-anchor-id="sec-bayesian-optimization-loop">
+<span class="header-section-number">5.4.2.5</span> 使用与构建循环函数（Using and Building Loop Functions）</h4>
+<p><a href="https://mlr3mbo.mlr-org.com/reference/loop_function.html"><code>loop_function</code></a> 决定 BO 算法在全局层面的行为，即定义在每次迭代中执行以生成新候选点的子例程。循环函数是相对简单的函数，它接收我们刚才讨论的各类对象作为输入，并定义 BO 循环。循环函数存储在 <a href="https://mlr3mbo.mlr-org.com/reference/mlr_loop_functions.html"><code>mlr_loop_functions</code></a> 字典中。由于它们是 <code>S3</code>（而非 <code>R6</code>）类，只需引用 <code>key</code> 即可加载（即不需要构造函数）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb51"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">mlr_loop_functions</span><span class="op">)</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">key</span>, <span class="va">label</span>, <span class="va">instance</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>               key                         label    instance
+1:    bayesopt_ego Efficient Global Optimization single-crit
+2:    bayesopt_emo           Multi-Objective EGO  multi-crit
+3:   bayesopt_mpcl      Multipoint Constant Liar single-crit
+4: bayesopt_parego                        ParEGO  multi-crit
+5: bayesopt_smsego                       SMS-EGO  multi-crit</code></pre>
+</div>
+</div>
+<p>你可以挑选并使用上面字典中内置的循环函数之一，也可以编写自己的循环函数来更精细地控制 BO 过程。一种常见的循环函数选择是高效全局优化（Efficient Global Optimization，EGO）算法 <span class="citation" data-cites="jones_1998">(<a href="../references.html#ref-jones_1998" role="doc-biblioref">Jones, Schonlau, and Welch 1998</a>)</span>（<a href="https://mlr3mbo.mlr-org.com/reference/mlr_loop_functions_ego.html"><code>bayesopt_ego()</code></a>）。本节末尾展示了一个简化的版本，既用于帮助演示 EGO 算法，也作为你自己编写自定义 BO 变体的示例。简而言之，代码设置了上面讨论的相关模块，然后循环执行以下步骤：1）更新代理模型 2）更新采集函数 3）优化采集函数以产生一个新候选点 4）评估候选点并将其加入归档。如果循环中发生错误，则使用回退方案：下一个候选点被均匀随机地提出，确保即使存在潜在问题，过程也能继续。我们将在 <a href="#sec-practical-bayesian-optimization" class="quarto-xref"><span>第 5.4.6 节</span></a> 中回到这一点。</p>
+<div class="cell">
+<div class="sourceCode" id="cb53"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">my_simple_ego</span> <span class="op">=</span> <span class="kw">function</span><span class="op">(</span></span>
+<span>    <span class="va">instance</span>,</span>
+<span>    <span class="va">surrogate</span>,</span>
+<span>    <span class="va">acq_function</span>,</span>
+<span>    <span class="va">acq_optimizer</span>,</span>
+<span>    <span class="va">init_design_size</span></span>
+<span>  <span class="op">)</span> <span class="op">{</span></span>
+<span></span>
+<span>  <span class="co"># 设置构建模块</span></span>
+<span>  <span class="va">surrogate</span><span class="op">$</span><span class="va">archive</span> <span class="op">=</span> <span class="va">instance</span><span class="op">$</span><span class="va">archive</span> <span class="co"># 归档</span></span>
+<span>  <span class="va">acq_function</span><span class="op">$</span><span class="va">surrogate</span> <span class="op">=</span> <span class="va">surrogate</span> <span class="co"># 代理模型</span></span>
+<span>  <span class="va">acq_optimizer</span><span class="op">$</span><span class="va">acq_function</span> <span class="op">=</span> <span class="va">acq_function</span> <span class="co"># 采集函数</span></span>
+<span></span>
+<span>  <span class="va">search_space</span> <span class="op">=</span> <span class="va">instance</span><span class="op">$</span><span class="va">search_space</span></span>
+<span></span>
+<span>  <span class="co"># 初始设计</span></span>
+<span>  <span class="va">design</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_sobol.html">generate_design_sobol</a></span><span class="op">(</span></span>
+<span>    <span class="va">search_space</span>, n <span class="op">=</span> <span class="va">init_design_size</span><span class="op">)</span><span class="op">$</span><span class="va">data</span></span>
+<span>  <span class="va">instance</span><span class="op">$</span><span class="fu">eval_batch</span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="co"># MBO 循环</span></span>
+<span>  <span class="kw">repeat</span> <span class="op">{</span></span>
+<span>    <span class="va">candidate</span> <span class="op">=</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html">tryCatch</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>      <span class="co"># 更新代理模型</span></span>
+<span>      <span class="va">acq_function</span><span class="op">$</span><span class="va">surrogate</span><span class="op">$</span><span class="fu">update</span><span class="op">(</span><span class="op">)</span></span>
+<span>      <span class="co"># 更新采集函数</span></span>
+<span>      <span class="va">acq_function</span><span class="op">$</span><span class="fu">update</span><span class="op">(</span><span class="op">)</span></span>
+<span>      <span class="co"># 优化采集函数以产生一个新候选点</span></span>
+<span>      <span class="va">acq_optimizer</span><span class="op">$</span><span class="fu">optimize</span><span class="op">(</span><span class="op">)</span></span>
+<span>    <span class="op">}</span>, mbo_error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">mbo_error_condition</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_random.html">generate_design_random</a></span><span class="op">(</span><span class="va">search_space</span>, n <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span><span class="op">$</span><span class="va">data</span></span>
+<span>    <span class="op">}</span><span class="op">)</span></span>
+<span></span>
+<span>    <span class="co"># 评估候选点并将其加入归档</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/conditions.html">tryCatch</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>      <span class="va">instance</span><span class="op">$</span><span class="fu">eval_batch</span><span class="op">(</span><span class="va">candidate</span><span class="op">)</span></span>
+<span>    <span class="op">}</span>, terminated_error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">cond</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="co"># 如果实例已终止，例如因为超时，$eval_batch() 会抛出 terminated_error</span></span>
+<span>    <span class="op">}</span><span class="op">)</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="va">instance</span><span class="op">$</span><span class="va">is_terminated</span><span class="op">)</span> <span class="kw">break</span></span>
+<span>  <span class="op">}</span></span>
+<span></span>
+<span>  <span class="kw"><a href="https://rdrr.io/r/base/function.html">return</a></span><span class="op">(</span><span class="va">instance</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+</div>
+<p>我们现在准备好把一切都组合起来，以自动化 BO 过程。</p>
+</section></section><section id="sec-bayesian-black-box-optimization" class="level3 page-columns page-full" data-number="5.4.3"><h3 data-number="5.4.3" class="anchored" data-anchor-id="sec-bayesian-black-box-optimization">
+<span class="header-section-number">5.4.3</span> 用 OptimizerMbo 自动化 BO（Automating BO with OptimizerMbo）</h3>
+<p><a href="https://mlr3mbo.mlr-org.com/reference/mlr_optimizers_mbo.html"><code>OptimizerMbo</code></a> 可以用来把上述描述的构建模块组装成一个单一对象，然后用于优化。我们使用 <code>mlr_loop_functions</code> 提供的 <code>bayesopt_ego</code> 循环函数，它的工作原理与上面展示的代码类似，但更注意为其参数提供合理的默认值并正确处理边缘情况。你不需要手动把这些构建模块互相传递，因为 <a href="https://bbotk.mlr-org.com/reference/opt.html"><code>opt()</code></a> 构造函数会替你完成：</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://bbotk.mlr-org.com/reference/opt.html">opt()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb54"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">bayesopt_ego</span> <span class="op">=</span> <span class="va">mlr_loop_functions</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"bayesopt_ego"</span><span class="op">)</span></span>
+<span><span class="va">surrogate</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3mbo.mlr-org.com/reference/srlrn.html">srlrn</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.km"</span>, covtype <span class="op">=</span> <span class="st">"matern5_2"</span>,</span>
+<span>  optim.method <span class="op">=</span> <span class="st">"BFGS"</span>, control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>trace <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">acq_function</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3mbo.mlr-org.com/reference/acqf.html">acqf</a></span><span class="op">(</span><span class="st">"ei"</span><span class="op">)</span></span>
+<span><span class="va">acq_optimizer</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3mbo.mlr-org.com/reference/acqo.html">acqo</a></span><span class="op">(</span><span class="fu"><a href="https://bbotk.mlr-org.com/reference/opt.html">opt</a></span><span class="op">(</span><span class="st">"nloptr"</span>, algorithm <span class="op">=</span> <span class="st">"NLOPT_GN_ORIG_DIRECT"</span><span class="op">)</span>,</span>
+<span>  terminator <span class="op">=</span> <span class="fu"><a href="https://bbotk.mlr-org.com/reference/trm.html">trm</a></span><span class="op">(</span><span class="st">"stagnation"</span>, iters <span class="op">=</span> <span class="fl">100</span>, threshold <span class="op">=</span> <span class="fl">1e-5</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">optimizer</span> <span class="op">=</span> <span class="fu"><a href="https://bbotk.mlr-org.com/reference/opt.html">opt</a></span><span class="op">(</span><span class="st">"mbo"</span>,</span>
+<span>  loop_function <span class="op">=</span> <span class="va">bayesopt_ego</span>,</span>
+<span>  surrogate <span class="op">=</span> <span class="va">surrogate</span>,</span>
+<span>  acq_function <span class="op">=</span> <span class="va">acq_function</span>,</span>
+<span>  acq_optimizer <span class="op">=</span> <span class="va">acq_optimizer</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+循环函数参数（Loop Function Arguments）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>通过 <code><a href="https://bbotk.mlr-org.com/reference/opt.html">opt()</a></code> 的 <code>args</code> 参数，可以把用于自定义某些循环函数的额外参数传进去。</p>
+</div>
+</div>
+<p>在这个例子中，我们将使用之前创建过的同一个初始设计，并用 <code>$optimize()</code> 优化我们的正弦函数：</p>
+<div class="cell">
+<div class="sourceCode" id="cb55"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">instance</span> <span class="op">=</span> <span class="va"><a href="https://bbotk.mlr-org.com/reference/OptimInstanceSingleCrit.html">OptimInstanceSingleCrit</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">objective</span>,</span>
+<span>  terminator <span class="op">=</span> <span class="fu"><a href="https://bbotk.mlr-org.com/reference/trm.html">trm</a></span><span class="op">(</span><span class="st">"evals"</span>, n_evals <span class="op">=</span> <span class="fl">20</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>OptimInstanceSingleCrit is deprecated. Use OptimInstanceBatchSingleCrit instead.</code></pre>
+</div>
+<div class="sourceCode" id="cb57"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">design</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html">data.table</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">0.34</span>, <span class="fl">0.65</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">instance</span><span class="op">$</span><span class="fu">eval_batch</span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span>
+<span><span class="va">optimizer</span><span class="op">$</span><span class="fu">optimize</span><span class="op">(</span><span class="va">instance</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        x  x_domain      y
+1: 0.7922 &lt;list[1]&gt; -1.577</code></pre>
+</div>
+</div>
+<p>只用了很少的评估次数，BO 就接近了真正的全局最优 (0.792)。<a href="#fig-bayesian-optimization-sampling" class="quarto-xref">图&nbsp;<span>5.6</span></a> 展示了随着算法进展候选点的采样轨迹，我们可以看到越来越多的焦点被放在全局最优附近的区域。然而，即使在优化的后期阶段，算法仍然会探索新区域，这说明期望提升采集函数确实如我们所要求的那样平衡了探索与利用。</p>
+<div class="cell">
+<div class="cell-output cell-output-stderr">
+<pre><code>Ignoring unknown labels:
+• colour : "Evaluation Number"</code></pre>
+</div>
+<div class="cell-output-display">
+<div id="fig-bayesian-optimization-sampling" class="quarto-float quarto-figure quarto-figure-center anchored" alt="与之前相同的正弦函数折线图，但现在线上有从白色到黑色的点。后期阶段全局最小值附近的点更多，但整条线上仍有散布的点。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-bayesian-optimization-sampling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/advanced_tuning_methods_and_black_box_optimization_files/figure-html/fig-bayesian-optimization-sampling-1.png" class="img-fluid figure-img" style="width:100.0%" alt="与之前相同的正弦函数折线图，但现在线上有从白色到黑色的点。后期阶段全局最小值附近的点更多，但整条线上仍有散布的点。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bayesian-optimization-sampling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;5.6：BO 算法的采样轨迹。初始设计的点用黑色三角形表示。采样点用圆点表示，颜色随算法进展从黑色渐变到白色。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>如果我们重复运行 BO 算法十次（随机初始设计和不同的随机种子），并与随机搜索进行比较，可以看到 BO 确实表现得更好，平均在约 15 次函数评估后达到全局最优（见<a href="#fig-bayesian-sinusoidal_bo_rs" class="quarto-xref">图&nbsp;<span>5.7</span></a>）。如预期那样，初始设计大小下的性能接近随机搜索的性能。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-bayesian-sinusoidal_bo_rs" class="quarto-float quarto-figure quarto-figure-center anchored" alt="有两条线的折线图。x 轴是 'Number of Function Evaluations'，范围 0 到 20，y 轴是 'Best Observed Function Value'，范围 -1.5 到 0。实线是贝叶斯优化，虚线是随机搜索。在 0-5 次评估时两种方法表现相似，然后 BO 在约 15 次评估时收敛到最优，而随机搜索在最优之前就卡住了。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-bayesian-sinusoidal_bo_rs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/bo_1d_sinusoidal_bo_rs.png" class="img-fluid figure-img" style="width:100.0%" alt="有两条线的折线图。x 轴是 'Number of Function Evaluations'，范围 0 到 20，y 轴是 'Best Observed Function Value'，范围 -1.5 到 0。实线是贝叶斯优化，虚线是随机搜索。在 0-5 次评估时两种方法表现相似，然后 BO 在约 15 次评估时收敛到最优，而随机搜索在最优之前就卡住了。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bayesian-sinusoidal_bo_rs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;5.7：在 20 次函数评估的预算下，BO 与随机搜索在一维正弦函数上的随时性能（anytime performance）。实线描绘了 10 次重复中平均的最佳观测目标值。带状区域表示标准误。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>「随时性能」（anytime performance）是优化领域评价算法的重要指标：它刻画的是「给定任意评估预算，算法到此刻找到的最好解有多好」，而非只看最终结果。图 5.7 中两条曲线从原点出发：前 4-5 次评估两者几乎重合（这就是初始设计阶段——此时 BO 尚无信息优势）；之后 BO 曲线迅速下行、逼近 -1.577 的最优值，而随机搜索被困在 -1.3 左右。原因很直观：随机搜索的每一步都掷骰子，而 BO 用代理模型记住了「哪里已经试过、哪里可能更好」。这也解释了为什么 BO 特别适合昂贵评估——评估次数少而宝贵。</p>
+</div>
+</section><section id="sec-bayesian-tuning" class="level3 page-columns page-full" data-number="5.4.4"><h3 data-number="5.4.4" class="anchored" data-anchor-id="sec-bayesian-tuning">
+<span class="header-section-number">5.4.4</span> 用于 HPO 的贝叶斯优化（Bayesian Optimization for HPO）</h3>
+<p><code>mlr3mbo</code> 可以通过 <a href="https://mlr3mbo.mlr-org.com/reference/mlr_tuners_mbo.html"><code>TunerMbo</code></a> 用于 HPO，它是 <a href="https://mlr3mbo.mlr-org.com/reference/mlr_optimizers_mbo.html"><code>OptimizerMbo</code></a> 的包装器，工作方式完全相同。作为示例，下面我们将调优 <code>lrn("classif.svm")</code> 在 <code>tsk("sonar")</code> 上的径向基核（radial kernel）的 <code>cost</code> 和 <code>gamma</code> 参数，使用三折交叉验证。我们用上面构造的同一组对象设置 <code>tnr("mbo")</code>，然后照常运行调优实验：</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>TunerMbo</code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb60"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tuner</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3tuning.mlr-org.com/reference/tnr.html">tnr</a></span><span class="op">(</span><span class="st">"mbo"</span>,</span>
+<span>  loop_function <span class="op">=</span> <span class="va">bayesopt_ego</span>,</span>
+<span>  surrogate <span class="op">=</span> <span class="va">surrogate</span>,</span>
+<span>  acq_function <span class="op">=</span> <span class="va">acq_function</span>,</span>
+<span>  acq_optimizer <span class="op">=</span> <span class="va">acq_optimizer</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">lrn_svm</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.svm"</span>, kernel <span class="op">=</span> <span class="st">"radial"</span>,</span>
+<span>  type <span class="op">=</span> <span class="st">"C-classification"</span>,</span>
+<span>  cost  <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/to_tune.html">to_tune</a></span><span class="op">(</span><span class="fl">1e-5</span>, <span class="fl">1e5</span>, logscale <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>  gamma <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/to_tune.html">to_tune</a></span><span class="op">(</span><span class="fl">1e-5</span>, <span class="fl">1e5</span>, logscale <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">instance</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3tuning.mlr-org.com/reference/tune.html">tune</a></span><span class="op">(</span><span class="va">tuner</span>, <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"sonar"</span><span class="op">)</span>, <span class="va">lrn_svm</span>, <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.ce"</span><span class="op">)</span>, <span class="fl">25</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">instance</span><span class="op">$</span><span class="va">result</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    cost  gamma learner_param_vals  x_domain classif.ce
+1: 2.831 -4.591          &lt;list[4]&gt; &lt;list[2]&gt;     0.1248</code></pre>
+</div>
+</div>
+<p>多目标调优也可以用 BO 实现，且算法有许多不同的设计选择，例如：是使用目标标量化（scalarization）方法并只依赖一个单一的代理模型，还是为每个目标各拟合一个代理模型。多目标 BO 的更多细节可参见 <span class="citation" data-cites="Horn2015">Horn et al. (<a href="../references.html#ref-Horn2015" role="doc-biblioref">2015</a>)</span> 或 <span class="citation" data-cites="Morales2022">Morales-Hernández, Van Nieuwenhuyse, and Rojas Gonzalez (<a href="../references.html#ref-Morales2022" role="doc-biblioref">2022</a>)</span>。</p>
+<p>下面我们将使用 ParEGO <span class="citation" data-cites="knowles_2006">(<a href="../references.html#ref-knowles_2006" role="doc-biblioref">Knowles 2006</a>)</span> 循环函数来说明多目标调优。ParEGO（<a href="https://mlr3mbo.mlr-org.com/reference/mlr_loop_functions_parego.html"><code>bayesopt_parego()</code></a>）通过随机标量化方法处理多目标 BO：它用一个单一的代理模型建模一个标量化后的单目标函数，然后利用标准的单目标采集函数（如期望提升）来寻找下一个待评估的候选点。其他兼容的循环函数可以查看 <a href="https://mlr3mbo.mlr-org.com/reference/mlr_loop_functions.html"><code>mlr_loop_functions</code></a> 的 <code>"instance"</code> 列找到。我们将调优一个决策树的三个参数，目标为真阳性率（最大化）和假阳性率（最小化），帕累托前沿可视化为 <a href="#fig-pareto-bayesopt" class="quarto-xref">图&nbsp;<span>5.8</span></a>。</p>
+<div class="cell">
+<div class="sourceCode" id="cb62"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tuner</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3tuning.mlr-org.com/reference/tnr.html">tnr</a></span><span class="op">(</span><span class="st">"mbo"</span>,</span>
+<span>  loop_function <span class="op">=</span> <span class="va">bayesopt_parego</span>,</span>
+<span>  surrogate <span class="op">=</span> <span class="va">surrogate</span>,</span>
+<span>  acq_function <span class="op">=</span> <span class="va">acq_function</span>,</span>
+<span>  acq_optimizer <span class="op">=</span> <span class="va">acq_optimizer</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">lrn_rpart</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.rpart"</span>,</span>
+<span>  cp <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/to_tune.html">to_tune</a></span><span class="op">(</span><span class="fl">1e-04</span>, <span class="fl">1e-1</span><span class="op">)</span>,</span>
+<span>  minsplit <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/to_tune.html">to_tune</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">64</span><span class="op">)</span>,</span>
+<span>  maxdepth <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/to_tune.html">to_tune</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">30</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">instance</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3tuning.mlr-org.com/reference/tune.html">tune</a></span><span class="op">(</span><span class="va">tuner</span>, <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"sonar"</span><span class="op">)</span>, <span class="va">lrn_rpart</span>, <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msrs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"classif.tpr"</span>, <span class="st">"classif.fpr"</span><span class="op">)</span><span class="op">)</span>, <span class="fl">25</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-pareto-bayesopt" class="quarto-float quarto-figure quarto-figure-center anchored" alt="散点图，y 轴为 classif.tpr（0.75 到 1.00 之间），x 轴为 classif.fpr（0.2 到 1.0 之间）。帕累托前沿显示为一组点，大致位于 (0.23, 0.85)、(0.24, 0.88)、(0.25, 0.91)、(0.30, 0.93)、(0.35, 0.95)、(0.40, 0.96)、(0.8, 1.00)。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pareto-bayesopt-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/advanced_tuning_methods_and_black_box_optimization_files/figure-html/fig-pareto-bayesopt-1.png" class="img-fluid figure-img" style="width:100.0%" alt="散点图，y 轴为 classif.tpr（0.75 到 1.00 之间），x 轴为 classif.fpr（0.2 到 1.0 之间）。帕累托前沿显示为一组点，大致位于 (0.23, 0.85)、(0.24, 0.88)、(0.25, 0.91)、(0.30, 0.93)、(0.35, 0.95)、(0.40, 0.96)、(0.8, 1.00)。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pareto-bayesopt-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;5.8：通过 ParEGO 获得的 TPR 与 FPR 的帕累托前沿。白点代表已测试的配置，每个黑点单独代表一个帕累托最优配置，所有黑点合在一起代表帕累托前沿。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>ParEGO 是「把多目标问题打折成单目标问题」来处理的一种代表性思路：在每次迭代中随机抽取一组权重，把多个目标加权成单个标量值，然后在这个标量目标上照常使用单目标 BO（一个代理模型 + 一个 EI 采集函数）。由于每次迭代的权重都不同，长期来看整条帕累托前沿的各个方向都会被探索。与之相对的另一种思路是为每个目标各自训练一个代理模型（例如 SMS-EGO）。注意本例中 <code>classif.tpr</code> 是「越大越好」而 <code>classif.fpr</code> 是「越小越好」——多目标调优允许不同目标采用不同优化方向，这正是它比在 5.2 节中「同向最小化」更一般之处。</p>
+</div>
+</section><section id="sec-noisy-bayesian-optimization" class="level3 page-columns page-full" data-number="5.4.5"><h3 data-number="5.4.5" class="anchored" data-anchor-id="sec-noisy-bayesian-optimization">
+<span class="header-section-number">5.4.5</span> 噪声贝叶斯优化（Noisy Bayesian Optimization）</h3>
+<p>到目前为止，我们隐式地假设我们要优化的黑箱函数是确定性的，即重复评估同一点总会返回相同的目标函数值。然而，现实世界中的黑箱函数通常是有噪声的（noisy），这意味着由于黑箱函数之上的背景噪声，重复评估同一点会返回不同的目标函数值。例如，如果你为工厂里的一台机器建模以估计生产率，即使机器的所有参数都被控制了，由于不可控的背景因素（如环境条件），我们仍会预期在不同时间点看到不同的性能。</p>
+<p>在 <code>bbotk</code> 中，你可以通过在 <code>properties</code> 参数中传入 <code>"noisy"</code> 标记一个 <a href="https://bbotk.mlr-org.com/reference/Objective.html"><code>Objective</code></a> 对象为有噪声的，这允许我们使用能以不同方式处理此类目标的方法。</p>
+<div class="cell">
+<div class="sourceCode" id="cb63"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">sinus_1D_noisy</span> <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">xs</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">y</span> <span class="op">=</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">xs</span><span class="op">$</span><span class="va">x</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html">sin</a></span><span class="op">(</span><span class="fl">14</span> <span class="op">*</span> <span class="va">xs</span><span class="op">$</span><span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="fl">1</span>, mean <span class="op">=</span> <span class="fl">0</span>, sd <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span>
+<span>  <span class="va">y</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">domain</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span>lower <span class="op">=</span> <span class="fl">0</span>, upper <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">codomain</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span>y <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span>tags <span class="op">=</span> <span class="st">"minimize"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">objective_noisy</span> <span class="op">=</span> <span class="va"><a href="https://bbotk.mlr-org.com/reference/ObjectiveRFun.html">ObjectiveRFun</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">sinus_1D_noisy</span>,</span>
+<span>  domain <span class="op">=</span> <span class="va">domain</span>, codomain <span class="op">=</span> <span class="va">codomain</span>, properties <span class="op">=</span> <span class="st">"noisy"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>有噪声的目标函数可以用不同的方式处理：</p>
+<ol type="1">
+<li>用代理模型来吸收噪声</li>
+<li>用尊重噪声的采集函数</li>
+<li>优化结束后的最佳点（即实例的 <code>$result</code> 字段）可以以一种反映噪声性的方式选择</li>
+</ol>
+<p>在第一种情况下，我们可以不用插值型高斯过程，而是用通过设置 <code>nugget.estim = TRUE</code> 来估计测量误差的高斯过程回归：</p>
+<div class="cell">
+<div class="sourceCode" id="cb64"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://mlr3mbo.mlr-org.com/reference/srlrn.html">srlrn</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.km"</span>, nugget.estim <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>这将导致高斯过程不会完美插值训练数据，与训练数据关联的标准差预测将非零，从而反映由测量误差引起的观测函数值的不确定性。在噪声 vs. 无噪声观测背景下对高斯过程的更深入讨论可参见 <span class="citation" data-cites="williams_2006">Williams and Rasmussen (<a href="../references.html#ref-williams_2006" role="doc-biblioref">2006</a>)</span> 的第 2 章。</p>
+<p>对于第二种选项，一个尊重噪声的采集函数示例是增强期望提升（Augmented expected improvement）<span class="citation" data-cites="huang_2012">(<a href="../references.html#ref-huang_2012" role="doc-biblioref">Huang et al. 2012</a>)</span>（<code>acqf("aei")</code>），它本质上是对期望提升进行了重新缩放，把测量误差考虑在内。</p>
+<p>最后，<code>mlr3mbo</code> 允许通过结果分配器（result assigner）显式指定优化结束后最终结果如何被赋给实例（即会保存到 <code>instance$result</code> 中的内容），结果分配器可以在构造 <code>OptimizerMbo</code> 或 <code>TunerMbo</code> 时指定。<a href="https://mlr3mbo.mlr-org.com/reference/mlr_result_assigners_surrogate.html"><code>ResultAssignerSurrogate</code></a> 使用代理模型预测所有被评估点的均值，并选择均值预测最好的点作为最终优化结果。相比之下，默认方法 <a href="https://mlr3mbo.mlr-org.com/reference/mlr_result_assigners_archive.html"><code>ResultAssignerArchive</code></a> 只根据记录在 <code>archive</code> 中的评估值选择最佳点。结果分配器存储在 <a href="https://mlr3mbo.mlr-org.com/reference/mlr_result_assigners.html"><code>mlr_result_assigners</code></a> 字典中，可以用 <a href="https://mlr3mbo.mlr-org.com/reference/ras.html"><code>ras()</code></a> 构造。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">结果分配器（Result Assigner）</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb65"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://bbotk.mlr-org.com/reference/opt.html">opt</a></span><span class="op">(</span><span class="st">"mbo"</span>,</span>
+<span>  loop_function <span class="op">=</span> <span class="va">bayesopt_ego</span>,</span>
+<span>  surrogate <span class="op">=</span> <span class="va">surrogate</span>,</span>
+<span>  acq_function <span class="op">=</span> <span class="va">acq_function</span>,</span>
+<span>  acq_optimizer <span class="op">=</span> <span class="va">acq_optimizer</span>,</span>
+<span>  result_assigner <span class="op">=</span> <span class="fu"><a href="https://mlr3mbo.mlr-org.com/reference/ras.html">ras</a></span><span class="op">(</span><span class="st">"surrogate"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>为什么噪声黑箱需要专门处理？因为在有噪声时，「观测到的最小值」很可能是噪声造成的假象——一个点可能只是「运气好」地低了一次，再评估一次就反弹了。此时若直接采用归档中最好的原始观测值（<code>ResultAssignerArchive</code> 的默认行为）就可能选错。三种处理途径正好对应 BO 的三个环节：① 代理层面，用带 nugget（块金项）的高斯过程估计随机噪声，使训练点处的预测方差不为零；② 采集层面，AEI 把 EI 重新缩放，避免被噪声误导；③ 结果层面，用去噪后的代理模型均值代替原始观测来选择最终点。这个思路与经典统计学中「均值回归」的思想相通——估计的是期望而非单次观测。</p>
+</div>
+</section><section id="sec-practical-bayesian-optimization" class="level3" data-number="5.4.6"><h3 data-number="5.4.6" class="anchored" data-anchor-id="sec-practical-bayesian-optimization">
+<span class="header-section-number">5.4.6</span> 贝叶斯优化的实践考量（Practical Considerations in Bayesian Optimization）</h3>
+<p><code>mlr3mbo</code> 尝试在代理模型、采集函数、采集函数优化器甚至循环函数的选择上使用合理的默认值。例如，在纯数值搜索空间的情况下，<code>mlr3mbo</code> 默认使用高斯过程作为代理模型、随机森林作为回退学习器，并把学习器封装起来（<a href="#sec-encapsulation-fallback" class="quarto-xref"><span>第 5.1.1 节</span></a>）。在混合或分层搜索空间的情况下，<code>mlr3mbo</code> 将使用随机森林作为代理模型。因此，用户可以不指定任何偏离默认值的设置就能进行 BO，并获得合理的优化性能。要查看这些默认值的最新概述，请查看 <a href="https://mlr3mbo.mlr-org.com/reference/mbo_defaults.html"><code>mbo_defaults</code></a> 的帮助页面。我们将在本节的最后讨论一些使用 BO 时应考虑的实践要点。</p>
+<section id="error-handling" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="error-handling">错误处理（Error Handling）</h4>
+<p>在 BO 的语境中，构建模块的失败有大量空间，都可能破坏整个过程。例如，如果训练数据中有两个点彼此太靠近，拟合高斯过程代理模型可能会失败。</p>
+<p><code>mlr3mbo</code> 有多个内置安全网来捕获错误。<a href="https://mlr3mbo.mlr-org.com/reference/Surrogate.html"><code>Surrogate</code></a> 包含 <code>catch_errors</code> 配置控制参数，如果设为 <code>TRUE</code>，会捕获代理模型训练或更新过程中发生的所有错误。<a href="https://mlr3mbo.mlr-org.com/reference/AcqOptimizer.html"><code>AcqOptimizer</code></a> 也有 <code>catch_errors</code> 配置控制参数，可用于捕获采集函数优化过程中发生的所有错误——无论是由于代理模型预测失败还是采集函数优化器出错。如果在任何这些步骤中捕获到错误，任何 <a href="https://mlr3mbo.mlr-org.com/reference/loop_function.html"><code>loop_function</code></a> 的标准行为都是触发回退方案：均匀随机地提出下一个候选点。注意，当为 <a href="https://mlr3mbo.mlr-org.com/reference/AcqOptimizer.html"><code>AcqOptimizer</code></a> 设置 <code>catch_errors = TRUE</code> 时，通常没有必要再显式地为 <code>Surrogate</code> 设置 <code>catch_errors = TRUE</code>，尽管在调试时这可能有用。</p>
+<p>在最坏的情况下，如果所有迭代都出错了，BO 算法将退化成简单的随机搜索。理想情况下，也应该使用回退学习器（<a href="#sec-encapsulation-fallback" class="quarto-xref"><span>第 5.1.1 节</span></a>），它会在随机提出下一个候选点之前使用。采集函数的值也总是记录在优化实例的归档中，因此检查它是确保算法行为符合预期的好办法。</p>
+</section><section id="surrogate-models" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="surrogate-models">代理模型（Surrogate Models）</h4>
+<p>在实践中，用户可能更喜欢更稳健的 BO 变体，而不是潜在性能更好但不稳定的变体。即使 <code>catch_errors</code> 参数已打开且从未被触发，也不能保证 BO 算法按预期运行。例如，高斯过程对核和核参数的选择很敏感，这些参数通常通过极大似然估计得到，次优的参数值可能导致得到一个均值与标准差预测都为常量的白噪声模型。在这种情况下，代理模型将无法提供有用的均值与标准差预测，导致 BO 算法整体性能欠佳。关于代理模型选择的另一个实践考量是开销。拟合一个朴素高斯过程的复杂度与数据点数量的立方成正比，因此 BO 算法的开销随迭代次数增长。此外，朴素高斯过程天生无法处理分类输入变量或搜索空间中的依赖关系（回想在 HPO 中我们经常处理混合分层空间的情况）。相比之下，随机森林——在 <em>SMAC</em> <span class="citation" data-cites="Lindauer2022">(<a href="../references.html#ref-Lindauer2022" role="doc-biblioref">Lindauer et al. 2022</a>)</span> 中被广泛用作代理模型——训练便宜、相当稳健（对自身超参数不像高斯过程那样敏感），并且能轻松处理混合分层空间。缺点是，随机森林并不是真正的贝叶斯（即没有后验预测分布），不确定性估计和插值外推能力较差。</p>
+</section><section id="warmstarting" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="warmstarting">热启动（Warmstarting）</h4>
+<p>热启动（Warmstarting）是优化中的一种技术，利用之前的优化运行来提高新的、同类优化运行的收敛速度和最终解。在 BO 中，热启动可以通过在初始设计中提供一组预计表现良好的配置来实现 <span class="citation" data-cites="feurer2015initializing">(例如见 <a href="../references.html#ref-feurer2015initializing" role="doc-biblioref">Feurer, Springenberg, and Hutter 2015</a>)</span>。这种方法尤其有利，因为它让代理模型能够在相关区域带着对优化地形的先验知识开始。在 <code>mlr3mbo</code> 中，通过指定自定义初始设计可以轻松实现热启动。此外，<code>mlr3mbo</code> 的一个便利特性是，即使在优化运行已终止之后，也可以在线继续优化。<a href="https://mlr3mbo.mlr-org.com/reference/mlr_optimizers_mbo.html"><code>OptimizerMbo</code></a> 和 <a href="https://mlr3mbo.mlr-org.com/reference/mlr_tuners_mbo.html"><code>TunerMbo</code></a> 都支持这个特性，即使优化之前被中断或终止，也允许优化在给定的实例上恢复。</p>
+</section><section id="termination" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="termination">终止（Termination）</h4>
+<p>常见的终止标准包括：在固定次数的评估后停止，在达到给定墙钟时间（walltime）预算后停止，在性能达到某一水平时停止，或者当性能改进停滞时停止。在 BO 的语境中，如果最优采集函数值低于某个阈值就停止优化也可能是合理的。例如，如果下一个候选点的期望提升可以忽略不计，就终止优化是一种合理的方法。在本书出版时，基于采集函数的终止器尚未实现，但这个特性即将推出。</p>
+</section><section id="parallelization" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="parallelization">并行化（Parallelization）</h4>
+<p>大多数 BO 算法的标准行为是顺序地提出下一个应该被评估的单个候选点。用户可能希望使用并行化来更高效地计算候选点。如果你把 BO 用于 HPO，那么最有效的方法是对嵌套重采样做并行化，见 <a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-nested-resampling-parallelization" class="quarto-xref"><span>第 10.1.4 节</span></a>。或者，如果循环函数支持批量提出候选点（例如 <code><a href="https://mlr3mbo.mlr-org.com/reference/mlr_loop_functions_parego.html">bayesopt_parego()</a></code>），那么循环函数的 <code>q</code> 参数可以被设置：如果 <code>Objective</code> 被正确实现，每次迭代提出 <code>q</code> 个候选点，这些候选点可以并行评估。</p>
+</section></section><div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>本节几个「实践考量」提醒读者 BO 并非万能银弹。最容易被忽略的两点：① <code>catch_errors</code> 捕获的是「运行时报错」，但代理模型「不报错却失败」更隐蔽——例如高斯过程在次优超参数下可能退化成恒值白噪声模型，此时 BO 的每一步都在浪费预算，所以检查归档里采集函数值的变化很有必要；② 高斯过程的拟合开销是 <span class="math inline">\(O(n^3)\)</span>，随评估次数增长飞快，而随机森林训练快、对参数鲁棒、还能处理分类/分层搜索空间，代价是缺乏严格的贝叶斯后验（没有可解释的方差）。这与「探索-利用」的权衡类似，都是工程上的取舍：与其迷信算法的理论优雅，不如关注默认配置加兜底机制是否适合你的问题规模。</p>
+</div>
+</section><section id="conclusion" class="level2 page-columns page-full" data-number="5.5"><h2 data-number="5.5" class="anchored" data-anchor-id="conclusion">
+<span class="header-section-number">5.5</span> 结论（Conclusion）</h2>
+<p>在本章中，我们研究了高级调优方法。我们首先思考了调优过程中可能发生的错误类型，以及如何处理这些错误以确保你的 HPO 过程不会崩溃。我们介绍了多目标调优，它可以同时优化多个性能度量。然后我们研究了多保真度调优，其中超带调优器通过利用低保真度评估来逼近全保真度模型的性能，从而高效地调优算法。我们将在 <a href="../chapter8/non-sequential_pipelines_and_tuning.html#sec-hyperband-example-svm" class="quarto-xref"><span>第 8.4.4 节</span></a> 中回到超带，届时我们将学习如何利用流水线（pipelines）来用超带调优任何算法。最后，我们深入研究了贝叶斯优化，看看 <a href="https://bbotk.mlr-org.com"><code>bbotk</code></a>、<a href="https://mlr3mbo.mlr-org.com"><code>mlr3mbo</code></a> 和 <a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a> 如何协同工作，在 <code>mlr3</code> 中实现复杂的 BO 调优算法，从而获得高度灵活且样本高效的算法。在下一章中，我们将研究特征选择，看看 <a href="https://mlr3filters.mlr-org.com"><code>mlr3filters</code></a> 和 <a href="https://mlr3fselect.mlr-org.com"><code>mlr3fselect</code></a> 如何采用与 <code>mlr3tuning</code> 非常相似的设计接口。</p>
+<div id="tbl-api-advanced-tuning" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-api-advanced-tuning-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+表&nbsp;5.3：本章覆盖的重要类与函数，以及其底层类（如有）、类构造函数或函数、以及重要的类方法（如有）。
+</figcaption><div aria-describedby="tbl-api-advanced-tuning-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead><tr class="header">
+<th>类（Class）</th>
+<th>构造函数/函数（Constructor/Function）</th>
+<th>字段/方法（Fields/Methods）</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a></td>
+<td><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html"><code>lrn</code></a></td>
+<td>
+<code>$encapsulate()</code>;</td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3tuning.mlr-org.com/reference/TuningInstanceBatchMultiCrit.html"><code>TuningInstanceBatchMultiCrit</code></a></td>
+<td>
+<a href="https://mlr3tuning.mlr-org.com/reference/ti.html"><code>ti()</code></a>/<a href="https://mlr3tuning.mlr-org.com/reference/tune.html"><code>tune()</code></a>
+</td>
+<td>
+<code>$result</code>; <code>$archive</code>
+</td>
+</tr>
+<tr class="odd">
+<td><a href="https://mlr3hyperband.mlr-org.com/reference/TunerHyperband.html"><code>TunerHyperband</code></a></td>
+<td><code>tnr("hyperband")</code></td>
+<td>-</td>
+</tr>
+<tr class="even">
+<td><a href="https://bbotk.mlr-org.com/reference/Objective.html"><code>Objective</code></a></td>
+<td>-</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>
+<a href="https://bbotk.mlr-org.com/reference/OptimInstanceBatchSingleCrit.html"><code>OptimInstanceBatchSingleCrit</code></a> 或 <a href="https://bbotk.mlr-org.com/reference/OptimInstanceBatchMultiCrit.html"><code>OptimInstanceBatchMultiCrit</code></a>
+</td>
+<td>
+<a href="https://bbotk.mlr-org.com/reference/oi.html"><code>oi</code></a> / <a href="https://bbotk.mlr-org.com/reference/bb_optimize.html"><code>bb_optimize()</code></a>
+</td>
+<td>
+<code>$result</code>; <code>$archive</code>
+</td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3mbo.mlr-org.com/reference/SurrogateLearner.html"><code>SurrogateLearner</code></a></td>
+<td><a href="https://mlr3mbo.mlr-org.com/reference/srlrn.html"><code>srlrn()</code></a></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><a href="https://mlr3mbo.mlr-org.com/reference/AcqFunction.html"><code>AcqFunction</code></a></td>
+<td><a href="https://mlr3mbo.mlr-org.com/reference/acqf.html"><code>acqf()</code></a></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3mbo.mlr-org.com/reference/AcqOptimizer.html"><code>AcqOptimizer</code></a></td>
+<td><a href="https://mlr3mbo.mlr-org.com/reference/acqo.html"><code>acqo()</code></a></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>-</td>
+<td><a href="https://mlr3mbo.mlr-org.com/reference/loop_function.html"><code>loop_function</code></a></td>
+<td>-</td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3mbo.mlr-org.com/reference/mlr_optimizers_mbo.html"><code>OptimizerMbo</code></a></td>
+<td><code>bbotk::opt("mbo")</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><a href="https://mlr3mbo.mlr-org.com/reference/mlr_tuners_mbo.html"><code>TunerMbo</code></a></td>
+<td><code>tnr("mbo")</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><a href="https://paradox.mlr-org.com/reference/Design.html"><code>Design</code></a></td>
+<td>
+<a href="https://paradox.mlr-org.com/reference/generate_design_random.html"><code>generate_design_random</code></a>; <a href="https://paradox.mlr-org.com/reference/generate_design_grid.html"><code>generate_design_grid</code></a>; <a href="https://paradox.mlr-org.com/reference/generate_design_lhs.html"><code>generate_design_lhs</code></a>; <a href="https://paradox.mlr-org.com/reference/generate_design_sobol.html"><code>generate_design_sobol</code></a>;</td>
+<td><code>$data</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section><section id="exercises" class="level2 page-columns page-full" data-number="5.6"><h2 data-number="5.6" class="anchored" data-anchor-id="exercises">
+<span class="header-section-number">5.6</span> 练习（Exercises）</h2>
+<ol type="1">
+<li>在 <code>tsk("mtcars")</code> 上调优 <code>lrn("regr.ranger")</code> 的 <code>mtry</code>、<code>sample.fraction</code> 和 <code>num.trees</code> 超参数，并用三折交叉验证和均方根误差（与<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>练习 1 相同）进行评估。使用 <code>tnr("mbo")</code> 进行 50 次评估。并与 <a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a> 练习 1 中随机搜索运行的性能进展进行比较。绘制两种算法随迭代次数性能进展的图，并可视化被评估超参数配置的空间分布。</li>
+<li>通过 BO（标准的顺序单目标 BO，使用 <code><a href="https://mlr3mbo.mlr-org.com/reference/mlr_loop_functions_ego.html">bayesopt_ego()</a></code>）最小化二维 Rastrigin 函数 <span class="math inline">\(f: [-5.12, 5.12] \times [-5.12, 5.12] \rightarrow \mathbb{R}\)</span>，<span class="math inline">\(\mathbf{x} \mapsto 10 D+\sum_{i=1}^D\left[x_i^2-10 \cos \left(2 \pi x_i\right)\right]\)</span>，<span class="math inline">\(D = 2\)</span>。使用 <code>lambda = 1</code> 的置信下界（lower confidence bound）作为采集函数，并用 <code>opt("nloptr")</code> 的 <code>"NLOPT_GN_ORIG_DIRECT"</code> 作为采集函数优化器。使用 40 次函数评估的预算。分别用「默认」的 Matérn 5/2 核高斯过程代理模型和「默认」随机森林代理模型运行此实验。比较它们的随时性能（类似 <a href="#fig-bayesian-sinusoidal_bo_rs" class="quarto-xref">图&nbsp;<span>5.7</span></a>）。你可以用默认设置构造代理模型，如下所示：</li>
+</ol>
+<div class="cell">
+<div class="sourceCode" id="cb66"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">surrogate_gp</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3mbo.mlr-org.com/reference/srlrn.html">srlrn</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3mbo.mlr-org.com/reference/default_gp.html">default_gp</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">surrogate_rf</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3mbo.mlr-org.com/reference/srlrn.html">srlrn</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3mbo.mlr-org.com/reference/default_rf.html">default_rf</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<ol start="3" type="1">
+<li>最小化以下函数：<span class="math inline">\(f: [-10, 10] \rightarrow \mathbb{R}^2, x \mapsto \left(x^2, (x - 2)^2\right)\)</span>，同时优化两个目标。使用 ParEGO 算法。用 <a href="https://bbotk.mlr-org.com/reference/ObjectiveRFunMany.html"><code>ObjectiveRFunMany</code></a> 类构造目标函数。在运行 100 次评估后终止优化。绘制结果的帕累托前沿，并与解析解 <span class="math inline">\(y_2 = \left(\sqrt{y_1}-2\right)^2\)</span>（<span class="math inline">\(y_1\)</span> 从 <span class="math inline">\(0\)</span> 到 <span class="math inline">\(4\)</span>）进行比较。</li>
+</ol></section><section id="citation" class="level2 page-columns page-full" data-number="5.7"><h2 data-number="5.7" class="anchored" data-anchor-id="citation">
+<span class="header-section-number">5.7</span> 引用（Citation）</h2>
+<p>请按如下方式引用本章：</p>
+<p>Schneider L, Becker M. (2024). Advanced Tuning Methods and Black Box Optimization. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/advanced_tuning_methods_and_black_box_optimization.html.</p>
+<div class="sourceCode" id="cb67"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="va">@incollection</span>{<span class="ot">citekey</span>,</span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span> = "<span class="st">Lennart Schneider and Marc Becker</span>",</span>
+<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span> = "<span class="st">Advanced Tuning Methods and Black Box Optimization</span>",</span>
+<span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">booktitle</span> = "<span class="st">Applied Machine Learning Using {m}lr3 in {R}</span>",</span>
+<span id="cb67-5"><a href="#cb67-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">publisher</span> = "<span class="st">CRC Press</span>", <span class="st">year</span> = "<span class="st">2024</span>",</span>
+<span id="cb67-6"><a href="#cb67-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">editor</span> = "<span class="st">Bernd Bischl and Raphael Sonabend and Lars Kotthoff and Michel Lang</span>",</span>
+<span id="cb67-7"><a href="#cb67-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">url</span> = "<span class="st">https://mlr3book.mlr-org.com/advanced_tuning_methods_and_black_box_optimization.html</span>"</span>
+<span id="cb67-8"><a href="#cb67-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+
+
+<!-- -->
+
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-hpo_practical" class="csl-entry" role="listitem">
+Bischl, Bernd, Martin Binder, Michel Lang, Tobias Pielok, Jakob Richter, Stefan Coors, Janek Thomas, et al. 2023. <span>“Hyperparameter Optimization: Foundations, Algorithms, Best Practices, and Open Challenges.”</span> <em>Wiley Interdisciplinary Reviews: Data Mining and Knowledge Discovery</em>, e1484. <a href="https://doi.org/10.1002/widm.1484">https://doi.org/10.1002/widm.1484</a>.
+</div>
+<div id="ref-byrd1995limited" class="csl-entry" role="listitem">
+Byrd, Richard H., Peihuang Lu, Jorge Nocedal, and Ciyou Zhu. 1995. <span>“A Limited Memory Algorithm for Bound Constrained Optimization.”</span> <em>SIAM Journal on Scientific Computing</em> 16 (5): 1190–1208. <a href="https://doi.org/10.1137/0916069">https://doi.org/10.1137/0916069</a>.
+</div>
+<div id="ref-hpo_automl" class="csl-entry" role="listitem">
+Feurer, Matthias, and Frank Hutter. 2019. <span>“Hyperparameter Optimization.”</span> In <em>Automated Machine Learning: Methods, Systems, Challenges</em>, edited by Frank Hutter, Lars Kotthoff, and Joaquin Vanschoren, 3–33. Cham: Springer International Publishing. <a href="https://doi.org/10.1007/978-3-030-05318-5_1">https://doi.org/10.1007/978-3-030-05318-5_1</a>.
+</div>
+<div id="ref-feurer2015initializing" class="csl-entry" role="listitem">
+Feurer, Matthias, Jost Springenberg, and Frank Hutter. 2015. <span>“Initializing <span>B</span>ayesian Hyperparameter Optimization via Meta-Learning.”</span> In <em>Proceedings of the AAAI Conference on Artificial Intelligence</em>. Vol. 29. 1. <a href="https://doi.org/10.1609/aaai.v29i1.9354">https://doi.org/10.1609/aaai.v29i1.9354</a>.
+</div>
+<div id="ref-garnett_2022" class="csl-entry" role="listitem">
+Garnett, Roman. 2022. <em>Bayesian Optimization</em>. Cambridge University Press. <a href="https://bayesoptbook.com/">https://bayesoptbook.com/</a>.
+</div>
+<div id="ref-Horn2015" class="csl-entry" role="listitem">
+Horn, Daniel, Tobias Wagner, Dirk Biermann, Claus Weihs, and Bernd Bischl. 2015. <span>“Model-Based Multi-Objective Optimization: Taxonomy, Multi-Point Proposal, Toolbox and Benchmark.”</span> In <em>Evolutionary Multi-Criterion Optimization</em>, edited by António Gaspar-Cunha, Carlos Henggeler Antunes, and Carlos Coello Coello, 64–78. <a href="https://doi.org/10.1007/978-3-319-15934-8_5">https://doi.org/10.1007/978-3-319-15934-8_5</a>.
+</div>
+<div id="ref-huang_2012" class="csl-entry" role="listitem">
+Huang, D., T. T. Allen, W. I. Notz, and N. Zheng. 2012. <span>“Erratum to: Global Optimization of Stochastic Black-Box Systems via Sequential Kriging Meta-Models.”</span> <em>Journal of Global Optimization</em> 54 (2): 431–31. <a href="https://doi.org/10.1007/s10898-011-9821-z">https://doi.org/10.1007/s10898-011-9821-z</a>.
+</div>
+<div id="ref-jamieson_2016" class="csl-entry" role="listitem">
+Jamieson, Kevin, and Ameet Talwalkar. 2016. <span>“Non-Stochastic Best Arm Identification and Hyperparameter Optimization.”</span> In <em>Proceedings of the 19th International Conference on Artificial Intelligence and Statistics</em>, edited by Arthur Gretton and Christian C. Robert, 51:240–48. Proceedings of Machine Learning Research. Cadiz, Spain: PMLR. <a href="https://proceedings.mlr.press/v51/jamieson16.html">https://proceedings.mlr.press/v51/jamieson16.html</a>.
+</div>
+<div id="ref-jones_1993_lipschitzian" class="csl-entry" role="listitem">
+Jones, Donald R., Cary D. Perttunen, and Bruce E. Stuckman. 1993. <span>“Lipschitzian Optimization Without the <span>L</span>ipschitz Constant.”</span> <em>Journal of Optimization Theory and Applications</em> 79 (1): 157–81. <a href="https://doi.org/10.1007/BF00941892">https://doi.org/10.1007/BF00941892</a>.
+</div>
+<div id="ref-jones_1998" class="csl-entry" role="listitem">
+Jones, Donald R., Matthias Schonlau, and William J. Welch. 1998. <span>“Efficient Global Optimization of Expensive Black-Box Functions.”</span> <em>Journal of Global Optimization</em> 13 (4): 455–92. <a href="https://doi.org/10.1023/A:1008306431147">https://doi.org/10.1023/A:1008306431147</a>.
+</div>
+<div id="ref-karl2022" class="csl-entry" role="listitem">
+Karl, Florian, Tobias Pielok, Julia Moosbauer, Florian Pfisterer, Stefan Coors, Martin Binder, Lennart Schneider, et al. 2022. <span>“Multi-Objective Hyperparameter Optimization–an Overview.”</span> <em>arXiv Preprint arXiv:2206.07438</em>. <a href="https://doi.org/10.48550/arXiv.2206.07438">https://doi.org/10.48550/arXiv.2206.07438</a>.
+</div>
+<div id="ref-kim_2021" class="csl-entry" role="listitem">
+Kim, Jungtaek, and Seungjin Choi. 2021. <span>“On Local Optimizers of Acquisition Functions in Bayesian Optimization.”</span> In <em>Machine Learning and Knowledge Discovery in Databases</em>, edited by Frank Hutter, Kristian Kersting, Jefrey Lijffijt, and Isabel Valera, 675–90. <a href="https://doi.org/10.1007/978-3-030-67661-2_40">https://doi.org/10.1007/978-3-030-67661-2_40</a>.
+</div>
+<div id="ref-knowles_2006" class="csl-entry" role="listitem">
+Knowles, Joshua. 2006. <span>“ParEGO: A Hybrid Algorithm with on-Line Landscape Approximation for Expensive Multiobjective Optimization Problems.”</span> <em>IEEE Transactions on Evolutionary Computation</em> 10 (1): 50–66. <a href="https://doi.org/10.1109/TEVC.2005.851274">https://doi.org/10.1109/TEVC.2005.851274</a>.
+</div>
+<div id="ref-li_2018" class="csl-entry" role="listitem">
+Li, Lisha, Kevin Jamieson, Giulia DeSalvo, Afshin Rostamizadeh, and Ameet Talwalkar. 2018. <span>“Hyperband: A Novel Bandit-Based Approach to Hyperparameter Optimization.”</span> <em>Journal of Machine Learning Research</em> 18 (185): 1–52. <a href="https://jmlr.org/papers/v18/16-558.html">https://jmlr.org/papers/v18/16-558.html</a>.
+</div>
+<div id="ref-Lindauer2022" class="csl-entry" role="listitem">
+Lindauer, Marius, Katharina Eggensperger, Matthias Feurer, André Biedenkapp, Difan Deng, Carolin Benjamins, Tim Ruhkopf, René Sass, and Frank Hutter. 2022. <span>“<span>SMAC3</span>: A Versatile Bayesian Optimization Package for Hyperparameter Optimization.”</span> <em>Journal of Machine Learning Research</em> 23 (54): 1–9. <a href="https://www.jmlr.org/papers/v23/21-0888.html">https://www.jmlr.org/papers/v23/21-0888.html</a>.
+</div>
+<div id="ref-Morales2022" class="csl-entry" role="listitem">
+Morales-Hernández, Alejandro, Inneke Van Nieuwenhuyse, and Sebastian Rojas Gonzalez. 2022. <span>“A Survey on Multi-Objective Hyperparameter Optimization Algorithms for Machine Learning.”</span> <em>Artificial Intelligence Review</em>, 1–51. <a href="https://doi.org/10.1007/s10462-022-10359-2">https://doi.org/10.1007/s10462-022-10359-2</a>.
+</div>
+<div id="ref-Niederreiter1988" class="csl-entry" role="listitem">
+Niederreiter, Harald. 1988. <span>“Low-Discrepancy and Low-Dispersion Sequences.”</span> <em>Journal of Number Theory</em> 30 (1): 51–70. <a href="https://doi.org/10.1016/0022-314X(88)90025-X">https://doi.org/10.1016/0022-314X(88)90025-X</a>.
+</div>
+<div id="ref-Stein1987" class="csl-entry" role="listitem">
+Stein, Michael. 1987. <span>“Large Sample Properties of Simulations Using Latin Hypercube Sampling.”</span> <em>Technometrics</em> 29 (2): 143–51. <a href="https://doi.org/10.2307/1269769">https://doi.org/10.2307/1269769</a>.
+</div>
+<div id="ref-williams_2006" class="csl-entry" role="listitem">
+Williams, Christopher KI, and Carl Edward Rasmussen. 2006. <em>Gaussian Processes for Machine Learning</em>. Vol. 2. 3. MIT press Cambridge, MA.
+</div>
+</div>
+</section>
+  </main>
+  <nav class="chnav">
+    <a class="" href="ch04-hyperparameter-optimization.html"><span class="dir">上一章</span><span class="ch">第 4 章 超参数优化</span></a>
+    <a class="" href="ch06-feature-selection.html"><span class="dir">下一章</span><span class="ch">第 6 章 特征选择</span></a>
+  </nav>
+  <div class="footer">
+    <div>《Applied Machine Learning Using mlr3 in R》中文译本 · 非官方翻译</div>
+    <div class="lic">原文 © 2024 CRC Press（Bischl, Sonabend, Kotthoff &amp; Lang 主编，CC BY-NC-SA 4.0）· 本站由志愿翻译，仅供学习交流</div>
+  </div>
+</div>
+<script>
+MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] } };
+</script>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
+</body>
+</html>

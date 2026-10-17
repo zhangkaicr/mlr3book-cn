@@ -52,6 +52,22 @@
 .hero-search{margin-top:20px}
 .hero-search a{display:inline-block;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 18px;color:var(--fg);text-decoration:none;font-size:14px}
 .hero-search a:hover{border-color:var(--accent);color:var(--accent)}
+.verse{margin-top:38px;text-align:left}
+.verse-head h2{font-size:21px;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.verse-head p{color:var(--muted);font-size:14.5px;margin:10px 0}
+.verse-head b{color:var(--fg)}
+.verse-head code{background:var(--panel2);color:var(--accent);padding:1px 5px;border-radius:4px;font-size:12.5px;font-family:"SF Mono",Consolas,monospace}
+.verse-fig{margin:20px 0 8px;text-align:center}
+.verse-fig img{max-width:100%;height:auto;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px}
+.verse-fig figcaption{color:var(--muted);font-size:12.5px;margin-top:10px;line-height:1.6}
+.verse-table{margin-top:22px}
+.vt-title{font-weight:600;font-size:15px;margin-bottom:8px;color:var(--accent2)}
+.vt{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--panel)}
+.vt th{background:var(--panel2);text-align:left;padding:8px 11px;border:1px solid var(--border);font-weight:600}
+.vt td{padding:8px 11px;border:1px solid var(--border);vertical-align:top}
+.vt code{background:var(--panel2);color:var(--accent);padding:1px 4px;border-radius:3px;font-size:12px;font-family:"SF Mono",Consolas,monospace;white-space:nowrap}
+.verse .bg-note{margin-top:20px}
+.verse .bg-note p{color:var(--fg)}
 .parts{margin-top:36px}
 .part-title{color:var(--accent2);font-weight:600;font-size:15px;margin:26px 0 10px;letter-spacing:.05em}
 .chapter-list{list-style:none;margin:0;padding:0}
@@ -86,6 +102,38 @@ function toggleTheme(){var c=document.documentElement.getAttribute("data-theme")
 <div class="src">原文：<a href="https://mlr3book.mlr-org.com/">https://mlr3book.mlr-org.com/</a> · CRC Press 2024 · 为学习交流而译</div>
 <div class="hero-search">
 <a href="search.html">&#128269; 全书全文搜索 —— 检索 16 章正文与附录的全部文字内容</a>
+</div>
+</div>
+<div class="verse">
+<div class="verse-head">
+<h2>mlr3verse：mlr3 生态体系</h2>
+<p>mlr3 不是一个孤立的项目，而是一套以 <b>mlr3</b> 为核心、由数十个扩展包共同组成的<b>模块化生态</b>（社区称之为 <b>mlr3verse</b>）。本书覆盖的核心包位于图的中心，外围包按功能分工协作——例如 <code>mlr3learners</code> 提供学习器实现，<code>mlr3tuning</code> 负责调优，<code>mlr3pipelines</code> 支撑管道与预处理，<code>mlr3cluster</code> 与 <code>mlr3proba</code> 把适用范围扩展到聚类、密度估计等非常规任务。</p>
+<p>这种「核心 + 插件」的架构带来两个直接好处：其一，核心包保持稳定，学习器、评估、调优等能力可以独立升级而不破坏兼容性；其二，你可以只安装当前研究需要的部分，不必背上一整棵依赖树。</p>
+</div>
+<figure class="verse-fig">
+<img src="images/Figures/mlr3_ecosystem.svg" alt="mlr3verse 生态体系图：中心为 mlr3 核心包，外围按 Learners（学习器）、Evaluation（评估）、Tuning（调优）、Feature Selection（特征选择）、Pipelines（管道）、Data（数据）、Special Tasks（特殊任务）、Utilities（工具）八大功能域组织各扩展包" loading="lazy">
+<figcaption>图：mlr3verse 生态体系。中心方框为 mlr3 核心包，四周按功能划分为八大域，共列出 24 个常用扩展包（图中文字为英文原名）。</figcaption>
+</figure>
+<div class="verse-table">
+<div class="vt-title">八大功能域与代表包</div>
+<table class="vt">
+<thead><tr><th>功能域</th><th>作用</th><th>代表包</th></tr></thead>
+<tbody>
+<tr><td><b>核心</b></td><td>定义 Task、Learner、Resampling、Measure 等抽象接口，所有扩展包围绕其工作</td><td><code>mlr3</code></td></tr>
+<tr><td>Learners</td><td>具体学习器实现（分类、回归、聚类等）</td><td><code>mlr3learners</code>、<code>mlr3extralearners</code>、<code>mlr3torch</code></td></tr>
+<tr><td>Evaluation</td><td>基准测试框架与评价指标</td><td><code>mlr3measures</code>、<code>mlr3benchmark</code></td></tr>
+<tr><td>Tuning</td><td>超参数优化，包括黑箱优化与并行化调优</td><td><code>mlr3tuning</code>、<code>mlr3mbo</code>、<code>bbotk</code>、<code>paradox</code></td></tr>
+<tr><td>Feature Selection</td><td>特征筛选方法（过滤式、包装式等）</td><td><code>mlr3filters</code>、<code>mlr3fselect</code></td></tr>
+<tr><td>Pipelines</td><td>顺序与非顺序管道、预处理组合</td><td><code>mlr3pipelines</code></td></tr>
+<tr><td>Data</td><td>数据集获取与缓存</td><td><code>mlr3data</code>、<code>mlr3oml</code></td></tr>
+<tr><td>Special Tasks</td><td>非常规任务：密度估计、聚类、时空数据、公平性、概率预测等</td><td><code>mlr3cluster</code>、<code>mlr3proba</code>、<code>mlr3spatial</code>、<code>mlr3spatiotempcv</code>、<code>mlr3fairness</code>、<code>mlr3fda</code></td></tr>
+<tr><td>Utilities</td><td>可视化、并行批处理、杂项工具</td><td><code>mlr3viz</code>、<code>mlr3batchmark</code>、<code>mlr3misc</code></td></tr>
+</tbody>
+</table>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>为什么 mlr3 要设计成「核心 + 插件」而不是一个大而全的包？</p>
+<p>早期的机器学习 R 包（如 <code>caret</code>）倾向于把算法、数据处理、调参都塞进同一个包，结果是版本之间互相牵制——升级一个算法可能破坏既有流程。mlr3 团队选择了 R 社区的 S3/S4 风格：核心包 <code>mlr3</code> 只定义「契约」（比如一个学习器必须能 <code>$train()</code>、<code>$predict()</code>、<code>$score()</code>），具体实现交给扩展包。</p>
+<p>这样做的好处在研究场景中尤其明显：当你需要替换某个学习器、或引入全新的任务类型（如密度估计）时，只需安装对应扩展包，既有代码无需改动。代价则是需要理解各包的职责边界——这也是本书第 1 章专门用一节篇幅讲解 mlr3verse 的原因。</p>
 </div>
 </div>
 <div class="parts">

@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>模型解释（Model Interpretation）</title>
+<script>
+(function(){
+  var saved = localStorage.getItem("mlr3-theme");
+  if (saved === null) saved = "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+})();
+</script>
+<style>
+:root {
+  --bg: #1e2228; --fg: #d8dee4; --muted: #9aa4b0;
+  --panel: #262c34; --panel2: #2e3540; --border: #3a4350;
+  --accent: #4ea1ff; --accent2: #8f7ae6;
+  --code-bg: #161a20; --code-fg: #d8dee4;
+  --note-bg: #2a3450; --note-border: #5a7fff;
+  --callout-bg: #2b3826; --callout-border: #6bbf59;
+  --table-head: #2e3540; --table-row: #262c34; --link: #6cb0ff;
+  --h-border: #3a4350;
+}
+[data-theme="light"] {
+  --bg: #f7f8fa; --fg: #24292f; --muted: #57606a;
+  --panel: #ffffff; --panel2: #f0f2f5; --border: #d9dee3;
+  --accent: #0969da; --accent2: #8250df;
+  --code-bg: #f3f4f6; --code-fg: #24292f;
+  --note-bg: #eef2ff; --note-border: #5a7fff;
+  --callout-bg: #eff7ec; --callout-border: #6bbf59;
+  --table-head: #eef1f4; --table-row: #ffffff; --link: #0969da;
+  --h-border: #d9dee3;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  line-height: 1.78; font-size: 16px;
+  transition: background .2s, color .2s;
+}
+.container { max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+/* 顶栏 */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+}
+.topbar .brand { font-weight: 600; font-size: 15px; color: var(--fg); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+.topbar .brand .logo { color: var(--accent); }
+.topbar .right { display: flex; align-items: center; gap: 10px; }
+.topbar .home-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+.topbar .home-link:hover { color: var(--accent); }
+.theme-toggle {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+/* 章头 */
+.header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
+.header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
+.header-block h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.35; }
+.header-block .subtitle { color: var(--muted); font-size: 14px; }
+/* 章节导航 */
+.chnav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0 6px; flex-wrap: wrap; }
+.chnav a {
+  background: var(--panel); border: 1px solid var(--border); color: var(--fg);
+  text-decoration: none; font-size: 14px; padding: 10px 16px; border-radius: 8px;
+  max-width: 46%; display: block;
+}
+.chnav a:hover { border-color: var(--accent); color: var(--accent); }
+.chnav .dir { color: var(--muted); font-size: 12px; display: block; }
+.chnav .ch { font-weight: 600; }
+.chnav a.disabled { opacity: .4; pointer-events: none; }
+/* 正文 */
+main { padding: 0 0 20px; }
+main h1 { font-size: 26px; margin: 40px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--h-border); }
+main h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--h-border); }
+main h3 { font-size: 18px; margin: 28px 0 10px; }
+main h4 { font-size: 16px; margin: 22px 0 8px; color: var(--accent); }
+main p { margin: 10px 0; }
+main a { color: var(--link); text-decoration: none; }
+main a:hover { text-decoration: underline; }
+main strong { font-weight: 600; }
+main ul, main ol { padding-left: 26px; }
+main li { margin: 5px 0; }
+main blockquote {
+  margin: 12px 0; padding: 10px 16px; border-left: 4px solid var(--border);
+  background: var(--panel2); color: var(--muted); border-radius: 0 6px 6px 0;
+}
+main hr { border: none; border-top: 1px solid var(--border); margin: 26px 0; }
+main img { max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 6px; }
+main table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+main th { background: var(--table-head); font-weight: 600; }
+main th, main td { border: 1px solid var(--border); padding: 7px 11px; }
+main tr:nth-child(even) td { background: var(--table-row); }
+/* 代码 */
+pre {
+  background: var(--code-bg); color: var(--code-fg);
+  padding: 14px 16px; border-radius: 8px; overflow-x: auto;
+  border: 1px solid var(--border); font-size: 13.5px; line-height: 1.6;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+code {
+  font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+  background: var(--panel2); color: var(--accent);
+  padding: 2px 5px; border-radius: 4px; font-size: 13.5px;
+}
+pre code { background: none; color: var(--code-fg); padding: 0; }
+/* 代码块容器（Quarto 结构） */
+.sourceCode { margin: 14px 0; }
+.sourceCode pre { margin: 0; }
+/* 输出块 */
+.cell { margin: 6px 0; }
+.cell-output { margin: 0 0 6px; }
+.cell-output pre { background: var(--panel2); border-style: dashed; }
+.cell-output-stderr { border-color: #d29922; }
+.cell-output-stdout pre { border-color: var(--border); }
+/* figure */
+figure { margin: 18px 0; text-align: center; }
+figure img { margin: 0 auto; }
+figcaption, .caption { color: var(--muted); font-size: 13px; margin-top: 6px; text-align: center; }
+.quarto-float { margin: 18px 0; }
+.quarto-figure { margin: 18px 0; text-align: center; }
+/* 背景与解释（译者注）框 */
+.bg-note {
+  background: var(--note-bg); border: 1px solid var(--note-border);
+  border-radius: 8px; padding: 14px 18px; margin: 18px 0;
+  font-size: 15px;
+}
+.bg-note p { margin: 6px 0; }
+.bg-note .bg-title { font-weight: 600; color: var(--accent); }
+/* 原书 callout 提示框 */
+.callout {
+  border-radius: 8px; padding: 12px 18px; margin: 16px 0;
+  border-left: 5px solid var(--accent); background: var(--panel2);
+}
+.callout-tip { border-left-color: #6bbf59; }
+.callout-note { border-left-color: var(--accent); }
+.callout-warning { border-left-color: #d29922; }
+.callout-important { border-left-color: #e05d5d; }
+.callout-header { font-weight: 600; margin-bottom: 4px; }
+.callout-title-container { display: inline; }
+.callout-body p { margin: 6px 0; }
+.callout-icon-container { display: none; }
+/* 脚注 */
+.footnote-ref { font-size: 12px; vertical-align: super; }
+/* 页脚 */
+.footer {
+  margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 13px; text-align: center;
+}
+.footer .lic { margin-top: 6px; font-size: 12px; }
+/* 表格滚动 */
+main table { display: block; overflow-x: auto; }
+/* banner 样式（原书 callout 可能以其他名目出现） */
+[class*="callout"] > p:first-child { margin-top: 4px; }
+</style>
+<script>
+function toggleTheme(){
+  var cur = document.documentElement.getAttribute("data-theme");
+  var next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("mlr3-theme", next);
+}
+</script>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <div class="right">
+    <a class="home-link" href="index.html">目录</a>
+    <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
+  </div>
+</div>
+<div class="container">
+  <div class="header-block">
+    <div class="part">第四部分 高级专题</div>
+    <h1>模型解释（Model Interpretation）</h1>
+    <div class="subtitle">《Applied Machine Learning Using mlr3 in R》中文翻译 · 章节 第 12 章 模型解释</div>
+  </div>
+  <main>
+<p><strong>Susanne Dandl</strong> <br><em>慕尼黑路德维希-马克西米利安大学（Ludwig-Maximilians-Universität München）及慕尼黑机器学习中心（Munich Center for Machine Learning, MCML）</em></p>
+<p><strong>Przemysław Biecek</strong> <br><em>MI2.AI，华沙理工大学（Warsaw University of Technology）及华沙大学（University of Warsaw）</em></p>
+<p><strong>Giuseppe Casalicchio</strong> <br><em>慕尼黑路德维希-马克西米利安大学（Ludwig-Maximilians-Universität München）、慕尼黑机器学习中心（Munich Center for Machine Learning, MCML）及 Essential Data Science Training GmbH</em></p>
+<p><strong>Marvin N. Wright</strong> <br><em>莱布尼茨预防研究与流行病学研究所（Leibniz Institute for Prevention Research and Epidemiology）– BIPS，不来梅大学（University of Bremen）及哥本哈根大学（University of Copenhagen）</em> <br><br></p>
+<p>数据与创建预测模型的软件框架日益普及，使得机器学习在许多应用中被广泛采用。然而，这类模型的高预测性能往往以可解释性为代价。许多模型被称为「黑箱（black box）」，因为它们预测背后的决策过程往往不能直接解释。这种缺乏解释的情况会降低人们对机器学习的信任，并可能阻碍预测模型的采用，尤其是在医学、工程与金融等关键应用中 <span class="citation" data-cites="lipton2018mythos">(<a href="../references.html#ref-lipton2018mythos" role="doc-biblioref">Lipton 2018</a>)</span>。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>「黑箱」一词指的是那些内部机制难以直接理解、只能看到输入与输出的模型，例如深度神经网络、梯度提升树等复杂模型。可解释性的缺失在医学、金融、司法等高风险决策场景中尤其危险——监管合规（如欧盟 GDPR 的「解释权」条款）、审计与用户信任都要求模型能够给出理由。这也是可解释机器学习（Interpretable Machine Learning, IML）领域近年来快速发展的根本动机：既要高精度，又要能「说清楚为什么」。</p>
+</div>
+<p>近年来，人们开发了许多解释方法，允许开发者「窥视」这些模型的内部，并产生解释，例如理解模型如何利用特征做出预测 <span class="citation" data-cites="guidotti2018survey">(<a href="../references.html#ref-guidotti2018survey" role="doc-biblioref">Guidotti et al. 2018</a>)</span>。解释方法可以从多个角度提供价值：</p>
+<ol type="1">
+<li>获得对模型的全局洞察，例如识别哪些特征总体上最重要，或特征如何作用于预测。</li>
+<li>在发现缺陷（数据或模型中的）时改进模型，例如模型意外地依赖于某个特征。</li>
+<li>理解并控制单个预测，例如识别如果改变某个特征，给定预测会如何变化。</li>
+<li>评估算法的公平性，例如检查模型是否对某些亚群或个人产生不利影响（见<a href="../chapter14/algorithmic_fairness.html" class="quarto-xref"><span>第 14 章</span></a>）。</li>
+</ol>
+<p>在本章中，我们将介绍模型无关（model-agnostic，即可以应用于任何模型）的可解释机器学习（IML）方法，它们可用于事后（post hoc，即在模型训练完成后）理解模型。我们将重点放在与 <code>mlr3</code> 良好接口的三个 R 包中实现的方法上：<a href="https://cran.r-project.org/package=iml"><code>iml</code></a>（<a href="#sec-iml" class="quarto-xref"><span>12.1 节</span></a>）、<a href="https://cran.r-project.org/package=counterfactuals"><code>counterfactuals</code></a>（<a href="#sec-counterfactuals" class="quarto-xref"><span>12.2 节</span></a>）和 <a href="https://cran.r-project.org/package=DALEX"><code>DALEX</code></a>（<a href="#sec-dalex" class="quarto-xref"><span>12.3 节</span></a>）。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">可解释机器学习（Interpretable Machine Learning）</span></div></div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>「模型无关（model-agnostic）」是可解释机器学习中最重要的一类方法，它与「模型特定（model-specific）」方法相对。模型特定方法只适用于特定模型族，例如线性回归的系数、决策树的分裂规则、随机森林的 Gini 重要性；而模型无关方法把训练好的模型当作一个「黑箱」来探测——只需能够对任意输入给出预测即可，因此可以统一应用于任何模型，也便于在不同模型之间横向比较。本章介绍的 PFI、PD/ICE、代理模型、Shapley 值、反事实都属于模型无关方法。</p>
+</div>
+<p><code>iml</code> 和 <code>DALEX</code> 提供类似的功能，但在设计选择上有所不同：<code>iml</code> 使用 <code>R6</code> 类系统，而 <code>DALEX</code> 基于 S3 类系统。<code>counterfactuals</code> 也使用 <code>R6</code> 类系统。与 <code>iml</code> 和 <code>counterfactuals</code> 不同，<code>DALEX</code> 侧重于比较多个预测模型（通常是不同类型的模型）。我们这里只对下面讨论的方法做简要概述，我们推荐 <span class="citation" data-cites="Molnar2022">Molnar (<a href="../references.html#ref-Molnar2022" role="doc-biblioref">2022</a>)</span>作为关于 IML 的综合性入门书籍。</p>
+<p>作为本章的贯穿示例，我们将考虑一个梯度提升机（gradient boosting machine, GBM），它在 <code>"german_credit"</code> 任务的一半特征上拟合。在实践中，我们会如<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>所讨论的那样调优 GBM 的超参数，并如<a href="../chapter6/feature_selection.html" class="quarto-xref"><span>第 6 章</span></a>所讨论的那样进行特征选择，以选出最相关的特征。然而，为了简单起见，我们在这些例子中使用未经调优的 GBM，因为即使不做微调它也表现出了令人满意的性能。</p>
+<div class="cell">
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3verse.mlr-org.com">mlr3verse</a></span><span class="op">)</span></span>
+<span><span class="va">tsk_german</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"german_credit"</span><span class="op">)</span><span class="op">$</span><span class="fu">select</span><span class="op">(</span></span>
+<span>  cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"duration"</span>, <span class="st">"amount"</span>, <span class="st">"age"</span>, <span class="st">"status"</span>, <span class="st">"savings"</span>, <span class="st">"purpose"</span>,</span>
+<span>  <span class="st">"credit_history"</span>, <span class="st">"property"</span>, <span class="st">"employment_duration"</span>, <span class="st">"other_debtors"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">split</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/partition.html">partition</a></span><span class="op">(</span><span class="va">tsk_german</span><span class="op">)</span></span>
+<span><span class="va">lrn_gbm</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.gbm"</span>, predict_type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span></span>
+<span><span class="va">lrn_gbm</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_german</span>, row_ids <span class="op">=</span> <span class="va">split</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+基于性能的解释方法需要测试数据（Performance-based Interpretation Methods Require Test Data）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>基于性能的解释方法，如置换特征重要性（permutation feature importance）（<a href="#sec-feat-importance" class="quarto-xref"><span>12.1.1 节</span></a>），依赖于度量泛化性能。因此，它们应该在独立的测试集上计算，以减少估计中的偏差（见<a href="../chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>）。</p>
+<p>然而，对于不需要性能估计的基于预测的方法，例如 ICE/PD（<a href="#sec-feature-effects" class="quarto-xref"><span>12.1.2 节</span></a>）或 Shapley 值（<a href="#sec-shapley" class="quarto-xref"><span>12.1.4 节</span></a>），训练数据与测试数据之间的解释差异不那么明显 <span class="citation" data-cites="Molnar2022pitfalls">(<a href="../references.html#ref-Molnar2022pitfalls" role="doc-biblioref">Molnar et al. 2022</a>)</span>。</p>
+</div>
+</div>
+<section id="sec-iml" class="level2 page-columns page-full" data-number="12.1"><h2 data-number="12.1" class="anchored" data-anchor-id="sec-iml">
+<span class="header-section-number">12.1</span> iml 包（The iml Package）</h2>
+<p><a href="https://cran.r-project.org/package=iml"><code>iml</code></a> <span class="citation" data-cites="Molnar2018">(<a href="../references.html#ref-Molnar2018" role="doc-biblioref">Molnar, Bischl, and Casalicchio 2018</a>)</span>为多种模型无关的解释方法实现了统一接口，便于分析与解释机器学习模型。<code>iml</code> 支持由<em>任意</em> R 包拟合的机器学习模型（分类或回归），尤其是所有 <code>mlr3</code> 模型都可以通过把学习器包装在 <a href="https://www.rdocumentation.org/packages/iml/topics/Predictor"><code>Predictor</code></a> 对象中来支持，该对象统一了已训练模型的输入-输出行为。这个对象既包含预测模型，也包含用于分析模型与生成所需解释的数据。我们用已训练的学习器与留出测试数据构造 <code>Predictor</code> 对象：</p>
+<div class="cell">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://giuseppec.github.io/iml/">iml</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 测试数据中的特征</span></span>
+<span><span class="va">credit_x</span> <span class="op">=</span> <span class="va">tsk_german</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span>rows <span class="op">=</span> <span class="va">split</span><span class="op">$</span><span class="va">test</span>,</span>
+<span>  cols <span class="op">=</span> <span class="va">tsk_german</span><span class="op">$</span><span class="va">feature_names</span><span class="op">)</span></span>
+<span><span class="co"># 测试数据中的目标变量</span></span>
+<span><span class="va">credit_y</span> <span class="op">=</span> <span class="va">tsk_german</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span>rows <span class="op">=</span> <span class="va">split</span><span class="op">$</span><span class="va">test</span>,</span>
+<span>  cols <span class="op">=</span> <span class="va">tsk_german</span><span class="op">$</span><span class="va">target_names</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">predictor</span> <span class="op">=</span> <span class="va"><a href="https://giuseppec.github.io/iml/reference/Predictor.html">Predictor</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">lrn_gbm</span>, data <span class="op">=</span> <span class="va">credit_x</span>, y <span class="op">=</span> <span class="va">credit_y</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>有了 <code>Predictor</code> 设置，我们现在可以考虑不同的模型解释方法。</p>
+<section id="sec-feat-importance" class="level3 page-columns page-full" data-number="12.1.1"><h3 data-number="12.1.1" class="anchored" data-anchor-id="sec-feat-importance">
+<span class="header-section-number">12.1.1</span> 特征重要性（Feature Importance）</h3>
+<p>在实际部署模型时，人们通常想知道哪些特征对模型的<em>预测性能</em>贡献最大。这有助于更好地理解所面临的问题以及特征与目标之间的关系。在模型开发中，这可以用来过滤（<a href="../chapter6/feature_selection.html#sec-fs-filter" class="quarto-xref"><span>6.1 节</span></a>）对模型预测能力贡献不大的特征。在本书中，我们使用「特征重要性（Feature Importance）」这个术语来描述这样的全局方法：它为每个特征计算一个单一得分，反映该特征相对于给定感兴趣量（例如模型性能）的重要性，从而允许对特征进行排序。</p>
+<p>最流行的特征重要性方法之一是置换特征重要性（Permutation Feature Importance, PFI），最初由 <span class="citation" data-cites="breiman2001random">Breiman (<a href="../references.html#ref-breiman2001random" role="doc-biblioref">2001a</a>)</span>为随机森林提出，并由 <span class="citation" data-cites="Fisher2019pfi">Fisher, Rudin, and Dominici (<a href="../references.html#ref-Fisher2019pfi" role="doc-biblioref">2019</a>)</span>改编为模型无关的特征重要性度量（最初称为「模型依赖（model reliance）」）。特征置换（feature permutation）是随机打乱数据集中单个特征的观测值的过程。这移除了该特征与目标变量以及所有其他特征之间的原始依赖结构，同时保持该特征的边际分布不变。PFI 度量的是置换某个特征之前（原始模型性能）与之后（置换后模型性能）模型性能的变化。如果一个特征不重要，那么置换该特征后模型性能几乎不会改变。反之，如果特征更重要，我们会预期模型性能明显下降。通常建议重复置换过程，并在多次重复中聚合性能变化，以减少结果中的随机性。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">置换特征重要性（Permutation Feature Importance）</span></div></div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>置换特征重要性（PFI）的核心思想是：如果一个特征对预测确实重要，那么随机打乱它的取值（破坏它与目标及其他特征的依赖关系）后，模型性能应当明显下降；若打乱后性能几乎不变，说明该特征可有可无。它比随机森林内部的 Gini 重要性更通用（不依赖于树结构），但有一个重要陷阱：当特征彼此强相关时，打乱一个特征会让模型「借用」其他相关特征的信息来补偿，导致重要性被低估——这也是 12.4 节「相关特征」小节讨论的问题。与基于模型的系数等模型特定方法不同，PFI 只依赖「打乱-重测」这一操作，因此可以应用于任何模型。</p>
+</div>
+<p>PFI 在 <code>iml</code> 中通过构造 <a href="https://www.rdocumentation.org/packages/iml/topics/FeatureImp"><code>FeatureImp</code></a> 类对象并指定性能度量来运行，下面我们使用分类误差。默认情况下，置换重复五次以保持较低的计算时间（可以通过在调用构造器 <code>$new()</code> 时设置 <code>n.repetitions</code> 来改变，下面我们设置 <code>n.repetitions = 100</code>），每次重复中，计算与分类误差变化对应的重要性值。<code>$plot()</code> 方法显示多次重复得到的重要性值的中位数（作为一个点），图中误差条的边界指的是重要性值的 5% 与 95% 分位数（<a href="#fig-iml-pfi" class="quarto-xref">图 <span>12.1</span></a>）。</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+增加重复次数以获得有用的误差条（Increase the Number of Repetitions to Obtain Useful Error Bars）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>构造 <code>FeatureImp</code> 对象时默认的重复次数是 <code>5</code>。然而，如果你想从结果图中获得有用的误差条，就应该增加重复次数。</p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">importance</span> <span class="op">=</span> <span class="va"><a href="https://giuseppec.github.io/iml/reference/FeatureImp.html">FeatureImp</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">predictor</span>, loss <span class="op">=</span> <span class="st">"ce"</span>, n.repetitions <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
+<span><span class="va">importance</span><span class="op">$</span><span class="fu">plot</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+ℹ Please use `linewidth` instead.
+ℹ The deprecated feature was likely used in the iml package.
+  Please report the issue at &lt;https://github.com/giuseppec/iml/issues&gt;.</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure"><p><img src="images/model_interpretation_files/figure-html/model_interpretation-003-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-iml-pfi" class="quarto-float quarto-figure quarto-figure-center anchored" alt="x 轴写有「Feature Importance (loss: ce)（特征重要性，损失：ce）」，y 轴列出数据中的特征。图显示 10 个误差条，每个特征一个，中间有实心黑点（重复间重要性值的中位数），每行有一条水平黑线（从特征重要性值的 5% 到 95% 分位数）。最重要的前三个特征是 `status`、`duration` 和 `savings`。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-iml-pfi-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/model_interpretation_files/figure-html/fig-iml-pfi-1.png" class="img-fluid figure-img" style="width:100.0%" alt="x 轴写有「Feature Importance (loss: ce)（特征重要性，损失：ce）」，y 轴列出数据中的特征。图显示 10 个误差条，每个特征一个，中间有实心黑点（重复间重要性值的中位数），每行有一条水平黑线（从特征重要性值的 5% 到 95% 分位数）。最重要的前三个特征是 `status`、`duration` 和 `savings`。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-iml-pfi-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 12.1：置换特征重要性（PFI）。点表示多次重复置换过程中 PFI 的中位数，误差条表示 5% 与 95% 分位数。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>该图自动把特征从最重要（中位性能变化最大）到最不重要（中位性能变化最小）排序。在<a href="#fig-iml-pfi" class="quarto-xref">图 <span>12.1</span></a>中，特征 <code>status</code> 最重要，如果我们置换数据中的 <code>status</code> 列，模型的分类误差会增加约 1.18 倍。默认情况下，<code>FeatureImp</code> 把置换前后模型性能的<em>比值（ratio）</em>作为重要性值；调用 <code>$new()</code> 时传入 <code>compare = "difference"</code> 可以返回性能度量的<em>差值（difference）</em>。</p>
+</section><section id="sec-feature-effects" class="level3 page-columns page-full" data-number="12.1.2"><h3 data-number="12.1.2" class="anchored" data-anchor-id="sec-feature-effects">
+<span class="header-section-number">12.1.2</span> 特征效应（Feature Effects）</h3>
+<p>特征效应方法通过分析改变特征时预测如何变化，来描述一个特征对<em>模型预测</em>的贡献方式或程度。这些方法可以分为局部与全局特征效应方法。全局特征效应方法指改变一个特征时预测<em>平均</em>如何变化。相比之下，局部特征效应方法回答的问题是：改变特征值时，给定观测的<em>单个</em>预测如何变化。在某种程度上，局部特征效应方法可以揭示模型中的交互作用——当局部效应呈现异质性（即不同观测之间的局部效应变化不同）时，这些交互就会显现出来。</p>
+<p>偏依赖（Partial Dependence, PD）图 <span class="citation" data-cites="Friedman2001pdp">(<a href="../references.html#ref-Friedman2001pdp" role="doc-biblioref">Friedman 2001</a>)</span>可以用于可视化全局特征效应，它通过可视化当改变给定感兴趣特征的值时模型预测平均如何变化来实现。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">偏依赖（Partial Dependence）</span></div></div>
+<p>个体条件期望（Individual Conditional Expectation, ICE）曲线 <span class="citation" data-cites="Goldstein2015ice">(<a href="../references.html#ref-Goldstein2015ice" role="doc-biblioref">Goldstein et al. 2015</a>)</span>（又称 Ceteris Paribus 效应，即「其余不变」效应）是一种局部特征效应方法，它显示当变化感兴趣特征时，<em>单个</em>观测的预测如何变化，而所有其他特征保持不变。<span class="citation" data-cites="Goldstein2015ice">Goldstein et al. (<a href="../references.html#ref-Goldstein2015ice" role="doc-biblioref">2015</a>)</span>证明了 PD 图是 ICE 曲线的平均。ICE 曲线的构造方式是：取单个观测与感兴趣特征，然后用另一个值替换该特征的值并绘制新的预测，随后对许多特征值重复这一过程（例如在特征取值范围上的等距网格）。ICE 曲线的 x 轴可视化替换特征值的集合，y 轴是模型预测。每条 ICE 曲线都是对单个观测在模型预测上的特征效应的局部解释。一个 ICE 图每个观测包含一条 ICE 曲线（线）。如果 ICE 曲线是异质的（即不平行），那么模型可能估计了涉及该特征的交互作用。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">个体条件期望（Individual Conditional Expectation）</span></div></div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>偏依赖（PD）与个体条件期望（ICE）的区别可以这样理解：ICE 是「逐样本」地看——对每个样本，固定其他特征不变，只改变目标特征的值，看该样本的预测如何随之变化，得到一条曲线；PD 则是把这些曲线对全部样本取平均，得到一条「平均曲线」。因此 PD 更平滑、更稳健，但可能掩盖异质性——例如一半样本的效应为正、一半为负，平均下来可能看起来「没有效应」。ICE 曲线是否平行（或者说簇状是否整齐）是判断模型是否含有与该特征相关交互作用的直观线索。另外，ICE/PD 只改变单个特征、不重估模型，属于「基于预测」的解释方法，不需要独立的测试集来估计性能。</p>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+特征效应可以是非线性的（Feature Effects Can Be Non-Linear）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>特征效应与线性模型中的回归系数 <span class="math inline">\(eta\)</span> 非常相似，后者提供诸如「在其他特征保持不变的情况下，把这个特征增加一个单位，你的预测平均增加 <span class="math inline">\(eta\)</span>」这样的解释。然而，特征效应不限于线性效应，可以应用于任何类型的预测模型。</p>
+</div>
+</div>
+<p>让我们通过考虑特征 <code>amount</code> 如何影响我们筛选后的信用分类任务中的预测，把这个付诸实践。下面我们通过传入感兴趣的特征名称与特征效应方法，初始化一个 <a href="https://www.rdocumentation.org/packages/iml/topics/FeatureEffect"><code>FeatureEffect</code></a> 类对象，我们使用 <code>"pdp+ice"</code> 来表明想要用 PD 图（ICE 曲线的平均）可视化 ICE 曲线。我们建议总是把 PD 与 ICE 曲线一起绘制，因为单独的 PD 图可能掩盖异质性效应。我们用 <code>$plot()</code> 来可视化结果（<a href="#fig-iml-pdice" class="quarto-xref">图 <span>12.2</span></a>）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">effect</span> <span class="op">=</span> <span class="va"><a href="https://giuseppec.github.io/iml/reference/FeatureEffect.html">FeatureEffect</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">predictor</span>, feature <span class="op">=</span> <span class="st">"amount"</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"pdp+ice"</span><span class="op">)</span></span>
+<span><span class="va">effect</span><span class="op">$</span><span class="fu">plot</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: `aes_string()` was deprecated in ggplot2 3.0.0.
+ℹ Please use tidy evaluation idioms with `aes()`.
+ℹ See also `vignette("ggplot2-in-packages")` for more information.
+ℹ The deprecated feature was likely used in the iml package.
+  Please report the issue at &lt;https://github.com/giuseppec/iml/issues&gt;.</code></pre>
+</div>
+<div class="cell-output-display">
+<div id="fig-iml-pdice" class="quarto-float quarto-figure quarto-figure-center anchored" alt="两个图并排可视化。两者的 x 轴都写有「amount」，范围从 0 到约 16000。两者的 y 轴都写有「Predicted credit_risk（预测的信用风险）」，范围从 0 到 1。左图标注为「good」，显示许多细黑曲线，大致平行，从 0-10000 缓慢下降，然后直到图末大致持平。右图标注为「bad」，显示许多细黑曲线，大致平行，从 0-10000 缓慢上升，然后直到图末大致持平。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-iml-pdice-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/model_interpretation_files/figure-html/fig-iml-pdice-1.png" class="img-fluid figure-img" style="width:100.0%" alt="两个图并排可视化。两者的 x 轴都写有「amount」，范围从 0 到约 16000。两者的 y 轴都写有「Predicted credit_risk（预测的信用风险）」，范围从 0 到 1。左图标注为「good」，显示许多细黑曲线，大致平行，从 0-10000 缓慢下降，然后直到图末大致持平。右图标注为「bad」，显示许多细黑曲线，大致平行，从 0-10000 缓慢上升，然后直到图末大致持平。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-iml-pdice-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 12.2：偏依赖（PD）图（黄色）与个体条件期望（ICE）曲线（黑色），显示信用金额如何影响预测的信用风险。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p><a href="#fig-iml-pdice" class="quarto-xref">图 <span>12.2</span></a>显示，如果 <code>amount</code> 小于大约 10,000，那么平均而言预测信用度（creditworthiness）为 <code>good</code> 的概率很高。此外，ICE 曲线大致平行，这意味着似乎不存在涉及 <code>amount</code> 的强烈交互作用。</p>
+</section><section id="surrogate-models" class="level3" data-number="12.1.3"><h3 data-number="12.1.3" class="anchored" data-anchor-id="surrogate-models">
+<span class="header-section-number">12.1.3</span> 代理模型（Surrogate Models）</h3>
+<p>决策树或线性模型等可解释模型可以用作代理模型（surrogate model），来近似或模仿通常非常复杂的黑箱模型。检查代理模型可以提供对黑箱模型行为的洞察，例如通过查看线性回归中的模型系数或决策树中的分裂。我们区分局部代理模型与全局代理模型：前者在感兴趣的特定数据点附近局部近似模型，后者在整个输入空间上近似模型 <span class="citation" data-cites="Ribeiro2016lime Molnar2022">(<a href="../references.html#ref-Ribeiro2016lime" role="doc-biblioref">Ribeiro, Singh, and Guestrin 2016</a>; <a href="../references.html#ref-Molnar2022" role="doc-biblioref">Molnar 2022</a>)</span>。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>代理模型（surrogate model）的基本思想是「用一个看得懂的小模型去模仿一个看不懂的大模型」：用一个可解释模型（如浅层决策树、稀疏线性回归）去拟合黑箱模型的预测输出，然后用小模型自身的结构（树的分裂、系数）来解释黑箱的行为。关键点在于，代理模型的「目标变量」是黑箱模型的预测值，而不是真实结果——因此代理模型解释的是「黑箱学到了什么」，而非「数据本身的规律」。这也带来一个重要要求：必须检验代理模型对黑箱的拟合程度（fidelity，保真度），只有保真度高时，从代理模型得出的结论才可信。</p>
+</div>
+<p>用于训练代理模型的特征通常与用于训练黑箱模型的特征相同，或者至少是分布相同的数据，以确保输入空间具有代表性。然而，用于训练代理模型的目标是黑箱模型获得的预测，而不是底层数据的真实结果。因此，只有当代理模型很好地近似黑箱模型（即模型保真度（fidelity）很高）时，从代理模型得出的结论才有效。因此，度量并报告代理模型的近似误差也很重要。</p>
+<p>用于训练黑箱模型的数据可能非常复杂或有限，这使得直接在该数据上训练一个性能良好的可解释模型具有挑战性。相反，我们可以用黑箱模型在输入空间的特定区域生成新的带标签数据，用这些数据扩充原始数据。扩充后的数据随后可以用来训练一个可解释模型，捕捉并解释黑箱模型（在特定区域）学到的关系，或者识别缺陷或意外行为。</p>
+<section id="global-surrogate-model" class="level4" data-number="12.1.3.1"><h4 data-number="12.1.3.1" class="anchored" data-anchor-id="global-surrogate-model">
+<span class="header-section-number">12.1.3.1</span> 全局代理模型（Global Surrogate Model）</h4>
+<p>初始化 <a href="https://www.rdocumentation.org/packages/iml/topics/TreeSurrogate"><code>TreeSurrogate</code></a> 类会为已训练模型的预测拟合一个条件推断树（conditional inference tree）（<a href="https://www.rdocumentation.org/packages/partykit/topics/ctree"><code>ctree()</code></a>）代理模型。这个类提取由树代理创建的决策规则，<code>$plot()</code> 方法可视化每个终端节点预测结果的分布。下面，我们向构造器传入 <code>maxdepth = 2</code>，构建一棵具有两个二分裂的树，产生四个终端节点。</p>
+<div class="cell">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tree_surrogate</span> <span class="op">=</span> <span class="va"><a href="https://giuseppec.github.io/iml/reference/TreeSurrogate.html">TreeSurrogate</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">predictor</span>, maxdepth <span class="op">=</span> <span class="fl">2L</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>在检查这个模型之前，我们需要先确认代理模型是否准确地近似了预测模型，这可以通过比较树代理的预测与黑箱模型的预测来评估。例如，我们可以量化匹配预测的数量，并度量代理在预测黑箱 GBM 模型预测方面的准确度：</p>
+<div class="cell">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">pred_surrogate</span> <span class="op">=</span> <span class="va">tree_surrogate</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">credit_x</span>, type <span class="op">=</span> <span class="st">"class"</span><span class="op">)</span><span class="op">$</span><span class="va">.class</span></span>
+<span><span class="va">pred_surrogate</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">pred_surrogate</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"good"</span>, <span class="st">"bad"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">pred_gbm</span> <span class="op">=</span> <span class="va">lrn_gbm</span><span class="op">$</span><span class="fu">predict_newdata</span><span class="op">(</span><span class="va">credit_x</span><span class="op">)</span><span class="op">$</span><span class="va">response</span></span>
+<span><span class="va">confusion</span> <span class="op">=</span> <span class="fu">mlr3measures</span><span class="fu">::</span><span class="fu"><a href="https://mlr3measures.mlr-org.com/reference/confusion_matrix.html">confusion_matrix</a></span><span class="op">(</span><span class="va">pred_surrogate</span>, <span class="va">pred_gbm</span>,</span>
+<span>  positive <span class="op">=</span> <span class="st">"good"</span><span class="op">)</span></span>
+<span><span class="va">confusion</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        truth
+response good bad
+    good  245  20
+    bad    39  26
+acc :  0.8212; ce  :  0.1788; dor :  8.1667; f1  :  0.8925 
+fdr :  0.0755; fnr :  0.1373; fomr:  0.6000; fpr :  0.4348 
+mcc :  0.3726; npv :  0.4000; ppv :  0.9245; tnr :  0.5652 
+tpr :  0.8627 </code></pre>
+</div>
+</div>
+<p>这显示代理模型与黑箱模型相比，预测准确率约为 82%，这对我们来说已经足够好，可以用代理做进一步解释，例如绘制终端节点的分裂：</p>
+<div class="cell">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tree_surrogate</span><span class="op">$</span><span class="fu">plot</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-iml-surro" class="quarto-float quarto-figure quarto-figure-center anchored" alt="四个柱状图，y 轴为「count（计数）」，x 轴为「.class」。左上显示约 150 个「good」信用预测和约 1 个「bad」预测。右上显示约 10 个「good」预测和 1 个「bad」预测。左下显示约 120 个「good」预测和 40 个「bad」预测。右下显示约 23 个「bad」预测和约 5 个「good」预测。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-iml-surro-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/model_interpretation_files/figure-html/fig-iml-surro-1.png" class="img-fluid figure-img" style="width:100.0%" alt="四个柱状图，y 轴为「count（计数）」，x 轴为「.class」。左上显示约 150 个「good」信用预测和约 1 个「bad」预测。右上显示约 10 个「good」预测和 1 个「bad」预测。左下显示约 120 个「good」预测和 40 个「bad」预测。右下显示约 23 个「bad」预测和约 5 个「good」预测。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-iml-surro-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 12.3：树代理识别的每个终端节点中预测结果的分布。上面两个节点由账户余额为正的申请（<code>status</code>为<code>"0 &lt;= ... &lt; 200 DM"</code>、<code>"... &gt;= 200 DM"</code>或<code>"salary for at least 1 year"</code>之一）构成，且期限小于等于 42 个月（左上）或大于 42 个月（右上）。下面两个节点包含没有支票账户或余额为负（<code>status</code>）的申请，且期限小于等于 36 个月（左下）或大于 36 个月（右下）。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>或者我们可以通过 <code>TreeSurrogate</code> 对象的 <code>$tree</code> 字段访问已训练的树代理，从而访问 <a href="https://cran.r-project.org/package=partykit"><code>partykit</code></a> 中的所有方法：</p>
+<div class="cell">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">partykit</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/partykit/man/party-methods.html">print.party</a></span><span class="op">(</span><span class="va">tree_surrogate</span><span class="op">$</span><span class="va">tree</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] root
+|   [2] status in no checking account, ... &lt; 0 DM
+|   |   [3] duration &lt;= 30: *
+|   |   [4] duration &gt; 30: *
+|   [5] status in 0&lt;= ... &lt; 200 DM, ... &gt;= 200 DM / salary for at least 1 year
+|   |   [6] employment_duration in unemployed, 1 &lt;= ... &lt; 4 yrs, 4 &lt;= ... &lt; 7 yrs, &gt;= 7 yrs: *
+|   |   [7] employment_duration &lt; 1 yr: *</code></pre>
+</div>
+</div>
+</section><section id="local-surrogate-model" class="level4" data-number="12.1.3.2"><h4 data-number="12.1.3.2" class="anchored" data-anchor-id="local-surrogate-model">
+<span class="header-section-number">12.1.3.2</span> 局部代理模型（Local Surrogate Model）</h4>
+<p>一般来说，要在整个特征空间上用可解释代理准确近似黑箱模型可能非常困难。因此，局部代理模型聚焦于特征空间中围绕感兴趣点的一小片区域。局部代理模型的构造如下：</p>
+<ol type="1">
+<li>对给定数据集，从黑箱模型获得预测。</li>
+<li>根据数据集中各观测与感兴趣点的接近程度对其进行加权。</li>
+<li>在加权数据集上拟合一个可解释的代理模型，以黑箱模型的预测作为目标。</li>
+<li>用代理模型解释感兴趣点的预测。</li>
+</ol>
+<p>为了说明这一点，我们将选择一个随机数据点来解释。因为我们处理的是人，我们将把这个观测命名为「Charlie」，并先看一下黑箱预测：</p>
+<div class="cell" data-asis="results">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">Charlie</span> <span class="op">=</span> <span class="va">tsk_german</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span>rows <span class="op">=</span> <span class="fl">127L</span>, cols <span class="op">=</span> <span class="va">tsk_german</span><span class="op">$</span><span class="va">feature_names</span><span class="op">)</span></span>
+<span><span class="va">gbm_predict</span> <span class="op">=</span> <span class="va">predictor</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">Charlie</span><span class="op">)</span></span>
+<span><span class="va">gbm_predict</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    good    bad
+1 0.6014 0.3986</code></pre>
+</div>
+</div>
+<p>我们可以看到模型以 60.1% 的概率预测类别「good」，所以现在我们可以用 <a href="https://www.rdocumentation.org/packages/iml/topics/LocalModel"><code>LocalModel</code></a> 找出为什么做出这个预测。底层代理模型是一个局部加权的 L1 惩罚线性回归模型，使得每个类别只有预定义数量的特征 <code>k</code>（默认是 <code>3</code>）具有非零系数，并因此是 <code>k</code> 个最有影响力的特征，下面我们设置 <code>k = 2</code>。我们还可以设置参数 <code>gower.power</code>，它指定局部模型的邻域大小（默认是 <code>gower.power = 1</code>），值越小，模型越聚焦于更接近感兴趣点的点，下面我们设置 <code>gower.power = 0.1</code>。这个实现与局部可解释模型无关解释（Local Interpretable Model-agnostic Explanations, LIME）<span class="citation" data-cites="Ribeiro2016lime">(<a href="../references.html#ref-Ribeiro2016lime" role="doc-biblioref">Ribeiro, Singh, and Guestrin 2016</a>)</span>密切相关，差异在 <code><a href="https://giuseppec.github.io/iml/reference/LocalModel.html">iml::LocalModel</a></code> 的文档中有说明。</p>
+<div class="cell">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">predictor</span><span class="op">$</span><span class="va">class</span> <span class="op">=</span> <span class="st">"good"</span> <span class="co"># 解释 'good' 类别</span></span>
+<span><span class="va">local_surrogate</span> <span class="op">=</span> <span class="va"><a href="https://giuseppec.github.io/iml/reference/LocalModel.html">LocalModel</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">predictor</span>, <span class="va">Charlie</span>, gower.power <span class="op">=</span> <span class="fl">0.1</span>,</span>
+<span>  k <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>如果局部模型的预测与黑箱 GBM 模型的预测差异很大，那么你可能想要尝试改变 <code>k</code> 和 <code>gower.power</code> 参数。这些参数可以被视为局部代理模型的超参数，应当进行调优以获得准确的局部代理。首先，我们检查对 Charlie 的预测是否一致：</p>
+<div class="cell">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>gbm <span class="op">=</span> <span class="va">gbm_predict</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, local <span class="op">=</span> <span class="va">local_surrogate</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   gbm  local 
+0.6014 0.6449 </code></pre>
+</div>
+</div>
+<p>理想情况下，我们应该在 Charlie 的局部邻域内评估代理模型的保真度，即局部代理模型在 Charlie 附近多个数据点上近似黑箱 GBM 模型预测的效果如何。评估这种局部模型保真度的一种实用方法，是在 Charlie 的局部邻域内生成人工数据点（并可能应用基于距离的加权），或者从原始数据中选择 <span class="math inline">\(k\)</span> 个最近邻。为了说明，我们现在用平均绝对误差量化近似误差，该误差根据 Gower 距离 <span class="citation" data-cites="gower1971general">(<a href="../references.html#ref-gower1971general" role="doc-biblioref">Gower 1971</a>)</span>从 10 个最近邻（包括 Charlie）计算：</p>
+<div class="cell">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ind_10nn</span> <span class="op">=</span> <span class="fu">gower</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gower/man/gower_topn.html">gower_topn</a></span><span class="op">(</span><span class="va">Charlie</span>, <span class="va">credit_x</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">$</span><span class="va">index</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span></span>
+<span><span class="va">Charlie_10nn</span> <span class="op">=</span> <span class="va">credit_x</span><span class="op">[</span><span class="va">ind_10nn</span>, <span class="op">]</span></span>
+<span></span>
+<span><span class="va">gbm_pred_10nn</span> <span class="op">=</span> <span class="va">predictor</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">Charlie_10nn</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">local_pred_10nn</span> <span class="op">=</span> <span class="va">local_surrogate</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">Charlie_10nn</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">gbm_pred_10nn</span> <span class="op">-</span> <span class="va">local_pred_10nn</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.112</code></pre>
+</div>
+</div>
+<p>由于我们看到局部模型与黑箱模型之间吻合良好（平均而言，局部代理与黑箱模型对 Charlie 的 10 个最近邻的预测仅相差 0.112），我们可以继续查看对 Charlie 预测最有影响力的特征：</p>
+<div class="cell">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">local_surrogate</span><span class="op">$</span><span class="va">results</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"feature.value"</span>, <span class="st">"effect"</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>               feature.value   effect
+1                duration=12 -0.03058
+2 status=no checking account -0.10077</code></pre>
+</div>
+</div>
+<p>在这个例子中，'duration' 和 'status' 最重要，它们对 Charlie 的预测都有负向影响。</p>
+</section></section><section id="sec-shapley" class="level3" data-number="12.1.4"><h3 data-number="12.1.4" class="anchored" data-anchor-id="sec-shapley">
+<span class="header-section-number">12.1.4</span> 夏普利值（Shapley Values）</h3>
+<p>夏普利值（Shapley Values）最初是在合作博弈论（cooperative game theory）的背景下发展起来的，用于研究游戏的收益如何在一个团队玩家之间公平分配。这一概念被改编用于机器学习，作为一种局部解释方法，解释每个输入特征对单个观测的最终模型预测的贡献 <span class="citation" data-cites="Trumbelj2013Shapley">(<a href="../references.html#ref-Trumbelj2013Shapley" role="doc-biblioref">Štrumbelj and Kononenko 2013</a>)</span>。因此，「玩家」是特征，而应该在特征之间公平分配的「收益」指的是单个观测的预测与平均预测之间的差异。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>夏普利值（Shapley Values）源于合作博弈论中的夏普利值公式（Shapley, 1953），其解决的问题是：一个团队共同获得的总收益，如何根据每个成员对团队的「边际贡献」公平地分配给各个成员。其数学定义为所有可能玩家子集的加权平均边际贡献：<span class="math inline">\(\phi_i = \sum_{S \subseteq N \setminus \{i\}} rac{|S|!\,(|N|-|S|-1)!}{|N|!}\,(v(S \cup \{i\}) - v(S))\)</span>。在机器学习语境中，「玩家」是特征，「收益」是单个观测的预测与平均预测之差，「联盟的价值」\(v(S)\) 用条件期望来近似。夏普利值有几个理想的公理性质：有效性（所有特征贡献之和恰好等于总差异）、对称性、虚拟玩家（无关特征贡献为零）与可加性。也正因如此，它被认为是「最公平」的局部归因方法。其计算代价高昂（需要遍历所有特征子集），实际应用中通常采用近似算法（如抽样或 KernelSHAP）。</p>
+</div>
+<p>夏普利值估计每个输入特征对单个观测最终预测的贡献（在减去平均预测之后）。通过为每个特征分配一个值，我们可以洞悉哪些特征对考虑的观测最重要。与作为局部代理模型的惩罚线性模型相比，夏普利值保证预测在特征之间被公平分配，因为它们在计算每个特征的贡献时还内在地考虑了特征之间的交互作用。</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+正确解读夏普利值（Correctly Interpreting Shapley Values）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>夏普利值经常被<strong>误解</strong>为「从模型训练中移除该特征后预测值之差」。一个特征的夏普利值是通过考虑所有可能的特征子集，并计算包含与不包含该感兴趣特征时模型预测的差异而得出的。因此，它指的是：在给定当前特征集合的情况下，一个特征对「实际预测与平均预测之差」的平均边际贡献。</p>
+</div>
+</div>
+<p>可以通过把 <code>Predictor</code> 与感兴趣的观测传给 <a href="https://www.rdocumentation.org/packages/iml/topics/Shapley"><code>Shapley</code></a> 的构造器来计算夏普利值。夏普利值的精确计算非常耗时，因为它需要考虑特征的所有可能组合来计算一个特征的边际贡献。因此，夏普利值的估计通常是近似的。<code>sample.size</code> 参数（默认是 <code>sample.size = 100</code>）可以增大，以获得对精确夏普利值更准确的近似。</p>
+<div class="cell">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">shapley</span> <span class="op">=</span> <span class="va"><a href="https://giuseppec.github.io/iml/reference/Shapley.html">Shapley</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">predictor</span>, x.interest <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html">as.data.frame</a></span><span class="op">(</span><span class="va">Charlie</span><span class="op">)</span>,</span>
+<span>  sample.size <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span>
+<span><span class="va">shapley</span><span class="op">$</span><span class="fu">plot</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-iml-shapley" class="quarto-float quarto-figure quarto-figure-center anchored" alt="10 个夏普利值条形图，每个特征一个。x 轴写有「phi」，范围从 -0.1 到 0.05。最强的正贡献来自 `duration`、`purpose` 和 `property` 变量。最强的负贡献是 `status`、`amount` 和 `savings`。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-iml-shapley-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/model_interpretation_files/figure-html/fig-iml-shapley-1.png" class="img-fluid figure-img" style="width:100.0%" alt="10 个夏普利值条形图，每个特征一个。x 轴写有「phi」，范围从 -0.1 到 0.05。最强的正贡献来自 `duration`、`purpose` 和 `property` 变量。最强的负贡献是 `status`、`amount` 和 `savings`。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-iml-shapley-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 12.4：Charlie 的夏普利值。实际预测（0.63）显示模型对我们感兴趣的观测的预测，平均预测（0.71）显示给定测试数据集上的平均预测。每个水平条是给定特征的夏普利值（phi）。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>在<a href="#fig-iml-shapley" class="quarto-xref">图 <span>12.4</span></a>中，特征的夏普利值（<code>phi</code>）告诉我们如何在给定特征之间公平地分配 Charlie 的信用度概率与数据集平均概率之间的差异。如果所有夏普利值（<code>phi</code>）之和等于实际预测与平均预测之差，则近似足够好。在这里，我们使用 <code>sample.size = 1000</code>，使得 Charlie 的实际预测（0.601）与平均预测（0.696）之间的预测差异 -0.09 足够好。'purpose' 变量对信用度概率的正向影响最大，预测概率增加约 5%。相比之下，'status' 变量使预测概率下降超过 10%。</p>
+</section></section><section id="sec-counterfactuals" class="level2 page-columns page-full" data-number="12.2"><h2 data-number="12.2" class="anchored" data-anchor-id="sec-counterfactuals">
+<span class="header-section-number">12.2</span> counterfactuals 包（The counterfactuals Package）</h2>
+<p>反事实解释（counterfactual explanations）试图找出给定观测的输入特征的最小可能改动，从而带来不同的预测 <span class="citation" data-cites="Wachter2017">(<a href="../references.html#ref-Wachter2017" role="doc-biblioref">Wachter, Mittelstadt, and Russell 2017</a>)</span>。换句话说，反事实解释为这样一个问题提供了答案：「要获得不同的预测，当前特征值需要做哪些改变？」</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>反事实（Counterfactual）解释回答「如果……会怎样？」的问题：对于被模型拒绝的贷款申请者，什么样的最小改动（例如减少贷款期限、增加存款）能使预测变为批准？这种「可操作的建议」形式对用户特别有价值——它不要求用户理解模型的内部机制，只要求知道「怎么做才能得到想要的结果」。这也是它与 Shapley 值等「归因型」解释的关键区别：归因方法回答「为什么是这个预测」，反事实方法回答「如何改变这个预测」。Wachter 等（2017）特别指出，反事实解释不打开黑箱即可满足欧盟 GDPR 对自动化决策解释的要求。第 12.2 节介绍的 MOC 方法进一步把「改动最小、改动特征少、保持数据分布、达到目标预测」等多个目标同时优化。</p>
+</div>
+<p>反事实解释在医疗、金融与刑事司法等不同领域有许多应用，在这些领域理解输入特征的小幅改动如何影响模型预测可能很重要。例如，反事实解释可以用于向患者建议生活方式改变以降低患某种疾病的风险，或者建议能够增加信贷获批机会的行动。对于我们的 <code>tsk("german_credit")</code> 示例，我们可能会考虑特征需要如何改变才能把「bad」信用预测变成「good」预测（<a href="#fig-counterfactuals-ill" class="quarto-xref">图 <span>12.5</span></a>）。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-counterfactuals-ill" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图显示一个矩形，左下三角为浅蓝色并标注「good」，右上三角为棕色并标注「bad」。'bad' 区域内有一个点，'good' 区域内也有一个点，有一个箭头从「bad 点」指向「good 点」。x 轴标注为「duration」，y 轴标注为「amount」。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-counterfactuals-ill-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/counterfactuals.png" class="img-fluid figure-img" style="width:50.0%" alt="图显示一个矩形，左下三角为浅蓝色并标注「good」，右上三角为棕色并标注「bad」。'bad' 区域内有一个点，'good' 区域内也有一个点，有一个箭头从「bad 点」指向「good 点」。x 轴标注为「duration」，y 轴标注为「amount」。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-counterfactuals-ill-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 12.5：反事实解释示意图。真实观测（蓝色，右侧点）被预测为「bad」信用。棕色（左侧）点是一个可能的反事实，它会产生「good」信用预测。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>一个简单的反事实方法是 What-If 方法 <span class="citation" data-cites="Wexler2019">(<a href="../references.html#ref-Wexler2019" role="doc-biblioref">Wexler et al. 2019</a>)</span>，对于给定的待解释预测，反事实是数据集中具有目标预测的最近数据点。通常可能存在许多可能的反事实数据点。然而，<span class="citation" data-cites="Wexler2019">Wexler et al. (<a href="../references.html#ref-Wexler2019" role="doc-biblioref">2019</a>)</span>的方法以及其他几种早期反事实方法（全面综述见 <span class="citation" data-cites="guidotti2022counterfactual">Guidotti (<a href="../references.html#ref-guidotti2022counterfactual" role="doc-biblioref">2022</a>)</span>）只产生单个、有些任意的反事实解释，当反事实被用于获得洞见或采取对抗模型的行动时，这可能被认为是有问题的。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">What-If</span></div></div>
+<p>相比之下，多目标反事实（Multi-objective Counterfactuals, MOC）方法 <span class="citation" data-cites="Dandl2020">(<a href="../references.html#ref-Dandl2020" role="doc-biblioref">Dandl et al. 2020</a>)</span>生成多个人工生成的反事实，它们可能不等于给定数据集中的观测。反事实的生成基于一个优化问题，旨在找到满足以下条件的反事实：</p><div class="no-row-height column-margin column-container"><span class="margin-aside">多目标反事实（Multi-objective Counterfactuals）</span></div></div>
+<ol type="1">
+<li>具有目标预测；</li>
+<li>接近感兴趣的观测；</li>
+<li>只需要少数特征的变化；以及</li>
+<li>与给定数据集中观测来自同一分布。</li>
+</ol>
+<p>在 MOC 中，所有四个目标通过多目标优化方法同时优化。其他几种反事实方法依赖单目标优化方法，即把多个目标组合成单个目标，例如使用加权和。然而，单目标方法引起关于目标权重是否恰当的担忧，并且无法考虑各目标之间固有的权衡。此外，它可能把反事实搜索的解集限制为单个候选。MOC 返回一组非支配的、因此在四个目标上同样好的反事实（类似于我们在<a href="../chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-multi-metrics-tuning" class="quarto-xref"><span>5.2 节</span></a>看到的 Pareto 前沿）。</p>
+<p>反事实解释在 <code>counterfactuals</code> 包中可用，它依赖 <a href="https://www.rdocumentation.org/packages/iml/topics/Predictor"><code>Predictor</code></a> 对象作为输入。</p>
+<section id="what-if-method" class="level3" data-number="12.2.1"><h3 data-number="12.2.1" class="anchored" data-anchor-id="what-if-method">
+<span class="header-section-number">12.2.1</span> What-If 方法（What-If Method）</h3>
+<p>继续我们前面的例子，我们看到 GBM 模型以 60.1% 的预测概率将 Charlie 分类为良好信用。我们可以用 What-If 方法理解特征需要如何改变，才能让这个预测概率上升到 75%。我们用一个 <a href="https://www.rdocumentation.org/packages/counterfactuals/topics/WhatIfClassif"><code>WhatIfClassif</code></a> 对象初始化我们的 <code>Predictor</code>，并声明我们只想要找到一个反事实（<code>n_counterfactuals = 1L</code>），增大 <code>n_counterfactuals</code> 会返回指定数量的、最接近感兴趣点的反事实。<code>$find_counterfactuals()</code> 方法生成一个 <a href="https://www.rdocumentation.org/packages/counterfactuals/topics/Counterfactuals"><code>Counterfactuals</code></a> 类别的反事实，下面我们把期望预测概率设置在 <code>0.75</code> 与 <code>1</code> 之间（<code>desired_prob = c(0.75, 1)</code>）。<code>$evaluate(show_diff = TRUE)</code> 方法告诉我们特征需要如何改变才能生成我们想要的类别。</p>
+<div class="cell">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/dandls/counterfactuals">counterfactuals</a></span><span class="op">)</span></span>
+<span><span class="va">whatif</span> <span class="op">=</span> <span class="va"><a href="https://rdrr.io/pkg/counterfactuals/man/WhatIfClassif.html">WhatIfClassif</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">predictor</span>, n_counterfactuals <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
+<span><span class="va">cfe</span> <span class="op">=</span> <span class="va">whatif</span><span class="op">$</span><span class="fu">find_counterfactuals</span><span class="op">(</span><span class="va">Charlie</span>,</span>
+<span>  desired_class <span class="op">=</span> <span class="st">"good"</span>, desired_prob <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0.75</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span><span class="va">cfe</span><span class="op">$</span><span class="fu">evaluate</span><span class="op">(</span>show_diff <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  age amount credit_history duration employment_duration other_debtors
+1 -12     75           &lt;NA&gt;       NA                &lt;NA&gt;          &lt;NA&gt;
+  property purpose savings                                     status
+1     &lt;NA&gt;    &lt;NA&gt;    &lt;NA&gt; ... &gt;= 200 DM / salary for at least 1 year
+  dist_x_interest no_changed dist_train dist_target minimality
+1          0.1227          3          0           0          2</code></pre>
+</div>
+</div>
+<p>这里我们可以看到，要让良好信用的预测概率至少达到 75%，Charlie 需要年轻三岁，信贷期限需要缩短三个月，金额需要增加 1417 德国马克，并且 status 需要是「… &lt; 0 DM」（而不是「no checking account」）。</p>
+</section><section id="moc-method" class="level3" data-number="12.2.2"><h3 data-number="12.2.2" class="anchored" data-anchor-id="moc-method">
+<span class="header-section-number">12.2.2</span> MOC 方法（MOC Method）</h3>
+<p>调用 MOC 方法与 What-If 方法类似，但使用的是 <a href="https://www.rdocumentation.org/packages/counterfactuals/topics/MOCClassif"><code>MOCClassif()</code></a> 对象。我们把 <code>epsilon</code> 参数设置为 0，以便在优化过程中惩罚那些预测超出期望范围的反事实。使用 MOC，我们还可以通过 <code>fixed_features</code> 参数禁止特定特征的改变，下面我们限制 'age' 变量的变化。为了说明目的，我们只运行多目标优化器 30 代。</p>
+<div class="cell">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">moc</span> <span class="op">=</span> <span class="va"><a href="https://rdrr.io/pkg/counterfactuals/man/MOCClassif.html">MOCClassif</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">predictor</span>, epsilon <span class="op">=</span> <span class="fl">0</span>, n_generations <span class="op">=</span> <span class="fl">30L</span>,</span>
+<span>  fixed_features <span class="op">=</span> <span class="st">"age"</span><span class="op">)</span></span>
+<span><span class="va">cfe_multi</span> <span class="op">=</span> <span class="va">moc</span><span class="op">$</span><span class="fu">find_counterfactuals</span><span class="op">(</span><span class="va">Charlie</span>,</span>
+<span>  desired_class <span class="op">=</span> <span class="st">"good"</span>, desired_prob <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0.75</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>多目标方法并不保证所有反事实都具有期望的预测，所以我们使用 <code>$subset_to_valid()</code> 把反事实限制到我们感兴趣的那些：</p>
+<div class="cell">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">cfe_multi</span><span class="op">$</span><span class="fu">subset_to_valid</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">cfe_multi</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>4 Counterfactual(s) 
+ 
+Desired class: good 
+Desired predicted probability range: [0.75, 1] 
+ 
+Head: 
+   age amount                              credit_history duration
+1:  40    701 no credits taken/all credits paid back duly       12
+2:  40   2451 no credits taken/all credits paid back duly        4
+3:  40   1550    existing credits paid back duly till now       12
+6 variables not shown: [employment_duration, other_debtors, property, purpose, savings, status]</code></pre>
+</div>
+</div>
+<p>该方法生成了 4 个反事实，但由于它们是人工生成的，不一定等于底层数据集中的实际观测。为了简明地概览所需的特征改变，我们可以使用 <code>plot_freq_of_feature_changes()</code> 方法，它可视化所有返回反事实中特征改变的频率。</p>
+<div class="cell">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">cfe_multi</span><span class="op">$</span><span class="fu">plot_freq_of_feature_changes</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: `label` cannot be a &lt;ggplot2::element_blank&gt; object.</code></pre>
+</div>
+<div class="cell-output-display">
+<div id="fig-cf-mocfreq" class="quarto-float quarto-figure quarto-figure-center anchored" alt="x 轴写有「relative frequency（相对频率）」，范围从 0 到略超 0.3。被改变的特征是 'status'（在 35% 的反事实中）、'savings'（35%）、'purpose'（10%）、'employment_duration'（10%）、'duration'（10%）和 'amount'（10%）。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-cf-mocfreq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/model_interpretation_files/figure-html/fig-cf-mocfreq-1.png" class="img-fluid figure-img" style="width:100.0%" alt="x 轴写有「relative frequency（相对频率）」，范围从 0 到略超 0.3。被改变的特征是 'status'（在 35% 的反事实中）、'savings'（35%）、'purpose'（10%）、'employment_duration'（10%）、'duration'（10%）和 'amount'（10%）。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cf-mocfreq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 12.6：MOC 找到的反事实中特征改变的相对频率柱状图。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>我们可以看到 'status' 和 'savings' 在反事实中被最频繁地改变。要看特征<em>如何</em>被改变，我们可以在二维 ICE 图上可视化两个特征的反事实。</p>
+<div class="cell">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">cfe_multi</span><span class="op">$</span><span class="fu">plot_surface</span><span class="op">(</span>feature_names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"status"</span>, <span class="st">"savings"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu">theme</span><span class="op">(</span>axis.text.x <span class="op">=</span> <span class="fu">element_text</span><span class="op">(</span>angle <span class="op">=</span> <span class="fl">15</span>, hjust <span class="op">=</span> <span class="fl">.7</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-cf-mocsurface" class="quarto-float quarto-figure quarto-figure-center anchored" alt="曲面图在 status 为正时主要为浅蓝色，status 为负时为深蓝色。y 轴是 'savings' 变量，x 轴是 'status' 变量。左下角有一个白点（status = 'no checking account'，savings = 'unknown/no savings account'）。白点上方一条直线排列着两个黑点，白点右侧一条大致直线排列着两个黑点。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-cf-mocsurface-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/model_interpretation_files/figure-html/fig-cf-mocsurface-1.png" class="img-fluid figure-img" style="width:100.0%" alt="曲面图在 status 为正时主要为浅蓝色，status 为负时为深蓝色。y 轴是 'savings' 变量，x 轴是 'status' 变量。左下角有一个白点（status = 'no checking account'，savings = 'unknown/no savings account'）。白点上方一条直线排列着两个黑点，白点右侧一条大致直线排列着两个黑点。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cf-mocsurface-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 12.7：'status' 与 'savings' 变量的二维曲面图，预测值越高颜色越浅。颜色与等高线表示当 'status' 和 'savings' 变化而所有其他特征设为真实（Charlie 的）值时模型的预测值。白点显示真实预测（Charlie），黑点是只在这两个特征上提出改变的反事实。
+</figcaption></figure>
+</div>
+</div>
+</div>
+</section></section><section id="sec-dalex" class="level2 page-columns page-full" data-number="12.3"><h2 data-number="12.3" class="anchored" data-anchor-id="sec-dalex">
+<span class="header-section-number">12.3</span> DALEX 包（The <code>DALEX</code> Package）</h2>
+<p><a href="https://cran.r-project.org/package=DALEX"><code>DALEX</code></a> <span class="citation" data-cites="Biecek2018">(<a href="../references.html#ref-Biecek2018" role="doc-biblioref">Biecek 2018</a>)</span>实现了与 <code>iml</code> 类似的一组方法，但 <code>DALEX</code> 的架构面向模型比较。使用这个包的逻辑假定探索模型的过程是迭代的，在连续的迭代中，我们想比较不同的视角，包括由不同模型呈现/学习的视角。这种逻辑通常被称为 Rashomon 视角，最早在 <span class="citation" data-cites="Breiman2001">Breiman (<a href="../references.html#ref-Breiman2001" role="doc-biblioref">2001b</a>)</span>中描述，并在交互式解释性模型分析（interactive explanatory model analysis）中得到更深入的发展与形式化 <span class="citation" data-cites="Baniecki2023">(<a href="../references.html#ref-Baniecki2023" role="doc-biblioref">Baniecki, Parzych, and Biecek 2023</a>)</span>。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>Rashomon 效应一词源于黑泽明的电影《罗生门》（Rashomon）——同一事件在不同叙述者口中呈现出多个同样可信但相互矛盾的版本。Breiman（2001）用它来指代统计建模中的一种普遍现象：对同一预测问题，往往存在许多性能同样好（甚至一样好）的模型（所谓「Rashomon 集」），它们对同一观测可能给出不同的局部解释。这意味着：解释不是唯一的，一个模型的一种解释只是众多同样合理的叙事之一。DALEX 包的设计哲学正是基于此——它鼓励同时比较多个不同模型，观察它们的解释是趋同还是分歧，从而获得更稳健的洞见，而不是盲信单一模型的单一解释。</p>
+</div>
+<p>你可以把 <code>DALEX</code> 包用于任何用 <code>mlr3</code> 构建的分类与回归模型，以及 R 中的其他框架。由于我们已经探索了本节讨论的大多数方法背后的方法论，我们将只关注这些方法在 <code>DALEX</code> 中的实现，使用 <code>tsk("german_credit")</code> 贯穿示例。</p>
+<p>一旦你熟悉了使用 <code>DALEX</code> 包的哲学，你就可以使用这个家族中的其他包，例如 <a href="https://cran.r-project.org/package=fairmodels"><code>fairmodels</code></a> <span class="citation" data-cites="Wisniewski2022">(<a href="../references.html#ref-Wisniewski2022" role="doc-biblioref">Wiśniewski and Biecek 2022</a>)</span>用于偏差检测与缓解，<a href="https://cran.r-project.org/package=modelStudio"><code>modelStudio</code></a> <span class="citation" data-cites="Baniecki2019">(<a href="../references.html#ref-Baniecki2019" role="doc-biblioref">Baniecki and Biecek 2019</a>)</span>用于交互式模型探索，<a href="https://cran.r-project.org/package=modelDown"><code>modelDown</code></a> <span class="citation" data-cites="Romaszko2019">(<a href="../references.html#ref-Romaszko2019" role="doc-biblioref">Romaszko et al. 2019</a>)</span>用于自动生成 IML 模型文档，<a href="https://cran.r-project.org/package=survex"><code>survex</code></a> <span class="citation" data-cites="Krzyzinski2023">(<a href="../references.html#ref-Krzyzinski2023" role="doc-biblioref">Krzyziński et al. 2023</a>)</span>用于解释生存模型，或 <a href="https://cran.r-project.org/package=treeshap"><code>treeshap</code></a>用于分析基于树的模型。</p>
+<p>模型的分析通常是一个交互式过程，始于基于一个或多个性能度量评估模型，称为「浅层分析（shallow analysis）」。在随后的一系列步骤中，可以通过探索单个变量或变量对的重要性，再到对所选变量与模型结果之间关系的深入分析，系统地加深对模型的理解。关于模型探索过程样子的更广泛讨论，见 <span class="citation" data-cites="Bucker2022">Bücker et al. (<a href="../references.html#ref-Bucker2022" role="doc-biblioref">2022</a>)</span>。</p>
+<p>这种解释性模型分析（Explanatory Model Analysis, EMA）过程可以聚焦于单个观测，这时我们称之为局部模型分析，也可以聚焦于一组观测，这时我们称之为全局模型分析。<a href="#fig-dalex-fig-plot-01" class="quarto-xref">图 <span>12.8</span></a>可视化了这两种场景下关键函数的概览，我们将在本节中讨论。关于这种方法的深入描述可以在 <span class="citation" data-cites="biecek_burzykowski_2021">Biecek and Burzykowski (<a href="../references.html#ref-biecek_burzykowski_2021" role="doc-biblioref">2021</a>)</span>中找到。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">解释性模型分析（Explanatory Model Analysis）</span></div></div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-dalex-fig-plot-01" class="quarto-float quarto-figure quarto-figure-center anchored" alt="标题写有「Explanatory Model Analysis（解释性模型分析）」，其下方用代码字体写有「DALEX::explain()」。最左侧是一条向上箭头标注「Shallow（浅）」、一条向下箭头标注「Deep（深）」。这些箭头右侧是文本「Global Analysis（全局分析）」，有一个向下箭头指向「Model Performance, AUC, RMSE; DALEX::model_performance()（模型性能，AUC，RMSE）」，它有一个向下箭头指向「Feature Importance, VIP; DALEX::model_parts()（特征重要性，VIP）」，它又有一个向下箭头指向「Feature Profiles, PD, ALE; DALEX::model_profile()（特征轮廓，PD，ALE）」。在「全局分析」右侧是文本「Local Analysis（局部分析）」，它有一个箭头指向「Model Predict; DALEX::predict()（模型预测）」，它有一个向下箭头指向「Feature Attributions, SHAP, BD; DALEX::predict_parts()（特征归因，SHAP，BD）」，它又有一个向下箭头指向「Feature Profiles, Ceteris Paribus; DALEX::predict_profile()（特征轮廓，Ceteris Paribus）」。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-dalex-fig-plot-01-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/DALEX_ema_process.png" class="img-fluid figure-img" style="width:92.0%" alt="标题写有「Explanatory Model Analysis（解释性模型分析）」，其下方用代码字体写有「DALEX::explain()」。最左侧是一条向上箭头标注「Shallow（浅）」、一条向下箭头标注「Deep（深）」。这些箭头右侧是文本「Global Analysis（全局分析）」，有一个向下箭头指向「Model Performance, AUC, RMSE; DALEX::model_performance()（模型性能，AUC，RMSE）」，它有一个向下箭头指向「Feature Importance, VIP; DALEX::model_parts()（特征重要性，VIP）」，它又有一个向下箭头指向「Feature Profiles, PD, ALE; DALEX::model_profile()（特征轮廓，PD，ALE）」。在「全局分析」右侧是文本「Local Analysis（局部分析）」，它有一个箭头指向「Model Predict; DALEX::predict()（模型预测）」，它有一个向下箭头指向「Feature Attributions, SHAP, BD; DALEX::predict_parts()（特征归因，SHAP，BD）」，它又有一个向下箭头指向「Feature Profiles, Ceteris Paribus; DALEX::predict_profile()（特征轮廓，Ceteris Paribus）」。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-dalex-fig-plot-01-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 12.8：本节介绍的模型探索方法分类。左侧显示全局分析方法，右侧显示局部分析方法。方法的分析复杂度从上到下递增。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>与 <code>iml</code> 一样，<code>DALEX</code> 也实现了一个包装器，为其功能提供统一接口。对于用 <code>mlr3</code> 包创建的模型，我们会使用 <a href="https://www.rdocumentation.org/packages/DALEXtra/topics/explain_mlr3"><code>explain_mlr3()</code></a>，它创建一个 S3 <code>explainer</code> 对象，它是一个列表，至少包含：模型对象、将用于计算解释的数据集、预测函数、计算残差的函数、模型名称/标签以及其他关于模型的附加信息。</p>
+<div class="cell">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://modeloriented.github.io/DALEX/">DALEX</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://ModelOriented.github.io/DALEXtra/">DALEXtra</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">gbm_exp</span> <span class="op">=</span> <span class="fu">DALEXtra</span><span class="fu">::</span><span class="fu"><a href="https://ModelOriented.github.io/DALEXtra/reference/explain_mlr3.html">explain_mlr3</a></span><span class="op">(</span><span class="va">lrn_gbm</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">credit_x</span>,</span>
+<span>  y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="va">credit_y</span><span class="op">$</span><span class="va">credit_risk</span> <span class="op">==</span> <span class="st">"bad"</span><span class="op">)</span>,</span>
+<span>  label <span class="op">=</span> <span class="st">"GBM Credit"</span>,</span>
+<span>  colorize <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">gbm_exp</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>Model label:  GBM Credit 
+Model class:  LearnerClassifGBM,LearnerClassif,Learner,R6 
+Data head  :
+  age amount                          credit_history duration
+1  67   1169 all credits at this bank paid back duly        6
+2  49   2096 all credits at this bank paid back duly       12
+  employment_duration other_debtors              property
+1            &gt;= 7 yrs          none unknown / no property
+2    4 &lt;= ... &lt; 7 yrs          none unknown / no property
+              purpose                    savings
+1 furniture/equipment             ... &gt;= 1000 DM
+2             repairs unknown/no savings account
+                                      status
+1                        no checking account
+2 ... &gt;= 200 DM / salary for at least 1 year</code></pre>
+</div>
+</div>
+<section id="sec-interpretability-dataset-level" class="level3" data-number="12.3.1"><h3 data-number="12.3.1" class="anchored" data-anchor-id="sec-interpretability-dataset-level">
+<span class="header-section-number">12.3.1</span> 全局 EMA（Global EMA）</h3>
+<p>全局 EMA 旨在理解模型在一组观测上平均表现如何。在 <code>DALEX</code> 中，全局层面分析的函数以 <code>model_</code> 为前缀。</p>
+<p>模型探索过程从评估模型性能开始（<a href="#fig-dalex-fig-plot-01" class="quarto-xref">图 <span>12.8</span></a>）。<a href="https://www.rdocumentation.org/packages/DALEX/topics/model_performance"><code>model_performance()</code></a> 检测任务类型并选择最合适的度量，由于我们使用的是二分类，该函数自动建议召回率、精确率、F1 分数、精度与 AUC；类似地，默认绘图方法根据任务类型选择，下面选择了 ROC。</p>
+<div class="cell">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">perf_credit</span> <span class="op">=</span> <span class="fu"><a href="https://modeloriented.github.io/DALEX/reference/model_performance.html">model_performance</a></span><span class="op">(</span><span class="va">gbm_exp</span><span class="op">)</span></span>
+<span><span class="va">perf_credit</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Measures for:  classification
+recall     : 0.4078 
+precision  : 0.6462 
+f1         : 0.5 
+accuracy   : 0.7455 
+auc        : 0.7816
+
+Residuals:
+      0%      10%      20%      30%      40%      50%      60%      70% 
+-0.83843 -0.43762 -0.31028 -0.22741 -0.15894 -0.10674 -0.06124  0.18553 
+     80%      90%     100% 
+ 0.47835  0.63709  0.95862 </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">old_theme</span> <span class="op">=</span> <span class="fu"><a href="https://modeloriented.github.io/DALEX/reference/theme_dalex.html">set_theme_dalex</a></span><span class="op">(</span><span class="st">"ema"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html">plot</a></span><span class="op">(</span><span class="va">perf_credit</span>, geom <span class="op">=</span> <span class="st">"roc"</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure"><p><img src="images/model_interpretation_files/figure-html/model_interpretation-028-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-dalex-roc" class="quarto-float quarto-figure quarto-figure-center anchored" alt="ROC 曲线，y 轴为「True positive rate（真正率）」，x 轴为「False positive rate（假正率）」，曲线显示模型拟合相当好，因为它舒适地处于左上对角线上方。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-dalex-roc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/model_interpretation_files/figure-html/fig-dalex-roc-1.png" class="img-fluid figure-img" style="width:60.0%" alt="ROC 曲线，y 轴为「True positive rate（真正率）」，x 轴为「False positive rate（假正率）」，曲线显示模型拟合相当好，因为它舒适地处于左上对角线上方。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-dalex-roc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 12.9：使用受试者工作特征曲线（Receiver Operator Curve）对模型性能的图形化总结（<a href="../chapter3/evaluation_and_benchmarking.html#sec-roc" class="quarto-xref"><span>3.4 节</span></a>）。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+可视化总结（Visual Summaries）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>可以使用 <code>geom</code> 参数选择各种可视化总结。对于信用风险任务，LIFT 曲线是一种流行的图形化总结。</p>
+</div>
+</div>
+<p>特征重要性方法可以用 <a href="https://www.rdocumentation.org/packages/DALEX/topics/model_parts"><code>model_parts()</code></a> 计算，然后绘图。</p>
+<div class="cell">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">gbm_effect</span> <span class="op">=</span> <span class="fu"><a href="https://modeloriented.github.io/DALEX/reference/model_parts.html">model_parts</a></span><span class="op">(</span><span class="va">gbm_exp</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">gbm_effect</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>             variable mean_dropout_loss      label
+1        _full_model_            0.2184 GBM Credit
+2       other_debtors            0.2201 GBM Credit
+3 employment_duration            0.2217 GBM Credit
+4                 age            0.2230 GBM Credit
+5            property            0.2238 GBM Credit
+6             savings            0.2283 GBM Credit</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html">plot</a></span><span class="op">(</span><span class="va">gbm_effect</span>, show_boxplots <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure"><p><img src="images/model_interpretation_files/figure-html/model_interpretation-031-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-dalex-featimp" class="quarto-float quarto-figure quarto-figure-center anchored" alt="特征重要性图。x 轴标签为「One minus AUC loss after permutations（置换后一减 AUC 损失）」，y 轴标签是特征。水平条范围从 0.24 到 0.35。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-dalex-featimp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/model_interpretation_files/figure-html/fig-dalex-featimp-1.png" class="img-fluid figure-img" style="width:90.0%" alt="特征重要性图。x 轴标签为「One minus AUC loss after permutations（置换后一减 AUC 损失）」，y 轴标签是特征。水平条范围从 0.24 到 0.35。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-dalex-featimp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 12.10：特征置换重要性的图形化总结。条越长，置换该特征后损失函数的变化越大，因此该特征越重要。该图显示 'status' 是最重要的特征，'other_debtors' 最不重要。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+计算重要性（Calculating Importance）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>model_parts</code> 函数中的 <code>type</code> 参数允许你指定如何计算特征的重要性：通过损失函数的差值（<code>type = "difference"</code>）、通过商（<code>type = "ratio"</code>），或不做任何变换（<code>type = "raw"</code>）。</p>
+</div>
+</div>
+<p>特征效应可以用 <a href="https://www.rdocumentation.org/packages/DALEX/topics/model_profile"><code>model_profile()</code></a> 计算，默认绘制为 PD 图。</p>
+<div class="cell">
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">gbm_profiles</span> <span class="op">=</span> <span class="fu"><a href="https://modeloriented.github.io/DALEX/reference/model_profile.html">model_profile</a></span><span class="op">(</span><span class="va">gbm_exp</span><span class="op">)</span></span>
+<span><span class="va">gbm_profiles</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Top profiles    : 
+   _vname_    _label_ _x_ _yhat_ _ids_
+1 duration GBM Credit   4 0.1816     0
+2 duration GBM Credit   6 0.1816     0
+3 duration GBM Credit   8 0.2017     0
+4 duration GBM Credit   9 0.2174     0
+5 duration GBM Credit  10 0.2174     0
+6 duration GBM Credit  11 0.2174     0</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html">plot</a></span><span class="op">(</span><span class="va">gbm_profiles</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">theme</span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggtitle</span><span class="op">(</span><span class="st">"Partial Dependence for GBM Credit model"</span>,<span class="st">""</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure"><p><img src="images/model_interpretation_files/figure-html/model_interpretation-034-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-dalex-pdp" class="quarto-float quarto-figure quarto-figure-center anchored" alt="左图是 'age' 对「average prediction（平均预测）」的 PD 图，在 20-40 岁之间预测从 0.35 下降到 0.3 然后持平。中图是 'amount' 的 PD 图，在 0-5000 之间预测从 0.3 开始，短暂上升后回到 0.3，然后在 5000-15000 之间缓慢上升到 0.5。右图是 'duration' 的 PD 图，在 0-40 之间预测从 0.2 线性上升到 0.45 然后持平。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-dalex-pdp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/model_interpretation_files/figure-html/fig-dalex-pdp-1.png" class="img-fluid figure-img" style="width:90.0%" alt="左图是 'age' 对「average prediction（平均预测）」的 PD 图，在 20-40 岁之间预测从 0.35 下降到 0.3 然后持平。中图是 'amount' 的 PD 图，在 0-5000 之间预测从 0.3 开始，短暂上升后回到 0.3，然后在 5000-15000 之间缓慢上升到 0.5。右图是 'duration' 的 PD 图，在 0-40 之间预测从 0.2 线性上升到 0.45 然后持平。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-dalex-pdp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 12.11：三个选定变量（age、amount、duration）的模型偏依赖轮廓的图形化总结。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>从<a href="#fig-dalex-pdp" class="quarto-xref">图 <span>12.11</span></a>中，我们可以看到 GBM 模型为特征 <code>amount</code> 学到的是一种非单调的关系。</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+边际轮廓与累积局部轮廓（Marginal and Accumulated Local Profiles）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><a href="https://www.rdocumentation.org/packages/DALEX/topics/model_profile"><code>model_profile()</code></a> 函数的 <code>type</code> 参数还允许计算<em>边际轮廓（marginal profiles）</em>（用 <code>type = "conditional"</code>）与<em>累积局部轮廓（accumulated local profiles）</em>（用 <code>type = "accumulated"</code>）。</p>
+</div>
+</div>
+</section><section id="sec-interpretability-instance-level" class="level3" data-number="12.3.2"><h3 data-number="12.3.2" class="anchored" data-anchor-id="sec-interpretability-instance-level">
+<span class="header-section-number">12.3.2</span> 局部 EMA（Local EMA）</h3>
+<p>局部 EMA 旨在理解模型对单个观测的行为。在 <code>DALEX</code> 中，局部分析的函数以 <code>predict_</code> 为前缀。我们将再次使用 Charlie 进行下面的例子。</p>
+<p>局部分析从计算模型预测开始（<a href="#fig-dalex-fig-plot-01" class="quarto-xref">图 <span>12.8</span></a>）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span><span class="op">(</span><span class="va">gbm_exp</span>, <span class="va">Charlie</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   bad 
+0.3986 </code></pre>
+</div>
+</div>
+<p>下一步，我们可能会考虑分解图（break-down plots），它把模型的预测分解为可归因于不同解释变量的贡献（关于这种方法更多内容见 <span class="citation" data-cites="biecek_burzykowski_2021">Biecek and Burzykowski (<a href="../references.html#ref-biecek_burzykowski_2021" role="doc-biblioref">2021</a>)</span>中的<em>可加归因的分解图（Break-down Plots for Additive Attributions）</em>一章）。它们用 <a href="https://www.rdocumentation.org/packages/DALEX/topics/predict_parts"><code>predict_parts()</code></a> 计算：</p>
+<div class="cell">
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html">plot</a></span><span class="op">(</span><span class="fu"><a href="https://modeloriented.github.io/DALEX/reference/predict_parts.html">predict_parts</a></span><span class="op">(</span><span class="va">gbm_exp</span>, new_observation <span class="op">=</span> <span class="va">Charlie</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`height` was translated to `width`.</code></pre>
+</div>
+<div class="cell-output-display">
+<div id="fig-dalex-breakdown" class="quarto-float quarto-figure quarto-figure-center anchored" alt="x 轴是 0.2 到 0.5 的数字，y 轴是数据集中的变量。有四个红色条带负数字标签和五个绿色条带正数字标签。一条虚线垂直穿过 x=0.3，有一个带文字「0.365」的紫色条。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-dalex-breakdown-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/model_interpretation_files/figure-html/fig-dalex-breakdown-1.png" class="img-fluid figure-img" style="width:90.0%" alt="x 轴是 0.2 到 0.5 的数字，y 轴是数据集中的变量。有四个红色条带负数字标签和五个绿色条带正数字标签。一条虚线垂直穿过 x=0.3，有一个带文字「0.365」的紫色条。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-dalex-breakdown-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 12.12：分解方法计算的局部特征归因图形化总结。正归因以绿色显示，负归因以红色显示。紫色条对应于被解释观测的模型预测，虚线对应于平均模型预测。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>看<a href="#fig-dalex-breakdown" class="quarto-xref">图 <span>12.12</span></a>，我们可以读出对 Charlie 最终预测贡献最大的是特征 <code>status</code> 和 <code>savings</code>。</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+特征的选择顺序（Selected Order of Features）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>order</code> 参数允许你指明特征的选择顺序。当特征之间存在某种相对条件重要性（例如怀孕与性别）时，这是一个有用的选项。</p>
+</div>
+</div>
+<p><code><a href="https://modeloriented.github.io/DALEX/reference/predict_parts.html">predict_parts()</a></code> 函数还可以通过设置 <code>type = "shap"</code>，用 SHAP 算法 <span class="citation" data-cites="Lundberg2019">(<a href="../references.html#ref-Lundberg2019" role="doc-biblioref">Lundberg, Erion, and Lee 2019</a>)</span>绘制夏普利值：</p>
+<div class="cell">
+<div class="sourceCode" id="cb46"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html">plot</a></span><span class="op">(</span><span class="fu"><a href="https://modeloriented.github.io/DALEX/reference/predict_parts.html">predict_parts</a></span><span class="op">(</span><span class="va">gbm_exp</span>, new_observation <span class="op">=</span> <span class="va">Charlie</span>, type <span class="op">=</span> <span class="st">"shap"</span><span class="op">)</span>,</span>
+<span>  show_boxplots <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-dalex-shaps" class="quarto-float quarto-figure quarto-figure-center anchored" alt="x 轴写有「contribution（贡献）」，范围从 -0.05 到 0.1，y 轴是特征名称。图显示四个红条为负贡献，五个绿条为正贡献。最长的条是 'status'，最短的是 'other_debtors'。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-dalex-shaps-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/model_interpretation_files/figure-html/fig-dalex-shaps-1.png" class="img-fluid figure-img" style="width:90.0%" alt="x 轴写有「contribution（贡献）」，范围从 -0.05 到 0.1，y 轴是特征名称。图显示四个红条为负贡献，五个绿条为正贡献。最长的条是 'status'，最短的是 'other_debtors'。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-dalex-shaps-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 12.13：Shap 方法计算的局部特征归因图形化总结。正归因以绿色显示，负归因以红色显示。这里最重要的特征是 'status' 变量，最不重要的是 'other_debtors'。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>Break Down 与 SHAP 方法的结果通常相似。如果模型中有许多复杂的交互作用，差异就会出现。</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+加速夏普利值计算（Speeding Up Shapley Computation）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>夏普利值的计算可能需要很长时间。这个过程可以以牺牲准确性为代价来加速。参数 <code>B</code> 和 <code>N</code> 可以用来调节这种权衡，其中 <code>N</code> 是用于估计条件期望值的观测数（默认为 500），<code>B</code> 是用于计算夏普利值的随机路径数（默认为 25）。</p>
+</div>
+</div>
+<p>最后，我们可以用 <a href="https://www.rdocumentation.org/packages/DALEX/topics/predict_profile"><code>predict_profile()</code></a> 绘制 ICE 曲线：</p>
+<div class="cell">
+<div class="sourceCode" id="cb47"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html">plot</a></span><span class="op">(</span><span class="fu"><a href="https://modeloriented.github.io/DALEX/reference/predict_profile.html">predict_profile</a></span><span class="op">(</span><span class="va">gbm_exp</span>,  <span class="va">credit_x</span><span class="op">[</span><span class="fl">30</span><span class="op">:</span><span class="fl">40</span>, <span class="op">]</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-dalex-ice" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图的模式与之前的 PD 图相同，但有 10 条平行绘制的线。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-dalex-ice-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/model_interpretation_files/figure-html/fig-dalex-ice-1.png" class="img-fluid figure-img" style="width:90.0%" alt="图的模式与之前的 PD 图相同，但有 10 条平行绘制的线。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-dalex-ice-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 12.14：信用数据中 10 行（包括 Charlie）在三个选定变量（age、amount、duration）上的个体条件解释（又称 Ceteris Paribus）图。
+</figcaption></figure>
+</div>
+</div>
+</div>
+</section></section><section id="conclusions" class="level2" data-number="12.4"><h2 data-number="12.4" class="anchored" data-anchor-id="conclusions">
+<span class="header-section-number">12.4</span> 结论（Conclusions）</h2>
+<p>在本章中，我们学习了如何使用可解释机器学习领域最流行的方法，对用 <code>mlr3</code> 训练的模型获得事后（post hoc）洞察。这些方法都是模型无关的，因此不依赖于特定的模型类别。<a href="https://cran.r-project.org/package=iml"><code>iml</code></a> 和 <a href="https://cran.r-project.org/package=DALEX"><code>DALEX</code></a> 提供范围广泛（部分重叠）的方法，而 <a href="https://cran.r-project.org/package=counterfactuals"><code>counterfactuals</code></a> 只专注于反事实方法。我们在 <code>tsk("german_credit")</code> 上演示了这些包如何提供对用 <code>mlr3</code> 拟合的 GBM 模型的深入分析。在本章结束之际，我们将强调上述方法的一些局限，以帮助指导你自己的事后分析。</p>
+<section id="correlated-features" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="correlated-features">相关特征（Correlated Features）</h4>
+<p>如果特征彼此相关，那么解释方法得到的洞见应当谨慎对待。在不考虑与其他特征相关性的情况下改变观测的特征值，会导致不切实际的特征值组合。由于这样的特征组合也不太可能出现在训练数据中，模型很可能会在这些区域外推 <span class="citation" data-cites="Molnar2022pitfalls Hooker2019PleaseSP">(<a href="../references.html#ref-Molnar2022pitfalls" role="doc-biblioref">Molnar et al. 2022</a>; <a href="../references.html#ref-Hooker2019PleaseSP" role="doc-biblioref">Hooker and Mentch 2019</a>)</span>。这会扭曲基于改变单个特征值的方法（如 PFI、PD 图与夏普利值）的解释。在这些情况下，替代方法可以有所帮助：用条件特征重要性代替 PFI <span class="citation" data-cites="Strobl2008 Watson2021">(<a href="../references.html#ref-Strobl2008" role="doc-biblioref">Strobl et al. 2008</a>; <a href="../references.html#ref-Watson2021" role="doc-biblioref">Watson and Wright 2021</a>)</span>，用累积局部效应图代替 PD 图 <span class="citation" data-cites="Apley2020">(<a href="../references.html#ref-Apley2020" role="doc-biblioref">Apley and Zhu 2020</a>)</span>，用 KernelSHAP 方法代替夏普利值 <span class="citation" data-cites="Lundberg2019">(<a href="../references.html#ref-Lundberg2019" role="doc-biblioref">Lundberg, Erion, and Lee 2019</a>)</span>。</p>
+</section><section id="rashomon-effect" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="rashomon-effect">Rashomon 效应（Rashomon Effect）</h4>
+<p>从解释方法得出的解释可能是模棱两可的。一种方法可能提供多个同样可信但可能相互矛盾的解释。这种现象也被称为 Rashomon 效应 <span class="citation" data-cites="Breiman2001">(<a href="../references.html#ref-Breiman2001" role="doc-biblioref">Breiman 2001b</a>)</span>。这种效应可能源于超参数的变化、底层数据集的变化，甚至初始种子的变化 <span class="citation" data-cites="Molnar2022pitfalls">(<a href="../references.html#ref-Molnar2022pitfalls" role="doc-biblioref">Molnar et al. 2022</a>)</span>。</p>
+</section><section id="high-dimensional-data" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="high-dimensional-data">高维数据（High-Dimensional Data）</h4>
+<p><code>tsk("german_credit")</code> 是低维的，观测数也有限。把解释方法开箱即用地应用于更高维的数据集往往不可行，因为计算成本巨大，因此近年来开发了诸如使用基于核的估计器的夏普利值等方法来帮助克服这一问题。另一个挑战是，为高维数据集生成的高维 IML 输出可能让用户不堪重负。如果特征可以有意义地分组，可以采用方法的分组版本，例如 <span class="citation" data-cites="Au2022">Au et al. (<a href="../references.html#ref-Au2022" role="doc-biblioref">2022</a>)</span>提出的分组特征重要性。</p>
+<div id="tbl-interpretation-api" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-interpretation-api-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+表 12.1：本章涉及的重要类与函数，及其底层类（如适用）、类构造器或函数，以及重要的类字段与方法（如适用）。
+</figcaption><div aria-describedby="tbl-interpretation-api-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead><tr class="header">
+<th>类（Class）</th>
+<th>构造器/函数（Constructor/Function）</th>
+<th>字段/方法（Fields/Methods）</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://www.rdocumentation.org/packages/iml/topics/Predictor"><code>Predictor</code></a></td>
+<td><code>$new()</code></td>
+<td>-</td>
+</tr>
+<tr class="even">
+<td><a href="https://www.rdocumentation.org/packages/iml/topics/FeatureImp"><code>FeatureImp</code></a></td>
+<td><code>$new(some_predictor)</code></td>
+<td><code>$plot()</code></td>
+</tr>
+<tr class="odd">
+<td><a href="https://www.rdocumentation.org/packages/iml/topics/FeatureEffect"><code>FeatureEffect</code></a></td>
+<td><code>$new(some_predictor)</code></td>
+<td><code>$plot()</code></td>
+</tr>
+<tr class="even">
+<td><a href="https://www.rdocumentation.org/packages/iml/topics/LocalModel"><code>LocalModel</code></a></td>
+<td><code>$new(some_predictor, some_x)</code></td>
+<td><code>$results()</code></td>
+</tr>
+<tr class="odd">
+<td><a href="https://www.rdocumentation.org/packages/iml/topics/Shapley"><code>Shapley</code></a></td>
+<td><code>$new(some_predictor, x.interest)</code></td>
+<td><code>$plot()</code></td>
+</tr>
+<tr class="even">
+<td><a href="https://www.rdocumentation.org/packages/counterfactuals/topics/WhatIfClassif"><code>WhatIfClassif</code></a></td>
+<td><code>$new(some_predictor)</code></td>
+<td><code>$find_counterfactuals()</code></td>
+</tr>
+<tr class="odd">
+<td><a href="https://www.rdocumentation.org/packages/counterfactuals/topics/MOCClassif"><code>MOCClassif</code></a></td>
+<td><code>$new(some_predictor)</code></td>
+<td><code>$find_counterfactuals()</code></td>
+</tr>
+<tr class="even">
+<td><a href="https://www.rdocumentation.org/packages/DALEX/topics/explainer"><code>explainer</code></a></td>
+<td><a href="https://www.rdocumentation.org/packages/DALEXtra/topics/explain_mlr3"><code>explain_mlr3()</code></a></td>
+<td>&nbsp;&nbsp;&nbsp; <code><a href="https://modeloriented.github.io/DALEX/reference/model_parts.html">model_parts()</a></code>；<code><a href="https://modeloriented.github.io/DALEX/reference/model_performance.html">model_performance()</a></code>；<code><a href="https://modeloriented.github.io/DALEX/reference/predict_parts.html">predict_parts()</a></code>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section></section><section id="exercises" class="level2" data-number="12.5"><h2 data-number="12.5" class="anchored" data-anchor-id="exercises">
+<span class="header-section-number">12.5</span> 练习（Exercises）</h2>
+<p>以下练习基于根据 FIFA 电子游戏系列中球员特征预测足球运动员身价的问题。它们使用 DALEX 中可用的 2020 <code>fifa</code> 数据。请用 <code>iml</code> 或 <code>DALEX</code> 解答它们。</p>
+<ol type="1">
+<li>为 <code>fifa</code> 数据准备一个 <code>mlr3</code> 回归任务。只选择描述足球运动员年龄与技能的特征。在该任务上训练一个你自行选择的预测模型，用于预测足球运动员的身价。</li>
+<li>用置换重要性方法计算特征重要性排序。哪个特征最重要？你觉得结果令人惊讶吗？</li>
+<li>用偏依赖图/轮廓来绘制该特征的全局模型行为。它与你的预期一致吗？</li>
+<li>选择 Manuel Neuer 作为具体示例，计算并绘制夏普利值。哪个特征在局部最重要，并且对他作为足球运动员的身价影响最强？计算 ceteris paribus 轮廓/个体条件期望曲线，以可视化该特征的模型局部行为。它是否不同于全局行为？</li>
+</ol></section><section id="citation" class="level2" data-number="12.6"><h2 data-number="12.6" class="anchored" data-anchor-id="citation">
+<span class="header-section-number">12.6</span> 引用（Citation）</h2>
+<p>请按如下方式引用本章：</p>
+<p>Dandl S, Biecek P, Casalicchio G, Wright MN. (2024). Model Interpretation. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/model_interpretation.html.</p>
+<div class="sourceCode" id="cb48"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="va">@incollection</span>{<span class="ot">citekey</span>,</span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span> = "<span class="st">Susanne Dandl and Przemysław Biecek and Giuseppe Casalicchio and Marvin N. Wright</span>",</span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span> = "<span class="st">Model Interpretation</span>",</span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">booktitle</span> = "<span class="st">Applied Machine Learning Using {m}lr3 in {R}</span>",</span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">publisher</span> = "<span class="st">CRC Press</span>", <span class="st">year</span> = "<span class="st">2024</span>",</span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">editor</span> = "<span class="st">Bernd Bischl and Raphael Sonabend and Lars Kotthoff and Michel Lang</span>",</span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">url</span> = "<span class="st">https://mlr3book.mlr-org.com/model_interpretation.html</span>"</span>
+<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-Apley2020" class="csl-entry" role="listitem">
+Apley, Daniel W., and Jingyu Zhu. 2020. <span>“Visualizing the Effects of Predictor Variables in Black Box Supervised Learning Models.”</span> <em>Journal of the Royal Statistical Society Series B: Statistical Methodology</em> 82 (4): 1059–86. <a href="https://doi.org/10.1111/rssb.12377">https://doi.org/10.1111/rssb.12377</a>.
+</div>
+<div id="ref-Au2022" class="csl-entry" role="listitem">
+Au, Quay, Julia Herbinger, Clemens Stachl, Bernd Bischl, and Giuseppe Casalicchio. 2022. <span>“Grouped Feature Importance and Combined Features Effect Plot.”</span> <em>Data Mining and Knowledge Discovery</em> 36 (4): 1401–50. <a href="https://doi.org/10.1007/s10618-022-00840-5">https://doi.org/10.1007/s10618-022-00840-5</a>.
+</div>
+<div id="ref-Baniecki2019" class="csl-entry" role="listitem">
+Baniecki, Hubert, and Przemyslaw Biecek. 2019. <span>“<span class="nocase">modelStudio</span>: Interactive Studio with Explanations for ML Predictive Models.”</span> <em>Journal of Open Source Software</em> 4 (43): 1798. <a href="https://doi.org/10.21105/joss.01798">https://doi.org/10.21105/joss.01798</a>.
+</div>
+<div id="ref-Baniecki2023" class="csl-entry" role="listitem">
+Baniecki, Hubert, Dariusz Parzych, and Przemyslaw Biecek. 2023. <span>“The Grammar of Interactive Explanatory Model Analysis.”</span> <em>Data Mining and Knowledge Discovery</em>, 1573–756X. <a href="https://doi.org/10.1007/s10618-023-00924-w">https://doi.org/10.1007/s10618-023-00924-w</a>.
+</div>
+<div id="ref-Biecek2018" class="csl-entry" role="listitem">
+Biecek, Przemyslaw. 2018. <span>“<span>DALEX</span>: Explainers for Complex Predictive Models in <span>R</span>.”</span> <em>Journal of Machine Learning Research</em> 19 (84): 1–5. <a href="https://jmlr.org/papers/v19/18-416.html">https://jmlr.org/papers/v19/18-416.html</a>.
+</div>
+<div id="ref-biecek_burzykowski_2021" class="csl-entry" role="listitem">
+Biecek, Przemyslaw, and Tomasz Burzykowski. 2021. <em>Explanatory Model Analysis</em>. Chapman; Hall/CRC, New York. <a href="https://ema.drwhy.ai/">https://ema.drwhy.ai/</a>.
+</div>
+<div id="ref-breiman2001random" class="csl-entry" role="listitem">
+Breiman, Leo. 2001a. <span>“Random Forests.”</span> <em>Machine Learning</em> 45: 5–32. <a href="https://doi.org/10.1023/A:1010933404324">https://doi.org/10.1023/A:1010933404324</a>.
+</div>
+<div id="ref-Breiman2001" class="csl-entry" role="listitem">
+———. 2001b. <span>“Statistical Modeling: The Two Cultures (with Comments and a Rejoinder by the Author).”</span> <em>Statistical Science</em> 16 (3). <a href="https://doi.org/10.1214/ss/1009213726">https://doi.org/10.1214/ss/1009213726</a>.
+</div>
+<div id="ref-Bucker2022" class="csl-entry" role="listitem">
+Bücker, Michael, Gero Szepannek, Alicja Gosiewska, and Przemyslaw Biecek. 2022. <span>“Transparency, Auditability, and Explainability of Machine Learning Models in Credit Scoring.”</span> <em>Journal of the Operational Research Society</em> 73 (1): 70–90. <a href="https://doi.org/10.1080/01605682.2021.1922098">https://doi.org/10.1080/01605682.2021.1922098</a>.
+</div>
+<div id="ref-Dandl2020" class="csl-entry" role="listitem">
+Dandl, Susanne, Christoph Molnar, Martin Binder, and Bernd Bischl. 2020. <span>“Multi-Objective Counterfactual Explanations.”</span> In <em>Parallel Problem Solving from Nature <span>PPSN</span> <span>XVI</span></em>, 448–69. Springer International Publishing. <a href="https://doi.org/10.1007/978-3-030-58112-1_31">https://doi.org/10.1007/978-3-030-58112-1_31</a>.
+</div>
+<div id="ref-Fisher2019pfi" class="csl-entry" role="listitem">
+Fisher, Aaron, Cynthia Rudin, and Francesca Dominici. 2019. <span>“All Models Are Wrong, but Many Are Useful: Learning a Variable’s Importance by Studying an Entire Class of Prediction Models Simultaneously.”</span> <a href="https://doi.org/10.48550/arxiv.1801.01489">https://doi.org/10.48550/arxiv.1801.01489</a>.
+</div>
+<div id="ref-Friedman2001pdp" class="csl-entry" role="listitem">
+Friedman, Jerome H. 2001. <span>“Greedy Function Approximation: A Gradient Boosting Machine.”</span> <em>The Annals of Statistics</em> 29 (5). <a href="https://doi.org/10.1214/aos/1013203451">https://doi.org/10.1214/aos/1013203451</a>.
+</div>
+<div id="ref-Goldstein2015ice" class="csl-entry" role="listitem">
+Goldstein, Alex, Adam Kapelner, Justin Bleich, and Emil Pitkin. 2015. <span>“Peeking Inside the Black Box: Visualizing Statistical Learning with Plots of Individual Conditional Expectation.”</span> <em>Journal of Computational and Graphical Statistics</em> 24 (1): 44–65. <a href="https://doi.org/10.1080/10618600.2014.907095">https://doi.org/10.1080/10618600.2014.907095</a>.
+</div>
+<div id="ref-gower1971general" class="csl-entry" role="listitem">
+Gower, John C. 1971. <span>“A General Coefficient of Similarity and Some of Its Properties.”</span> <em>Biometrics</em>, 857–71. <a href="https://doi.org/10.2307/2528823">https://doi.org/10.2307/2528823</a>.
+</div>
+<div id="ref-guidotti2022counterfactual" class="csl-entry" role="listitem">
+Guidotti, Riccardo. 2022. <span>“Counterfactual Explanations and How to Find Them: Literature Review and Benchmarking.”</span> <em>Data Mining and Knowledge Discovery</em>, 1–55. <a href="https://doi.org/10.1007/s10618-022-00831-6">https://doi.org/10.1007/s10618-022-00831-6</a>.
+</div>
+<div id="ref-guidotti2018survey" class="csl-entry" role="listitem">
+Guidotti, Riccardo, Anna Monreale, Salvatore Ruggieri, Franco Turini, Fosca Giannotti, and Dino Pedreschi. 2018. <span>“A Survey of Methods for Explaining Black Box Models.”</span> <em>ACM Computing Surveys (CSUR)</em> 51 (5): 1–42. <a href="https://doi.org/10.1145/3236009">https://doi.org/10.1145/3236009</a>.
+</div>
+<div id="ref-Hooker2019PleaseSP" class="csl-entry" role="listitem">
+Hooker, Giles, and Lucas K. Mentch. 2019. <span>“Please Stop Permuting Features: An Explanation and Alternatives.”</span> <a href="https://doi.org/10.48550/arxiv.1905.03151">https://doi.org/10.48550/arxiv.1905.03151</a>.
+</div>
+<div id="ref-Krzyzinski2023" class="csl-entry" role="listitem">
+Krzyziński, Mateusz, Mikołaj Spytek, Hubert Baniecki, and Przemysław Biecek. 2023. <span>“<span class="nocase">SurvSHAP(t)</span>: Time-Dependent Explanations of Machine Learning Survival Models.”</span> <em>Knowledge-Based Systems</em> 262: 110234. <a href="https://doi.org/10.1016/j.knosys.2022.110234">https://doi.org/10.1016/j.knosys.2022.110234</a>.
+</div>
+<div id="ref-lipton2018mythos" class="csl-entry" role="listitem">
+Lipton, Zachary C. 2018. <span>“The Mythos of Model Interpretability: In Machine Learning, the Concept of Interpretability Is Both Important and Slippery.”</span> <em>Queue</em> 16 (3): 31–57. <a href="https://doi.org/10.1145/3236386.3241340">https://doi.org/10.1145/3236386.3241340</a>.
+</div>
+<div id="ref-Lundberg2019" class="csl-entry" role="listitem">
+Lundberg, Scott M., Gabriel G. Erion, and Su-In Lee. 2019. <span>“Consistent Individualized Feature Attribution for Tree Ensembles.”</span> arXiv. <a href="https://doi.org/10.48550/arxiv.1802.03888">https://doi.org/10.48550/arxiv.1802.03888</a>.
+</div>
+<div id="ref-Molnar2022" class="csl-entry" role="listitem">
+Molnar, Christoph. 2022. <em>Interpretable Machine Learning: A Guide for Making Black Box Models Explainable</em>. 2nd ed. <a href="https://christophm.github.io/interpretable-ml-book">https://christophm.github.io/interpretable-ml-book</a>.
+</div>
+<div id="ref-Molnar2018" class="csl-entry" role="listitem">
+Molnar, Christoph, Bernd Bischl, and Giuseppe Casalicchio. 2018. <span>“<span class="nocase">iml</span>: An <span>R</span> Package for Interpretable Machine Learning.”</span> <em>JOSS</em> 3 (26): 786. <a href="https://doi.org/10.21105/joss.00786">https://doi.org/10.21105/joss.00786</a>.
+</div>
+<div id="ref-Molnar2022pitfalls" class="csl-entry" role="listitem">
+Molnar, Christoph, Gunnar König, Julia Herbinger, Timo Freiesleben, Susanne Dandl, Christian A. Scholbeck, Giuseppe Casalicchio, Moritz Grosse-Wentrup, and Bernd Bischl. 2022. <span>“General Pitfalls of Model-Agnostic Interpretation Methods for Machine Learning Models.”</span> In <em>xxAI - Beyond Explainable AI: International Workshop, Held in Conjunction with ICML 2020, July 18, 2020, Vienna, Austria, Revised and Extended Papers</em>, edited by Andreas Holzinger, Randy Goebel, Ruth Fong, Taesup Moon, Klaus-Robert Müller, and Wojciech Samek, 39–68. Cham: Springer International Publishing. <a href="https://doi.org/10.1007/978-3-031-04083-2_4">https://doi.org/10.1007/978-3-031-04083-2_4</a>.
+</div>
+<div id="ref-Ribeiro2016lime" class="csl-entry" role="listitem">
+Ribeiro, Marco, Sameer Singh, and Carlos Guestrin. 2016. <span>““Why Should I Trust You?”: Explaining the Predictions of Any Classifier.”</span> In <em>Proceedings of the 2016 Conference of the North American Chapter of the Association for Computational Linguistics: Demonstrations</em>, 97–101. San Diego, California: Association for Computational Linguistics. <a href="https://doi.org/10.18653/v1/N16-3020">https://doi.org/10.18653/v1/N16-3020</a>.
+</div>
+<div id="ref-Romaszko2019" class="csl-entry" role="listitem">
+Romaszko, Kamil, Magda Tatarynowicz, Mateusz Urbański, and Przemysław Biecek. 2019. <span>“modelDown: Automated Website Generator with Interpretable Documentation for Predictive Machine Learning Models.”</span> <em>Journal of Open Source Software</em> 4 (38): 1444. <a href="https://doi.org/10.21105/joss.01444">https://doi.org/10.21105/joss.01444</a>.
+</div>
+<div id="ref-Strobl2008" class="csl-entry" role="listitem">
+Strobl, Carolin, Anne-Laure Boulesteix, Thomas Kneib, Thomas Augustin, and Achim Zeileis. 2008. <span>“Conditional Variable Importance for Random Forests.”</span> <em><span>BMC</span> Bioinformatics</em> 9 (1). <a href="https://doi.org/10.1186/1471-2105-9-307">https://doi.org/10.1186/1471-2105-9-307</a>.
+</div>
+<div id="ref-Trumbelj2013Shapley" class="csl-entry" role="listitem">
+Štrumbelj, Erik, and Igor Kononenko. 2013. <span>“Explaining Prediction Models and Individual Predictions with Feature Contributions.”</span> <em>Knowledge and Information Systems</em> 41 (3): 647–65. <a href="https://doi.org/10.1007/s10115-013-0679-x">https://doi.org/10.1007/s10115-013-0679-x</a>.
+</div>
+<div id="ref-Wachter2017" class="csl-entry" role="listitem">
+Wachter, Sandra, Brent Mittelstadt, and Chris Russell. 2017. <span>“Counterfactual Explanations Without Opening the Black Box: Automated Decisions and the <span>GDPR</span>.”</span> <em><span>SSRN</span> Electronic Journal</em>. <a href="https://doi.org/10.2139/ssrn.3063289">https://doi.org/10.2139/ssrn.3063289</a>.
+</div>
+<div id="ref-Watson2021" class="csl-entry" role="listitem">
+Watson, David S, and Marvin N Wright. 2021. <span>“Testing Conditional Independence in Supervised Learning Algorithms.”</span> <em>Machine Learning</em> 110 (8): 2107–29. <a href="https://doi.org/10.1007/s10994-021-06030-6">https://doi.org/10.1007/s10994-021-06030-6</a>.
+</div>
+<div id="ref-Wexler2019" class="csl-entry" role="listitem">
+Wexler, James, Mahima Pushkarna, Tolga Bolukbasi, Martin Wattenberg, Fernanda Viégas, and Jimbo Wilson. 2019. <span>“The What-If Tool: Interactive Probing of Machine Learning Models.”</span> <em>IEEE Transactions on Visualization and Computer Graphics</em> 26 (1): 56–65. <a href="https://doi.org/10.1109/TVCG.2019.2934619">https://doi.org/10.1109/TVCG.2019.2934619</a>.
+</div>
+<div id="ref-Wisniewski2022" class="csl-entry" role="listitem">
+Wiśniewski, Jakub, and Przemysław Biecek. 2022. <span>“The <span>R</span> Journal: Fairmodels: A Flexible Tool for Bias Detection, Visualization, and Mitigation in Binary Classification Models.”</span> <em>The <span>R</span> Journal</em> 14: 227–43. <a href="https://doi.org/10.32614/RJ-2022-019">https://doi.org/10.32614/RJ-2022-019</a>.
+</div>
+</div>
+</section>
+
+  </main>
+  <nav class="chnav">
+    <a class="" href="ch11-large-scale-benchmarking.html"><span class="dir">上一章</span><span class="ch">第 11 章 大规模基准测试</span></a>
+    <a class="" href="ch13-beyond-regression-classification.html"><span class="dir">下一章</span><span class="ch">第 13 章 回归与分类之外</span></a>
+  </nav>
+  <div class="footer">
+    <div>《Applied Machine Learning Using mlr3 in R》中文译本 · 非官方翻译</div>
+    <div class="lic">原文 © 2024 CRC Press（Bischl, Sonabend, Kotthoff &amp; Lang 主编，CC BY-NC-SA 4.0）· 本站由志愿翻译，仅供学习交流</div>
+  </div>
+</div>
+<script>
+MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] } };
+</script>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
+</body>
+</html>

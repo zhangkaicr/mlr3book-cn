@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>使用 paradox 的高级超参数规范</title>
+<script>
+(function(){
+  var saved = localStorage.getItem("mlr3-theme");
+  if (saved === null) saved = "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+})();
+</script>
+<style>
+:root {
+  --bg: #1e2228; --fg: #d8dee4; --muted: #9aa4b0;
+  --panel: #262c34; --panel2: #2e3540; --border: #3a4350;
+  --accent: #4ea1ff; --accent2: #8f7ae6;
+  --code-bg: #161a20; --code-fg: #d8dee4;
+  --note-bg: #2a3450; --note-border: #5a7fff;
+  --callout-bg: #2b3826; --callout-border: #6bbf59;
+  --table-head: #2e3540; --table-row: #262c34; --link: #6cb0ff;
+  --h-border: #3a4350;
+}
+[data-theme="light"] {
+  --bg: #f7f8fa; --fg: #24292f; --muted: #57606a;
+  --panel: #ffffff; --panel2: #f0f2f5; --border: #d9dee3;
+  --accent: #0969da; --accent2: #8250df;
+  --code-bg: #f3f4f6; --code-fg: #24292f;
+  --note-bg: #eef2ff; --note-border: #5a7fff;
+  --callout-bg: #eff7ec; --callout-border: #6bbf59;
+  --table-head: #eef1f4; --table-row: #ffffff; --link: #0969da;
+  --h-border: #d9dee3;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  line-height: 1.78; font-size: 16px;
+  transition: background .2s, color .2s;
+}
+.container { max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+/* 顶栏 */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+}
+.topbar .brand { font-weight: 600; font-size: 15px; color: var(--fg); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+.topbar .brand .logo { color: var(--accent); }
+.topbar .right { display: flex; align-items: center; gap: 10px; }
+.topbar .home-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+.topbar .home-link:hover { color: var(--accent); }
+.theme-toggle {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+/* 章头 */
+.header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
+.header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
+.header-block h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.35; }
+.header-block .subtitle { color: var(--muted); font-size: 14px; }
+/* 章节导航 */
+.chnav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0 6px; flex-wrap: wrap; }
+.chnav a {
+  background: var(--panel); border: 1px solid var(--border); color: var(--fg);
+  text-decoration: none; font-size: 14px; padding: 10px 16px; border-radius: 8px;
+  max-width: 46%; display: block;
+}
+.chnav a:hover { border-color: var(--accent); color: var(--accent); }
+.chnav .dir { color: var(--muted); font-size: 12px; display: block; }
+.chnav .ch { font-weight: 600; }
+.chnav a.disabled { opacity: .4; pointer-events: none; }
+/* 正文 */
+main { padding: 0 0 20px; }
+main h1 { font-size: 26px; margin: 40px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--h-border); }
+main h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--h-border); }
+main h3 { font-size: 18px; margin: 28px 0 10px; }
+main h4 { font-size: 16px; margin: 22px 0 8px; color: var(--accent); }
+main p { margin: 10px 0; }
+main a { color: var(--link); text-decoration: none; }
+main a:hover { text-decoration: underline; }
+main strong { font-weight: 600; }
+main ul, main ol { padding-left: 26px; }
+main li { margin: 5px 0; }
+main blockquote {
+  margin: 12px 0; padding: 10px 16px; border-left: 4px solid var(--border);
+  background: var(--panel2); color: var(--muted); border-radius: 0 6px 6px 0;
+}
+main hr { border: none; border-top: 1px solid var(--border); margin: 26px 0; }
+main img { max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 6px; }
+main table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+main th { background: var(--table-head); font-weight: 600; }
+main th, main td { border: 1px solid var(--border); padding: 7px 11px; }
+main tr:nth-child(even) td { background: var(--table-row); }
+/* 代码 */
+pre {
+  background: var(--code-bg); color: var(--code-fg);
+  padding: 14px 16px; border-radius: 8px; overflow-x: auto;
+  border: 1px solid var(--border); font-size: 13.5px; line-height: 1.6;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+code {
+  font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+  background: var(--panel2); color: var(--accent);
+  padding: 2px 5px; border-radius: 4px; font-size: 13.5px;
+}
+pre code { background: none; color: var(--code-fg); padding: 0; }
+/* 代码块容器（Quarto 结构） */
+.sourceCode { margin: 14px 0; }
+.sourceCode pre { margin: 0; }
+/* 输出块 */
+.cell { margin: 6px 0; }
+.cell-output { margin: 0 0 6px; }
+.cell-output pre { background: var(--panel2); border-style: dashed; }
+.cell-output-stderr { border-color: #d29922; }
+.cell-output-stdout pre { border-color: var(--border); }
+/* figure */
+figure { margin: 18px 0; text-align: center; }
+figure img { margin: 0 auto; }
+figcaption, .caption { color: var(--muted); font-size: 13px; margin-top: 6px; text-align: center; }
+.quarto-float { margin: 18px 0; }
+.quarto-figure { margin: 18px 0; text-align: center; }
+/* 背景与解释（译者注）框 */
+.bg-note {
+  background: var(--note-bg); border: 1px solid var(--note-border);
+  border-radius: 8px; padding: 14px 18px; margin: 18px 0;
+  font-size: 15px;
+}
+.bg-note p { margin: 6px 0; }
+.bg-note .bg-title { font-weight: 600; color: var(--accent); }
+/* 原书 callout 提示框 */
+.callout {
+  border-radius: 8px; padding: 12px 18px; margin: 16px 0;
+  border-left: 5px solid var(--accent); background: var(--panel2);
+}
+.callout-tip { border-left-color: #6bbf59; }
+.callout-note { border-left-color: var(--accent); }
+.callout-warning { border-left-color: #d29922; }
+.callout-important { border-left-color: #e05d5d; }
+.callout-header { font-weight: 600; margin-bottom: 4px; }
+.callout-title-container { display: inline; }
+.callout-body p { margin: 6px 0; }
+.callout-icon-container { display: none; }
+/* 脚注 */
+.footnote-ref { font-size: 12px; vertical-align: super; }
+/* 页脚 */
+.footer {
+  margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 13px; text-align: center;
+}
+.footer .lic { margin-top: 6px; font-size: 12px; }
+/* 表格滚动 */
+main table { display: block; overflow-x: auto; }
+/* banner 样式（原书 callout 可能以其他名目出现） */
+[class*="callout"] > p:first-child { margin-top: 4px; }
+</style>
+<script>
+function toggleTheme(){
+  var cur = document.documentElement.getAttribute("data-theme");
+  var next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("mlr3-theme", next);
+}
+</script>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <div class="right">
+    <a class="home-link" href="index.html">目录</a>
+    <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
+  </div>
+</div>
+<div class="container">
+  <div class="header-block">
+    <div class="part">第四部分 高级专题</div>
+    <h1>使用 paradox 的高级超参数规范</h1>
+    <div class="subtitle">《Applied Machine Learning Using mlr3 in R》中文翻译 · 章节 第 16 章 使用 paradox 的高级超参数规范</div>
+  </div>
+  <main>
+<p><strong>Martin Binder</strong> <br><em>Ludwig-Maximilians-Universität München, and Munich Center for Machine Learning (MCML)</em></p>
+<p><strong>Sebastian Fischer</strong> <br><em>Ludwig-Maximilians-Universität München, and Munich Center for Machine Learning (MCML)</em></p>
+<p><strong>Michel Lang</strong> <br><em>Research Center Trustworthy Data Science and Security, and TU Dortmund University</em></p>
+<p><strong>Alexander Winterstetter</strong> <br><em>Ludwig-Maximilians-Universität München</em> <br><br></p>
+<p>在前面的章节中，我们已经概述了如何手动设置超参数（<a href="../chapter2/data_and_basic_modeling.html#sec-param-set" class="quarto-xref"><span>2.2.3 节</span></a>）或自动优化超参数（<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>）。</p>
+<p>在本章中，我们将介绍<a href="https://paradox.mlr-org.com"><code>paradox</code></a>包，它提供了一种描述参数空间（Parameter Space）的语言，以及对这些参数空间进行有用操作的工具。参数空间在描述以下内容时通常很有用：</p>
+<ul>
+<li>一个 R 函数的一组合理输入值</li>
+<li>一个配置对象的字段可以取的值的集合</li>
+<li>优化过程的搜索空间（Search Space）</li>
+</ul>
+<p>因此，<code>paradox</code>提供的工具涉及：</p>
+<ul>
+<li>参数检查（Parameter Checking）：验证一组参数是否满足参数空间的条件</li>
+<li>参数采样（Parameter Sampling）：生成位于参数空间中的参数值，以便系统地探索取决于这些参数的程序行为</li>
+</ul>
+<p><code>paradox</code>本质上是一个辅助包，它的价值来源于其他使用它的包。<code>mlr3</code>生态系统的其他包大量使用它，例如<a href="https://mlr3.mlr-org.com"><code>mlr3</code></a>、<a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a>、<a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a>和<a href="https://cran.r-project.org/package=miesmuschel"><code>miesmuschel</code></a>。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>参数空间（Parameter Space）在机器学习中通常指一个函数或算法所有可接受参数取值的集合。例如 <code>rpart</code> 决策树的 <code>minsplit</code> 只能取正整数、<code>cp</code> 只能取非负实数。paradox 包相当于把这个概念「一等公民化」：它不仅描述取值范围，还统一处理参数类型、依赖关系、变换函数和采样。理解 paradox 有助于理解 mlr3 生态中的许多关键概念，因为 mlr3 的 <code>Learner</code>（学习器）的 <code>$param_set</code>、调优（tuning）的 <code>search_space</code>、mlr3pipelines 的 <code>PipeOp</code> 参数，底层都是 paradox 的 <code>ParamSet</code> 对象。可以说，paradox 是 mlr3 生态的「参数基础设施」。</p>
+</div>
+<section id="reference-based-objects" class="level2" data-number="16.1"><h2 data-number="16.1" class="anchored" data-anchor-id="reference-based-objects">
+<span class="header-section-number">16.1</span> 基于引用的对象</h2>
+<p>重要的是要知道，在<a href="https://paradox.mlr-org.com"><code>paradox</code></a>中创建的某些对象是「基于引用（reference-based）」的，这与 R 中大多数其他对象不同。当对一个<a href="https://paradox.mlr-org.com/reference/ParamSet.html"><code>ParamSet</code></a>对象进行更改时，例如改变 <code>$values</code> 字段，所有指向这个参数集的变量都会包含更改后的对象。要创建一个参数集的独立副本，需要使用 <code>$clone(deep = TRUE)</code> 方法：</p>
+<div class="cell">
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="st"><a href="https://paradox.mlr-org.com">"paradox"</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">ps1</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_int</a></span><span class="op">(</span>init <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">ps2</span> <span class="op">=</span> <span class="va">ps1</span></span>
+<span><span class="va">ps3</span> <span class="op">=</span> <span class="va">ps1</span><span class="op">$</span><span class="fu">clone</span><span class="op">(</span>deep <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">ps1</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;ParamSet(1)&gt;
+   id    class lower upper nlevels        default value
+1:  a ParamInt  -Inf   Inf     Inf &lt;NoDefault[0]&gt;     1</code></pre>
+</div>
+</div>
+<p>此时，<code>ps1</code>、<code>ps2</code> 和 <code>ps3</code> 都包含相同的值。现在我们更改 <code>ps1</code> 中 <code>a</code> 的值：</p>
+<div class="cell">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ps1</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">a</span> <span class="op">=</span> <span class="fl">2</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">ps1</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;ParamSet(1)&gt;
+   id    class lower upper nlevels        default value
+1:  a ParamInt  -Inf   Inf     Inf &lt;NoDefault[0]&gt;     2</code></pre>
+</div>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">ps2</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;ParamSet(1)&gt;
+   id    class lower upper nlevels        default value
+1:  a ParamInt  -Inf   Inf     Inf &lt;NoDefault[0]&gt;     2</code></pre>
+</div>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">ps3</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;ParamSet(1)&gt;
+   id    class lower upper nlevels        default value
+1:  a ParamInt  -Inf   Inf     Inf &lt;NoDefault[0]&gt;     1</code></pre>
+</div>
+</div>
+<p>因为 <code>ps2</code> 持有与 <code>ps1</code> 相同的引用，所以更改也反映在 <code>ps2</code> 中。然而，<code>ps3</code> 是原始 <code>ps1</code> 的一个独立克隆，仍然把 <code>a</code> 设为 <code>1</code>。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>R 语言中大多数对象遵循「复制-修改（copy-on-modify）」语义：把 <code>x</code> 赋值给 <code>y</code> 后修改 <code>y</code>，<code>x</code> 不会改变。但基于 R6 类的对象（如 <code>ParamSet</code>）采用「引用（reference）」语义：赋值只是复制指针，所有变量共享同一个对象。这是 mlr3 生态（mlr3、mlr3pipelines、mlr3tuning 都基于 R6）与 base R 的一个重大差异，也是新手常见的坑。因此，如果你需要一份互不影响、可独立修改的参数集副本，务必使用 <code>$clone(deep = TRUE)</code>；浅克隆（<code>clone()</code> 不带 <code>deep</code>）只会复制外壳，内部的嵌套对象（如 <code>$values</code> 列表）仍可能被共享。</p>
+</div>
+</section><section id="defining-a-parameter-space" class="level2" data-number="16.2"><h2 data-number="16.2" class="anchored" data-anchor-id="defining-a-parameter-space">
+<span class="header-section-number">16.2</span> 定义参数空间</h2>
+<section id="domain-representing-single-parameters" class="level3" data-number="16.2.1"><h3 data-number="16.2.1" class="anchored" data-anchor-id="domain-representing-single-parameters">
+<span class="header-section-number">16.2.1</span> 表示单个参数的 <code>Domain</code></h3>
+<p>参数空间由单个参数组成，这些参数通常可以取一个原子值。例如，考虑尝试配置<a href="https://cran.r-project.org/package=rpart"><code>rpart</code></a>包的 <code><a href="https://rdrr.io/pkg/rpart/man/rpart.control.html">rpart::rpart.control()</a></code>对象。它有很多组件（<code>minsplit</code>、<code>cp</code>，……），每个都取单个值。</p>
+<p>这些组件由<a href="https://paradox.mlr-org.com/reference/Domain.html"><code>Domain</code></a>对象表示，可以使用<a href="#tbl-paradox-define" class="quarto-xref">表&nbsp;<span>16.1</span></a>中的糖函数（sugar functions）来创建。</p>
+<div id="tbl-paradox-define" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-paradox-define-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+表&nbsp;16.1：<code>Domain</code> 构造器及其生成的 <code>Domain</code>。
+</figcaption><div aria-describedby="tbl-paradox-define-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead><tr class="header">
+<th>构造器</th>
+<th>描述</th>
+<th>底层类</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_dbl</code></a></td>
+<td>实值参数（“double”）</td>
+<td><code>ParamDbl</code></td>
+</tr>
+<tr class="even">
+<td><a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_int</code></a></td>
+<td>整数参数</td>
+<td><code>ParamInt</code></td>
+</tr>
+<tr class="odd">
+<td><a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_fct</code></a></td>
+<td>离散值参数（“factor”）</td>
+<td><code>ParamFct</code></td>
+</tr>
+<tr class="even">
+<td><a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_lgl</code></a></td>
+<td>逻辑 / 布尔参数</td>
+<td><code>ParamLgl</code></td>
+</tr>
+<tr class="odd">
+<td><a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_uty</code></a></td>
+<td>无类型参数</td>
+<td><code>ParamUty</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>通过调用 <a href="https://paradox.mlr-org.com/reference/ps.html"><code>ps()</code></a> 并传入作为 <code>Domain</code> 对象的命名参数，可以创建表示给定参数集合的<a href="https://paradox.mlr-org.com/reference/ParamSet.html"><code>ParamSet</code></a>。虽然 <code>Domain</code> 对象本身是原则上可以处理和操作的 R 对象，但它们在构造之后不应该被更改。</p>
+<div class="cell">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="st"><a href="https://paradox.mlr-org.com">"paradox"</a></span><span class="op">)</span></span>
+<span><span class="va">param_set</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span></span>
+<span>  parA <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_lgl</a></span><span class="op">(</span>init <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
+<span>  parB <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_int</a></span><span class="op">(</span>lower <span class="op">=</span> <span class="fl">0</span>, upper <span class="op">=</span> <span class="fl">10</span>, tags <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"tag1"</span>, <span class="st">"tag2"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  parC <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span>lower <span class="op">=</span> <span class="fl">0</span>, upper <span class="op">=</span> <span class="fl">4</span>, special_vals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  parD <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct</a></span><span class="op">(</span>levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"x"</span>, <span class="st">"y"</span>, <span class="st">"z"</span><span class="op">)</span>, default <span class="op">=</span> <span class="st">"y"</span><span class="op">)</span>,</span>
+<span>  parE <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_uty</a></span><span class="op">(</span>custom_check <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu">checkmate</span><span class="fu">::</span><span class="fu"><a href="https://mllg.github.io/checkmate/reference/checkFunction.html">checkFunction</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">param_set</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;ParamSet(5)&gt;
+     id    class lower upper nlevels        default  value
+1: parA ParamLgl    NA    NA       2 &lt;NoDefault[0]&gt;  FALSE
+2: parB ParamInt     0    10      11 &lt;NoDefault[0]&gt; [NULL]
+3: parC ParamDbl     0     4     Inf &lt;NoDefault[0]&gt; [NULL]
+4: parD ParamFct    NA    NA       3              y [NULL]
+5: parE ParamUty    NA    NA     Inf &lt;NoDefault[0]&gt; [NULL]</code></pre>
+</div>
+</div>
+<p>每个参数都可以有：</p>
+<ul>
+<li>
+<strong>default</strong> — 一个默认值，表示在未给出特定值的情况下某事物的行为。</li>
+<li>
+<strong>init</strong> — 一个初始值，在 <code>ParamSet</code> 创建时被设置在 <code>$values</code> 中。注意，这与 <code>default</code> 不同：<code>default</code> 在参数不出现在 <code>$values</code> 中时使用，而 <code>init</code> 是创建时设置的值。</li>
+<li>
+<strong>special_vals</strong> — 一组即使不符合类型也被接受的值。</li>
+<li>
+<strong>tags</strong> — 可用于组织参数的标签。</li>
+<li>
+<strong>trafo</strong> — 一个变换函数，在参数值被采样后应用于它。例如，它在 <a href="https://paradox.mlr-org.com/reference/generate_design_random.html"><code>generate_design_random()</code></a> 或类似函数创建了 <a href="https://paradox.mlr-org.com/reference/Design.html"><code>Design</code></a> 之后，通过 <code>Design$transpose()</code> 函数使用。</li>
+</ul>
+<p>数值参数（<code><a href="https://paradox.mlr-org.com/reference/Domain.html">p_int()</a></code> 和 <code><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl()</a></code>）还允许指定<strong>下界（lower）</strong>和<strong>上界（upper）</strong>。同时，<code><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct()</a></code> 参数必须给出一组<strong>水平（levels）</strong>，它们定义了该参数可以取的可能状态。<code><a href="https://paradox.mlr-org.com/reference/Domain.html">p_uty()</a></code> 参数还可以有一个<strong><code>custom_check</code></strong> 函数，当一个值可接受时它必须返回 <code>TRUE</code>，否则可以返回一个 <code>character(1)</code> 错误描述。上面的例子把 <code>parE</code> 定义为一个只接受函数的参数。</p>
+<p>所有传给构造器的值都可以从 <code>ParamSet</code> 中使用 <code>$</code> 访问以进行检查。参数集应被认为是不可变的，除了某些字段如 <code>$values</code>、<code>$deps</code>、<code>$tags</code>。构造之后不应更改边界和水平。相反，应该构造一个新的 <code>ParamSet</code>。</p>
+<p>除了可以传给构造器的可能值之外，还有 <code>$class</code>、<code>$nlevels</code>、<code>$is_bounded</code>、<code>$has_default</code>、<code>$storage_type</code>、<code>$is_number</code> 和 <code>$is_categ</code> 字段提供关于参数的信息。</p>
+<p>所有字段的列表可以在 <code><a href="https://paradox.mlr-org.com/reference/ParamSet.html">?ParamSet</a></code> 中找到。</p>
+<div class="cell">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">param_set</span><span class="op">$</span><span class="va">lower</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>parA parB parC parD parE 
+  NA    0    0   NA   NA </code></pre>
+</div>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">param_set</span><span class="op">$</span><span class="va">levels</span><span class="op">$</span><span class="va">parD</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "x" "y" "z"</code></pre>
+</div>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">param_set</span><span class="op">$</span><span class="va">class</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      parA       parB       parC       parD       parE 
+"ParamLgl" "ParamInt" "ParamDbl" "ParamFct" "ParamUty" </code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong><code>default</code> 与 <code>init</code> 是初学者容易混淆的一对概念。简单说：<code>default</code> 是「如果不设置，算法就用这个值」；<code>init</code> 则是「创建 <code>ParamSet</code> 的那一刻，<code>$values</code> 里预先放入的值」。所以 <code>init</code> 会体现在 <code>$values</code> 中（如上表第一行 <code>parA</code> 的 value 列为 <code>FALSE</code>），而 <code>default</code> 只出现在 default 列。另外，<code>special_vals</code> 允许你「破例」接受不符合类型的值——比如让一个数值参数也能接受 <code>NULL</code>（表示「不设该参数」）。paradox 之所以要求 <code>Domain</code> 在构造后不可变，是为了保证参数空间的定义始终一致；修改取值范围应该新建一个 <code>ParamSet</code>，而不是就地改动。</p>
+</div>
+<section id="type-range-checking" class="level4" data-number="16.2.1.1"><h4 data-number="16.2.1.1" class="anchored" data-anchor-id="type-range-checking">
+<span class="header-section-number">16.2.1.1</span> 类型 / 范围检查</h4>
+<p><code>ParamSet</code> 对象提供了使用 <code>$test()</code>、<code>$check()</code> 和 <code>$assert()</code> 函数来检查一个值是否满足其条件的能力，即类型是否正确，以及是否落在允许值的范围内。它们的参数必须是一个命名列表，其中的值将对照相应参数进行检查，并且可以只检查参数的一个子集。<code>$test()</code> 应在条件检查中使用，返回 <code>TRUE</code> 或 <code>FALSE</code>；而 <code>$check()</code> 在一个值不符合参数时返回错误描述（因此与 <a href="https://www.rdocumentation.org/packages/checkmate/topics/assert"><code>assert()</code></a> 函数配合得很好）。每当一个值不匹配时，<code>$assert()</code> 将抛出错误。</p>
+<div class="cell">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">param_set</span><span class="op">$</span><span class="fu">test</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>parA <span class="op">=</span> <span class="cn">FALSE</span>, parB <span class="op">=</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">param_set</span><span class="op">$</span><span class="fu">test</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>parA <span class="op">=</span> <span class="st">"FALSE"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] FALSE</code></pre>
+</div>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">param_set</span><span class="op">$</span><span class="fu">check</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>parA <span class="op">=</span> <span class="st">"FALSE"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "parA: Must be of type 'logical flag', not 'character'"</code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong><code>$test()</code>、<code>$check()</code>、<code>$assert()</code> 三者的关系与 checkmate 包一致，可以理解为三个「递进」版本：<code>$test()</code> 返回布尔值，适合放在 <code>if</code> 条件里；<code>$check()</code> 返回 <code>TRUE</code> 或错误字符串，便于与其他检查组合并给出完整错误信息；<code>$assert()</code> 在失败时直接抛出错误并停止执行。paradox 底层正是用 checkmate 实现检查逻辑的（例如上面的错误消息 “Must be of type 'logical flag'” 就来自 checkmate）。注意这里的「类型检查」对 R 语言尤其重要：R 的 <code>TRUE</code> 和字符串 <code>"TRUE"</code> 是完全不同的对象，上面第二个例子就展示了把逻辑参数传成字符串会被拒绝——这种隐式类型转换在 R 中不会自动发生，这也是 R 语言动态类型系统下常见的程序缺陷来源。</p>
+</div>
+</section></section><section id="parameter-sets" class="level3" data-number="16.2.2"><h3 data-number="16.2.2" class="anchored" data-anchor-id="parameter-sets">
+<span class="header-section-number">16.2.2</span> 参数集</h3>
+<p>参数的<strong>有序集合</strong>在 <code>ParamSet</code> 中处理。它通常通过调用 <code><a href="https://paradox.mlr-org.com/reference/ps.html">ps()</a></code> 创建，但也可以使用 <code>ParamSet$new()</code> 函数初始化。主要区别在于 <code><a href="https://paradox.mlr-org.com/reference/ps.html">ps()</a></code> 接受命名参数，而 <code>ParamSet$new()</code> 接受一个命名列表。后者使得以编程方式构造参数集更容易，但稍微更啰嗦。</p>
+<p><code>ParamSet</code> 可以使用 <code><a href="https://rdrr.io/r/base/c.html">c()</a></code> 或 <a href="https://paradox.mlr-org.com/reference/ps_union.html"><code>ps_union()</code></a>（后者接受一个列表）进行组合，并且它们有一个 <code>$subset()</code> 方法允许子集化。所有这些函数都返回一个新的、克隆的参数集对象，并且不修改原始参数集。</p>
+<div class="cell">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ps1</span> <span class="op">=</span> <span class="va"><a href="https://paradox.mlr-org.com/reference/ParamSet.html">ParamSet</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_int</a></span><span class="op">(</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">ps2</span> <span class="op">=</span> <span class="va"><a href="https://paradox.mlr-org.com/reference/ParamSet.html">ParamSet</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>z <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct</a></span><span class="op">(</span>levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="st">"b"</span>, <span class="st">"c"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">ps_all</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">ps1</span>, <span class="va">ps2</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">ps_all</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;ParamSet(3)&gt;
+   id    class lower upper nlevels        default  value
+1:  x ParamInt  -Inf   Inf     Inf &lt;NoDefault[0]&gt; [NULL]
+2:  y ParamDbl  -Inf   Inf     Inf &lt;NoDefault[0]&gt; [NULL]
+3:  z ParamFct    NA    NA       3 &lt;NoDefault[0]&gt; [NULL]</code></pre>
+</div>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ps_all</span><span class="op">$</span><span class="fu">subset</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"x"</span>, <span class="st">"z"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;ParamSet(2)&gt;
+   id    class lower upper nlevels        default  value
+1:  x ParamInt  -Inf   Inf     Inf &lt;NoDefault[0]&gt; [NULL]
+2:  z ParamFct    NA    NA       3 &lt;NoDefault[0]&gt; [NULL]</code></pre>
+</div>
+</div>
+<p>每个单独参数的 <code>ParamSet</code> 可以通过 <code>$subspaces()</code> 函数访问，它返回一个由单参数 <code>ParamSet</code> 组成的命名列表。</p>
+<p>可以使用 <code><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table()</a></code> 把 <code>ParamSet</code> 作为一个 <a href="https://www.rdocumentation.org/packages/data.table/topics/data.table-package"><code>data.table</code></a> 获取。这使得利用 <a href="https://cran.r-project.org/package=data.table"><code>data.table</code></a> 提供的各种方法，按某些条件对参数进行子集化并聚合关于它们的信息变得容易。</p>
+<div class="cell">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">ps_all</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   id    class lower upper levels nlevels is_bounded special_vals
+1:  x ParamInt  -Inf   Inf [NULL]     Inf      FALSE    &lt;list[0]&gt;
+2:  y ParamDbl  -Inf   Inf [NULL]     Inf      FALSE    &lt;list[0]&gt;
+3:  z ParamFct    NA    NA  a,b,c       3       TRUE    &lt;list[0]&gt;
+3 variables not shown: [default, storage_type, tags]</code></pre>
+</div>
+</div>
+<section id="values-in-a-paramset" class="level4" data-number="16.2.2.1"><h4 data-number="16.2.2.1" class="anchored" data-anchor-id="values-in-a-paramset">
+<span class="header-section-number">16.2.2.1</span> <code>ParamSet</code> 中的值</h4>
+<p>虽然 <code>ParamSet</code> 从根本上表示一个值空间，但它也有一个可以包含该空间内一个点的 <code>$values</code> 字段。这很有用，因为许多定义参数空间的事物需要类似的操作（如参数检查），而这些操作可以借此简化。<code>$values</code> 字段包含一个命名列表，它总是会被对照参数约束进行检查。当尝试设置参数值时，例如为 <a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 的<a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 设置参数值，需要使用的就是其 <code>$param_set</code> 的 <code>$values</code> 字段。</p>
+<div class="cell">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ps1</span><span class="op">$</span><span class="va">values</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fl">1</span>, y <span class="op">=</span> <span class="fl">1.5</span><span class="op">)</span></span>
+<span><span class="va">ps1</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">y</span> <span class="op">=</span> <span class="fl">2.5</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">ps1</span><span class="op">$</span><span class="va">values</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$x
+[1] 1
+
+$y
+[1] 2.5</code></pre>
+</div>
+</div>
+<p>参数约束会被自动检查：</p>
+<div class="cell">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ps1</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">x</span> <span class="op">=</span> <span class="fl">1.5</span></span></code></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `self$assert()`:
+! Assertion on 'xs' failed: x: Must be of type 'single integerish value', not 'double'.</code></pre>
+</div>
+</div>
+<p>要一次设置多个值，我们建议使用 <code>$set_values()</code>，它用各自的值更新给定的超参数（参数名）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ps1</span><span class="op">$</span><span class="fu">set_values</span><span class="op">(</span>x <span class="op">=</span> <span class="fl">2</span>, y <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">ps1</span><span class="op">$</span><span class="va">values</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$x
+[1] 2
+
+$y
+[1] 3</code></pre>
+</div>
+</div>
+</section><section id="dependencies" class="level4" data-number="16.2.2.2"><h4 data-number="16.2.2.2" class="anchored" data-anchor-id="dependencies">
+<span class="header-section-number">16.2.2.2</span> 依赖（Dependencies）</h4>
+<p>通常，某些参数取决于其他参数的值，从而变得无关或不应被给出。一个例子是：一个参数用来开关某个算法特性（例如正则化），而另一个参数控制该特性的行为（例如一个正则化参数）。第二个参数被称为<em>依赖</em>于第一个参数取值为 <code>TRUE</code>。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>依赖（Dependency）刻画了参数空间中的「条件合法性」：只有当某些条件成立时，某个参数才被允许出现。这是机器学习超参数空间中非常普遍的现象——例如支持向量机（SVM）中，<code>kernel = "polynomial"</code>（多项式核）时才需要 <code>degree</code>（多项式次数）参数，换成径向基核（radial）后 <code>degree</code> 就毫无意义；神经网络中，只有启用正则化开关后，正则化强度参数才生效。paradox 用 <code>Condition</code> 对象（如 <code>CondEqual</code>、<code>CondAnyOf</code>）表达这类条件。依赖带来的重要影响有二：其一，采样时只在条件满足时才生成该参数的值，避免产生无意义配置；其二，调优算法能自动「缩小」有效搜索空间，从而提升搜索效率。这也提醒我们：描述参数空间时，显式声明依赖比靠文档说明更可靠。</p>
+</div>
+<p>可以使用 <code>$add_dep</code> 方法添加依赖，它接受「被依赖参数（dependee）」和「依赖参数（depender）」的 id，以及一个 <a href="https://paradox.mlr-org.com/reference/condition_test.html"><code>Condition</code></a> 对象。<code>Condition</code> 对象表示要对「被依赖参数」执行的检查。目前它可以使用 <a href="https://paradox.mlr-org.com/reference/condition_test.html"><code>CondEqual()</code></a> 和 <a href="https://paradox.mlr-org.com/reference/condition_test.html"><code>CondAnyOf()</code></a> 创建。可以添加多个依赖，依赖于其他参数的参数也可以再次被依赖，只要不引入循环依赖即可。</p>
+<p>依赖的后果有两方面：其一，当 <code>check_strict</code> 参数被给定为 <code>TRUE</code> 时，如果其依赖未得到满足，<code>$check()</code>、<code>$test()</code> 和 <code>$assert()</code> 函数将拒绝为某个参数提供的任何值。这与简单地省略该参数不同，省略总是被允许的。此外，当从 <code>ParamSet</code> 采样或创建网格设计时，依赖会被尊重。</p>
+<p>设置依赖最简单的方法是给 <code>Domain</code> 构造器提供 <code>depends</code> 参数。</p>
+<p>下面的例子让参数 <code>D</code> 依赖参数 <code>A</code> 为 <code>FALSE</code>，让参数 <code>B</code> 依赖参数 <code>D</code> 为 <code>"x"</code> 或 <code>"y"</code> 之一。这也引入了 <code>B</code> 对 <code>A</code> 为 <code>FALSE</code> 的隐式依赖，因为当 <code>A</code> 为 <code>TRUE</code> 时 <code>D</code> 不取任何值。</p>
+<div class="cell">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">p</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span></span>
+<span>  A <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_lgl</a></span><span class="op">(</span>init <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
+<span>  B <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_int</a></span><span class="op">(</span>lower <span class="op">=</span> <span class="fl">0</span>, upper <span class="op">=</span> <span class="fl">10</span>, depends <span class="op">=</span> <span class="va">D</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"x"</span>, <span class="st">"y"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  C <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span>lower <span class="op">=</span> <span class="fl">0</span>, upper <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
+<span>  D <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct</a></span><span class="op">(</span>levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"x"</span>, <span class="st">"y"</span>, <span class="st">"z"</span><span class="op">)</span>, depends <span class="op">=</span> <span class="va">A</span> <span class="op">==</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>注意，<code>depends</code> 参数仅限于 <code>==</code> 和 <code>%in%</code> 运算符，所以 <code>D = p_fct(..., depends = !A)</code> 是不起作用的。</p>
+<p>所有依赖都满足，所以检查通过：</p>
+<div class="cell">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">p</span><span class="op">$</span><span class="fu">check</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>A <span class="op">=</span> <span class="cn">FALSE</span>, D <span class="op">=</span> <span class="st">"x"</span>, B <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>, check_strict <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+<p><code>B</code> 对 <code>D %in% c("x", "y")</code> 的依赖不满足，因为 <code>D</code> 是 <code>"z"</code>：</p>
+<div class="cell">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">p</span><span class="op">$</span><span class="fu">check</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>A <span class="op">=</span> <span class="cn">FALSE</span>, D <span class="op">=</span> <span class="st">"z"</span>, B <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>, check_strict <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "B: can only be set if the following condition is met 'D %in% {x, y}'. Instead the current parameter value is: D == z"</code></pre>
+</div>
+</div>
+<p><code>B</code> 的依赖不满足，因为 <code>D</code> 缺失：</p>
+<div class="cell">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">p</span><span class="op">$</span><span class="fu">check</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>A <span class="op">=</span> <span class="cn">FALSE</span>, B <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>, check_strict <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "B: can only be set if the following condition is met 'D %in% {x, y}'. Instead the parameter value for 'D' is not set at all. Try setting 'D' to a value that satisfies the condition"</code></pre>
+</div>
+</div>
+<p><code>B</code> 缺失，所以它的依赖不适用：</p>
+<div class="cell">
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">p</span><span class="op">$</span><span class="fu">check</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>A <span class="op">=</span> <span class="cn">FALSE</span>, D <span class="op">=</span> <span class="st">"z"</span><span class="op">)</span>, check_strict <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+<p><code>B</code> 和 <code>D</code> 都不存在，所以没有依赖被违反：</p>
+<div class="cell">
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">p</span><span class="op">$</span><span class="fu">check</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>A <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, check_strict <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+<p><code>D</code> 对 <code>A == FALSE</code> 的依赖不满足：</p>
+<div class="cell">
+<div class="sourceCode" id="cb46"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">p</span><span class="op">$</span><span class="fu">check</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>A <span class="op">=</span> <span class="cn">TRUE</span>, D <span class="op">=</span> <span class="st">"x"</span>, B <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>, check_strict <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "D: can only be set if the following condition is met 'A == FALSE'. Instead the current parameter value is: A == TRUE"</code></pre>
+</div>
+</div>
+<p><code>B</code> 的依赖不满足，因为 <code>D</code> 不存在（而且由于 <code>A</code> 是 <code>TRUE</code>，它也不能存在）：</p>
+<div class="cell">
+<div class="sourceCode" id="cb48"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">p</span><span class="op">$</span><span class="fu">check</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>A <span class="op">=</span> <span class="cn">TRUE</span>, B <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>, check_strict <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "B: can only be set if the following condition is met 'D %in% {x, y}'. Instead the parameter value for 'D' is not set at all. Try setting 'D' to a value that satisfies the condition"</code></pre>
+</div>
+</div>
+<p>在内部，依赖被表示为一个 <code>data.table</code>，可以通过 <code>$deps</code> 字段列出访问。这个 <code>data.table</code> 甚至可以被修改，例如删除依赖。以这种方式更改 <code>$deps</code> 字段时不会进行健全性检查。因此建议谨慎操作。</p>
+<div class="cell">
+<div class="sourceCode" id="cb50"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">p</span><span class="op">$</span><span class="va">deps</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   id on                  cond
+1:  B  D &lt;Condition:CondAnyOf&gt;
+2:  D  A &lt;Condition:CondEqual&gt;</code></pre>
+</div>
+</div>
+</section></section><section id="vector-parameters" class="level3" data-number="16.2.3"><h3 data-number="16.2.3" class="anchored" data-anchor-id="vector-parameters">
+<span class="header-section-number">16.2.3</span> 向量参数</h3>
+<p>在 <a href="https://paradox.mlr-org.com"><code>paradox</code></a> 中没有「向量参数」这种类型。取而代之的是，现在可以使用 <a href="https://paradox.mlr-org.com/reference/ps_replicate.html"><code>ps_replicate()</code></a> 函数创建单个参数的多个副本。这会创建一个由多个参数副本组成的 <code>ParamSet</code>，然后可以（可选地）把它添加到另一个 <code>ParamSet</code> 中。</p>
+<div class="cell">
+<div class="sourceCode" id="cb52"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ps2d</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps_replicate.html">ps_replicate</a></span><span class="op">(</span><span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span>lower <span class="op">=</span> <span class="fl">0</span>, upper <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">ps2d</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;ParamSet(2)&gt;
+       id    class lower upper nlevels        default  value
+1: rep1.x ParamDbl     0     1     Inf &lt;NoDefault[0]&gt; [NULL]
+2: rep2.x ParamDbl     0     1     Inf &lt;NoDefault[0]&gt; [NULL]</code></pre>
+</div>
+</div>
+<p>也可以使用一个 <code><a href="https://paradox.mlr-org.com/reference/Domain.html">p_uty()</a></code> 来接受向量参数，这也适用于长度可变的参数。包含 <code><a href="https://paradox.mlr-org.com/reference/Domain.html">p_uty()</a></code> 的 <code>ParamSet</code> 可以用于参数检查，但不能用于采样。要为需要向量参数的方法采样值，建议使用一个 <code>$.extra_trafo</code> 变换函数，从原子值创建向量。</p>
+<p>从重复参数组装向量可以借助参数的 <code>$tags</code>：由 <code><a href="https://paradox.mlr-org.com/reference/ps_replicate.html">ps_replicate()</a></code> 命令生成的参数可以被标记为属于一组重复参数。</p>
+<div class="cell">
+<div class="sourceCode" id="cb54"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ps2d</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps_replicate.html">ps_replicate</a></span><span class="op">(</span><span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_int</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span>, <span class="fl">2</span>, tag_params <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">ps2d</span><span class="op">$</span><span class="va">values</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>rep1.x <span class="op">=</span> <span class="fl">0.2</span>, rep2.x <span class="op">=</span> <span class="fl">0.4</span>, rep1.y <span class="op">=</span> <span class="fl">3</span>, rep2.y <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="va">ps2d</span><span class="op">$</span><span class="va">tags</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$rep1.x
+[1] "param_x"
+
+$rep1.y
+[1] "param_y"
+
+$rep2.x
+[1] "param_x"
+
+$rep2.y
+[1] "param_y"</code></pre>
+</div>
+<div class="sourceCode" id="cb56"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ps2d</span><span class="op">$</span><span class="fu">get_values</span><span class="op">(</span>tags <span class="op">=</span> <span class="st">"param_x"</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$rep1.x
+[1] 0.2
+
+$rep2.x
+[1] 0.4</code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>paradox 刻意不提供向量参数类型，原因在于：向量参数（尤其长度可变时）难以定义「边界」和「距离」，从而无法被大多数采样器和基于距离的调优算法（如高斯过程代理模型）直接处理。paradox 的替代方案是「复制参数 + 变换」：用 <code>ps_replicate()</code> 生成多个同构参数副本，每个副本仍是普通标量参数，可以正常采样；然后用 <code>$.extra_trafo</code> 在转置（transpose）阶段把它们拼装成一个向量。这样既保持了采样器的通用性，又保留了向量参数的用户友好接口。这也是 paradox 设计哲学的一个缩影：用若干简单、可组合的标量原语，表达复杂的高维参数结构。</p>
+</div>
+</section></section><section id="parameter-sampling" class="level2" data-number="16.3"><h2 data-number="16.3" class="anchored" data-anchor-id="parameter-sampling">
+<span class="header-section-number">16.3</span> 参数采样</h2>
+<p>通常，拥有一列可以系统地遍历的可能参数值是有用的，例如为了找到算法表现特别好的参数值（调优）。<a href="https://paradox.mlr-org.com"><code>paradox</code></a>提供了多种函数，允许在「网格」设计中创建等间隔的参数值，也允许随机采样。在后一种情况下，可以或多或少细致地影响采样分布。</p>
+<p>采样时始终要记住的一点是：只有有界的数值参数和因子参数才能被采样，即不是 <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_uty()</code></a>。此外，对大多数采样器来说，<a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_int()</code></a> 和 <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_dbl()</code></a> 必须有有限的下界和上界。</p>
+<section id="parameter-designs" class="level3" data-number="16.3.1"><h3 data-number="16.3.1" class="anchored" data-anchor-id="parameter-designs">
+<span class="header-section-number">16.3.1</span> 参数设计</h3>
+<p>对参数空间采样的函数从根本上返回一个 <a href="https://paradox.mlr-org.com/reference/Design.html"><code>Design</code></a> 类的对象。这些对象把采样到的数据作为一个 <code>data.table</code> 放在 <code>$data</code> 字段下，还提供使用 <code>$transpose()</code> 函数转换为参数值列表的功能。</p>
+</section><section id="grid-design" class="level3" data-number="16.3.2"><h3 data-number="16.3.2" class="anchored" data-anchor-id="grid-design">
+<span class="header-section-number">16.3.2</span> 网格设计</h3>
+<p><a href="https://paradox.mlr-org.com/reference/generate_design_grid.html"><code>generate_design_grid()</code></a> 函数用于创建包含所有参数值组合的网格设计：<a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_lgl()</code></a> 和 <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_fct()</code></a> 的所有可能值，以及 <code><a href="https://paradox.mlr-org.com/reference/Domain.html">p_int()</a></code> 和 <code><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl()</a></code> 的给定分辨率的值。分辨率可以为所有数值参数给出，也可以通过 <code>param_resolutions</code> 参数为特定的命名参数给出。</p>
+<div class="cell">
+<div class="sourceCode" id="cb58"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ps_small</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span>A <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>, B <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">design</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_grid.html">generate_design_grid</a></span><span class="op">(</span><span class="va">ps_small</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;Design&gt; with 4 rows:
+   A B
+1: 0 0
+2: 0 1
+3: 1 0
+4: 1 1</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb60"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_grid.html">generate_design_grid</a></span><span class="op">(</span><span class="va">ps_small</span>, param_resolutions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>A <span class="op">=</span> <span class="fl">3</span>, B <span class="op">=</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;Design&gt; with 6 rows:
+     A B
+1: 0.0 0
+2: 0.0 1
+3: 0.5 0
+4: 0.5 1
+5: 1.0 0
+6: 1.0 1</code></pre>
+</div>
+</div>
+</section><section id="random-sampling" class="level3" data-number="16.3.3"><h3 data-number="16.3.3" class="anchored" data-anchor-id="random-sampling">
+<span class="header-section-number">16.3.3</span> 随机采样</h3>
+<p><code>paradox</code>提供了不同的随机采样方法，它们在可配置程度上各不相同（参见<a href="#fig-paradox-sampling" class="quarto-xref">图&nbsp;<span>16.1</span></a>）。获得均匀随机参数样本最简单的方法是 <a href="https://paradox.mlr-org.com/reference/generate_design_random.html"><code>generate_design_random()</code></a>。也可以使用 <a href="https://paradox.mlr-org.com/reference/generate_design_lhs.html"><code>generate_design_lhs()</code></a> 创建拉丁超立方体（latin hypercube）采样的参数值，它利用 <a href="https://cran.r-project.org/package=lhs"><code>lhs</code></a> 包。LHS 采样创建的低差异采样值比纯随机值更均匀地覆盖参数空间。<a href="https://paradox.mlr-org.com/reference/generate_design_sobol.html"><code>generate_design_sobol()</code></a> 可以用来使用 Sobol 序列采样。</p>
+<div class="cell">
+<div class="sourceCode" id="cb62"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">pvrand</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_random.html">generate_design_random</a></span><span class="op">(</span><span class="va">ps_small</span>, <span class="fl">500</span><span class="op">)</span></span>
+<span><span class="va">pvlhs</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_lhs.html">generate_design_lhs</a></span><span class="op">(</span><span class="va">ps_small</span>, <span class="fl">500</span><span class="op">)</span></span>
+<span><span class="va">pvsobol</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_sobol.html">generate_design_sobol</a></span><span class="op">(</span><span class="va">ps_small</span>, <span class="fl">500</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div id="fig-paradox-sampling" class="quarto-layout-panel">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-paradox-sampling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="quarto-layout-row">
+<div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-paradox-sampling" style="flex-basis: 33.3%;justify-content: flex-start;">
+<div id="fig-paradox-sampling-1" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Scatter plot showing 500 randomly sampled points in a unit square with uneven clustering.">
+<figure class="quarto-float quarto-subfloat-fig figure"><div aria-describedby="fig-paradox-sampling-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/advanced_hyperparameter_specification_using_paradox_files/figure-html/fig-paradox-sampling-1.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-paradox-sampling" alt="显示 500 个在单位正方形中随机采样、分布不均地点聚的点。" />
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-paradox-sampling-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(a) 随机设计
+</figcaption></figure>
+</div>
+</div>
+<div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-paradox-sampling" style="flex-basis: 33.3%;justify-content: flex-start;">
+<div id="fig-paradox-sampling-2" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Scatter plot showing 500 Sobol sequence sampled points in a unit square with more even coverage.">
+<figure class="quarto-float quarto-subfloat-fig figure"><div aria-describedby="fig-paradox-sampling-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/advanced_hyperparameter_specification_using_paradox_files/figure-html/fig-paradox-sampling-2.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-paradox-sampling" alt="显示 500 个在单位正方形中通过 Sobol 序列采样、覆盖更均匀的点。" />
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-paradox-sampling-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(b) Sobol 设计
+</figcaption></figure>
+</div>
+</div>
+<div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-paradox-sampling" style="flex-basis: 33.3%;justify-content: flex-start;">
+<div id="fig-paradox-sampling-3" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Scatter plot showing 500 latin hypercube sampled points in a unit square with more even coverage.">
+<figure class="quarto-float quarto-subfloat-fig figure"><div aria-describedby="fig-paradox-sampling-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/advanced_hyperparameter_specification_using_paradox_files/figure-html/fig-paradox-sampling-3.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-paradox-sampling" alt="显示 500 个在单位正方形中通过拉丁超立方体采样、覆盖更均匀的点。" />
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-paradox-sampling-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(c) LHS 设计
+</figcaption></figure>
+</div>
+</div>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-paradox-sampling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;16.1：二维参数空间上随机、拉丁超立方体与 Sobol 序列采样设计的比较。
+</figcaption></figure>
+</div>
+</section><section id="generalized-sampling-the-sampler-class" class="level3" data-number="16.3.4"><h3 data-number="16.3.4" class="anchored" data-anchor-id="generalized-sampling-the-sampler-class">
+<span class="header-section-number">16.3.4</span> 广义采样：<code>Sampler</code> 类</h3>
+<p>有时可能希望更细致地配置参数采样。<code>paradox</code>使用 <a href="https://paradox.mlr-org.com/reference/Sampler.html"><code>Sampler</code></a> 抽象基类进行采样，它有许多不同的子类，这些子类可以被参数化并组合以控制采样过程。甚至可以创建 <code>Sampler</code> 类（或其任何<em>子</em>类）的更多子类，以获得更多可能性。</p>
+<p>每个 <code>Sampler</code> 对象都有一个 <a href="https://www.rdocumentation.org/packages/base/topics/sample"><code>sample()</code></a> 函数，它接受一个参数——要采样的实例数，并返回一个 <code>Design</code> 对象。</p>
+<section id="d-samplers" class="level4" data-number="16.3.4.1"><h4 data-number="16.3.4.1" class="anchored" data-anchor-id="d-samplers">
+<span class="header-section-number">16.3.4.1</span> 一维采样器（1D-Samplers）</h4>
+<p>有一系列为单个参数采样值的采样器。它们是 <a href="https://paradox.mlr-org.com/reference/Sampler1DUnif.html"><code>Sampler1DUnif</code></a>（均匀采样）、<a href="https://paradox.mlr-org.com/reference/Sampler1DCateg.html"><code>Sampler1DCateg</code></a>（分类参数采样）、<a href="https://paradox.mlr-org.com/reference/Sampler1DNormal.html"><code>Sampler1DNormal</code></a>（正态分布采样，在参数边界处截断）和 <a href="https://paradox.mlr-org.com/reference/Sampler1DRfun.html"><code>Sampler1DRfun</code></a>（任意一维采样，给定一个随机函数）。它们用一个一维的 <a href="https://paradox.mlr-org.com/reference/ParamSet.html"><code>ParamSet</code></a> 初始化，然后可以用于采样值。</p>
+<div class="cell">
+<div class="sourceCode" id="cb63"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">sampA</span> <span class="op">=</span> <span class="va"><a href="https://paradox.mlr-org.com/reference/Sampler1DCateg.html">Sampler1DCateg</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct</a></span><span class="op">(</span><span class="va">letters</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sampA</span><span class="op">$</span><span class="fu">sample</span><span class="op">(</span><span class="fl">5</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;Design&gt; with 5 rows:
+   x
+1: b
+2: d
+3: b
+4: d
+5: a</code></pre>
+</div>
+</div>
+</section><section id="hierarchical-sampler" class="level4" data-number="16.3.4.2"><h4 data-number="16.3.4.2" class="anchored" data-anchor-id="hierarchical-sampler">
+<span class="header-section-number">16.3.4.2</span> 层次采样器</h4>
+<p><a href="https://paradox.mlr-org.com/reference/SamplerHierarchical.html"><code>SamplerHierarchical</code></a> 采样器是一个辅助采样器，它组合许多一维采样器以获得一个组合分布。它的名字「hierarchical（层次）」暗示它能够尊重参数依赖。这意味着参数只有在它们的依赖得到满足时才会被采样。</p>
+<p>下面的例子展示了这是如何工作的：<code>Int</code> 参数 <code>B</code> 依赖 <code>Lgl</code> 参数 <code>A</code> 为 <code>TRUE</code>。<code>A</code> 在大约一半的情况下被采样为 <code>TRUE</code>，此时 <code>B</code> 取 0 到 10 之间的一个值。在 <code>A</code> 为 <code>FALSE</code> 的情况下，<code>B</code> 被设置为 <code>NA</code>。</p>
+<div class="cell">
+<div class="sourceCode" id="cb65"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">p</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span></span>
+<span>  A <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_lgl</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  B <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_int</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">10</span>, depends <span class="op">=</span> <span class="va">A</span> <span class="op">==</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">p_subspaces</span> <span class="op">=</span> <span class="va">p</span><span class="op">$</span><span class="fu">subspaces</span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">sampH</span> <span class="op">=</span> <span class="va"><a href="https://paradox.mlr-org.com/reference/SamplerHierarchical.html">SamplerHierarchical</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">p</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va"><a href="https://paradox.mlr-org.com/reference/Sampler1DCateg.html">Sampler1DCateg</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">p_subspaces</span><span class="op">$</span><span class="va">A</span><span class="op">)</span>,</span>
+<span>    <span class="va"><a href="https://paradox.mlr-org.com/reference/Sampler1DUnif.html">Sampler1DUnif</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">p_subspaces</span><span class="op">$</span><span class="va">B</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">sampled</span> <span class="op">=</span> <span class="va">sampH</span><span class="op">$</span><span class="fu">sample</span><span class="op">(</span><span class="fl">1000</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">sampled</span><span class="op">$</span><span class="va">data</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       A  B
+1: FALSE NA
+2:  TRUE  7
+3:  TRUE  2
+4:  TRUE  9
+5:  TRUE  9
+6: FALSE NA</code></pre>
+</div>
+<div class="sourceCode" id="cb67"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html">table</a></span><span class="op">(</span><span class="va">sampled</span><span class="op">$</span><span class="va">data</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span><span class="op">)</span><span class="op">]</span>, useNA <span class="op">=</span> <span class="st">"ifany"</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       B
+A         0   1   2   3   4   5   6   7   8   9  10 &lt;NA&gt;
+  FALSE   0   0   0   0   0   0   0   0   0   0   0  509
+  TRUE   48  50  37  41  54  43  39  41  40  43  55    0</code></pre>
+</div>
+</div>
+</section><section id="joint-sampler" class="level4" data-number="16.3.4.3"><h4 data-number="16.3.4.3" class="anchored" data-anchor-id="joint-sampler">
+<span class="header-section-number">16.3.4.3</span> 联合采样器</h4>
+<p>另一种组合采样器的方法是 <a href="https://paradox.mlr-org.com/reference/SamplerJointIndep.html"><code>SamplerJointIndep</code></a>。<code>SamplerJointIndep</code> 也使得组合非一维的 <code>Sampler</code> 成为可能。然而，<code>SamplerJointIndep</code> 目前不能处理带依赖的 <code>ParamSet</code>。</p>
+<div class="cell">
+<div class="sourceCode" id="cb69"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">sampJ</span> <span class="op">=</span> <span class="va"><a href="https://paradox.mlr-org.com/reference/SamplerJointIndep.html">SamplerJointIndep</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va"><a href="https://paradox.mlr-org.com/reference/Sampler1DUnif.html">Sampler1DUnif</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="va"><a href="https://paradox.mlr-org.com/reference/Sampler1DUnif.html">Sampler1DUnif</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span>y <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">sampJ</span><span class="op">$</span><span class="fu">sample</span><span class="op">(</span><span class="fl">5</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;Design&gt; with 5 rows:
+          x      y
+1: 0.251923 0.9271
+2: 0.004932 0.6741
+3: 0.047957 0.4288
+4: 0.805049 0.8489
+5: 0.075433 0.9797</code></pre>
+</div>
+</div>
+</section><section id="samplerunif" class="level4" data-number="16.3.4.4"><h4 data-number="16.3.4.4" class="anchored" data-anchor-id="samplerunif">
+<span class="header-section-number">16.3.4.4</span> SamplerUnif</h4>
+<p><code><a href="https://paradox.mlr-org.com/reference/generate_design_random.html">generate_design_random()</a></code> 中使用的 <code>Sampler</code> 是 <a href="https://paradox.mlr-org.com/reference/SamplerUnif.html"><code>SamplerUnif</code></a> 采样器，它对应于对所有参数使用 <code>Sampler1DUnif</code> 的 <code>HierarchicalSampler</code>，其依赖感知行为与 <code><a href="https://paradox.mlr-org.com/reference/generate_design_random.html">generate_design_random()</a></code> 相同。</p>
+</section></section></section><section id="parameter-transformation" class="level2" data-number="16.4"><h2 data-number="16.4" class="anchored" data-anchor-id="parameter-transformation">
+<span class="header-section-number">16.4</span> 参数变换</h2>
+<p>虽然不同的 <a href="https://paradox.mlr-org.com/reference/Sampler.html"><code>Sampler</code></a> 允许对参数分布进行广泛的指定，但在某些情况下，获得期望分布最简单的方式是从一个简单分布（如均匀分布）采样参数，然后对它们进行变换。这可以通过构造一个带 <code>trafo</code> 参数的 <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>Domain</code></a> 来完成，或者把一个函数赋给 <a href="https://paradox.mlr-org.com/reference/ParamSet.html"><code>ParamSet</code></a> 的 <code>$.extra_trafo</code> 字段。后者也可以通过向 <a href="https://paradox.mlr-org.com/reference/ps.html"><code>ps()</code></a> 简写构造器传递一个 <code>.extra_trafo</code> 参数来完成。</p>
+<p><code>Domain</code> 中的 <code>trafo</code> 函数只用一个参数调用，即要变换的值。它只能作用于单个参数的维度。</p>
+<p><code>$.extra_trafo</code> 函数用两个参数调用：</p>
+<ul>
+<li>要变换的参数值列表作为 <code>x</code>。与 <code>Domain</code> 的 <code>trafo</code> 不同，<code>$.extra_trafo</code> 处理整个参数集，甚至可以建模参数之间的「交互」。</li>
+<li><code>ParamSet</code> 本身作为 <code>param_set</code>。</li>
+</ul>
+<p><code>$.extra_trafo</code> 函数必须返回一个变换后的参数值列表。</p>
+<p>当调用由 <code>Sampler</code> 返回的 <a href="https://paradox.mlr-org.com/reference/Design.html"><code>Design</code></a> 对象的 <code>$transpose()</code> 函数并把 <code>trafo</code> 参数设置为 <code>TRUE</code>（默认值）时，变换被执行。例如，下面创建一个指数分布的参数：</p>
+<div class="cell">
+<div class="sourceCode" id="cb71"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">psexp</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span>par <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, trafo <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">design</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_random.html">generate_design_random</a></span><span class="op">(</span><span class="va">psexp</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;Design&gt; with 3 rows:
+      par
+1: 0.1438
+2: 0.5293
+3: 0.3663</code></pre>
+</div>
+<div class="sourceCode" id="cb73"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">design</span><span class="op">$</span><span class="fu">transpose</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[1]]
+[[1]]$par
+[1] 1.939
+
+
+[[2]]
+[[2]]$par
+[1] 0.6362
+
+
+[[3]]
+[[3]]$par
+[1] 1.004</code></pre>
+</div>
+</div>
+<p>打印 <code>Design</code> 显示 0 到 1 之间的未变换值，而 <code>$transpose()</code> 默认应用变换（<code>trafo = TRUE</code>）。把它与不带变换的 <code>$transpose()</code> 比较：</p>
+<div class="cell">
+<div class="sourceCode" id="cb75"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">design</span><span class="op">$</span><span class="fu">transpose</span><span class="op">(</span>trafo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[1]]
+[[1]]$par
+[1] 0.1438
+
+
+[[2]]
+[[2]]$par
+[1] 0.5293
+
+
+[[3]]
+[[3]]$par
+[1] 0.3663</code></pre>
+</div>
+</div>
+<p>另一种在构造期间使用 <code>$.extra_trafo</code> 达到同样效果的方法是：</p>
+<div class="cell">
+<div class="sourceCode" id="cb77"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">psexp</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span></span>
+<span>  par <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  .extra_trafo <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">param_set</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">x</span><span class="op">$</span><span class="va">par</span> <span class="op">=</span> <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="va">x</span><span class="op">$</span><span class="va">par</span><span class="op">)</span></span>
+<span>    <span class="va">x</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>也可以在 <code>ParamSet</code> 对象构造之后设置 <code>$.extra_trafo</code>。</p>
+<p>然而，当独立地变换参数时，<code>trafo</code> 方式更受推荐。<code>.extra_trafo</code> 在变换以某种方式交互的参数时，或者应该生成新参数时更有用。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>「先采样、再变换（sample-then-transform）」是超参数优化中极其常见的技巧，背后是对搜索效率的考量。以学习率为例，它跨越多个数量级（0.001 到 0.1），如果直接在原始尺度上均匀采样，大多数样本会挤在较大的数量级附近，小数量级的取值覆盖不足；而对采样值取对数后再均匀采样，等价于在原始尺度上按「对数均匀分布」采样，各数量级被公平对待。paradox 把这种变换封装为 <code>trafo</code>（单参数）或 <code>.extra_trafo</code>（整个参数集），使「采样空间」与「实际取值空间」解耦：采样器始终工作在简单、有界的空间上，变换层负责映射到真实参数域。这正是 mlr3 中 <code>to_tune(logscale = TRUE)</code> 等选项的底层机制。另一个常见用法是 16.4.1 节即将展示的「类型变换」——把一个 <code>character</code> 类别映射为真正的函数对象。</p>
+</div>
+<section id="transformation-between-types" class="level3" data-number="16.4.1"><h3 data-number="16.4.1" class="anchored" data-anchor-id="transformation-between-types">
+<span class="header-section-number">16.4.1</span> 类型之间的变换</h3>
+<p>通常，用一个 <code>ParamSet</code> 创建设计，然后用它来配置其他对象，这些对象本身有一个参数集来定义它们取的值。然而，可以用于随机采样的参数集在某些方面受到限制：它们必须有有限边界，并且不能包含「无类型」（<a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_uty</code></a>）参数。<code>$trafo</code> 为这些情况提供了粘合剂。对 trafo 函数的返回值约束相对较少，因此可以返回与原始 <code>ParamSet</code> 有不同边界甚至类型的值。甚至可以移除一些参数并添加新参数。</p>
+<p>例如，假设某个方法需要一个<em>函数</em>作为参数。假设一个以某种方式汇总其数据的函数。用户可以通过像 <a href="https://www.rdocumentation.org/packages/stats/topics/median"><code>median()</code></a> 或 <a href="https://www.rdocumentation.org/packages/base/topics/mean"><code>mean()</code></a> 这样的函数，但也可以传入分位数或完全不同的东西。这个方法可能会使用下面的 <code>ParamSet</code>：</p>
+<div class="cell">
+<div class="sourceCode" id="cb78"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">methodPS</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span>fun <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_uty</a></span><span class="op">(</span>custom_check <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu">checkmate</span><span class="fu">::</span><span class="fu"><a href="https://mllg.github.io/checkmate/reference/checkFunction.html">checkFunction</a></span><span class="op">(</span><span class="va">x</span>, nargs <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">methodPS</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;ParamSet(1)&gt;
+    id    class lower upper nlevels        default  value
+1: fun ParamUty    NA    NA     Inf &lt;NoDefault[0]&gt; [NULL]</code></pre>
+</div>
+</div>
+<p>如果你想用四个函数之一来采样这个方法，一种做法是：</p>
+<div class="cell">
+<div class="sourceCode" id="cb80"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">samplingPS</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span></span>
+<span>  fun <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"mean"</span>, <span class="st">"median"</span>, <span class="st">"min"</span>, <span class="st">"max"</span><span class="op">)</span>,</span>
+<span>    trafo <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/get.html">get</a></span><span class="op">(</span><span class="va">x</span>, mode <span class="op">=</span> <span class="st">"function"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb81"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">design</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_random.html">generate_design_random</a></span><span class="op">(</span><span class="va">samplingPS</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;Design&gt; with 2 rows:
+    fun
+1: mean
+2: mean</code></pre>
+</div>
+</div>
+<p>注意，<code>Design</code> 只包含作为 <code>character</code> 列的 “<code>fun</code>” 列。要获得作为<em>函数</em>的单个值，需要使用 <code>$transpose()</code> 函数。</p>
+<div class="cell">
+<div class="sourceCode" id="cb83"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">xvals</span> <span class="op">=</span> <span class="va">design</span><span class="op">$</span><span class="fu">transpose</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">xvals</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$fun
+function (x, ...) 
+UseMethod("mean")
+&lt;bytecode: 0x558b88b92060&gt;
+&lt;environment: namespace:base&gt;</code></pre>
+</div>
+</div>
+<p>我们现在可以检查它满足 <code>methodPS</code> 设定的要求，并且 <code>$fun</code> 确实是一个函数：</p>
+<div class="cell">
+<div class="sourceCode" id="cb85"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">methodPS</span><span class="op">$</span><span class="fu">check</span><span class="op">(</span><span class="va">xvals</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+<div class="sourceCode" id="cb87"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">xvals</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="fu">fun</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 5.5</code></pre>
+</div>
+</div>
+<p><a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_fct()</code></a> 为这种变换提供了一个快捷方式，其中 <code>character</code> 被变换为一组特定的（通常非标量的）值。当它的 <code>levels</code> 参数以一个命名的 <code>list</code>（或命名的非 <code>character</code> 向量）给出时，它构造一个自动进行 trafo 的 <code>Domain</code>。因此，执行上述操作的一种方式可以是：</p>
+<div class="cell">
+<div class="sourceCode" id="cb89"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">samplingPS</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span></span>
+<span>  fun <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="st">"mean"</span> <span class="op">=</span> <span class="va">mean</span>, <span class="st">"median"</span> <span class="op">=</span> <span class="va">median</span>, <span class="st">"min"</span> <span class="op">=</span> <span class="va">min</span>, <span class="st">"max"</span> <span class="op">=</span> <span class="va">max</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_random.html">generate_design_random</a></span><span class="op">(</span><span class="va">samplingPS</span>, <span class="fl">1</span><span class="op">)</span><span class="op">$</span><span class="fu">transpose</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[1]]
+[[1]]$fun
+function (x, na.rm = FALSE, ...) 
+UseMethod("median")
+&lt;bytecode: 0x558b87e984a0&gt;
+&lt;environment: namespace:stats&gt;</code></pre>
+</div>
+</div>
+<p>现在想象一下，需要对函数进行另一种参数化：用户想给出一个选择某个分位数的函数，其中分位数由一个参数设置。在这种情况下，<code>$transpose()</code> 函数可以用不同的方式生成一个函数。</p>
+<p>为了可解释性，参数在变换前应被称为 “<code>quantile</code>”，而 “<code>fun</code>” 参数是即时生成的。因此我们在这里使用一个 <code>.extra_trafo</code>，作为函数提供给 <code><a href="https://paradox.mlr-org.com/reference/ps.html">ps()</a></code> 调用。<code>.extra_trafo</code> 接收采样的 <code>quantile</code> 值（一个介于 0 和 1 之间的 <code>numeric(1)</code>），并把它变成一个计算其输入相应分位数的函数。</p>
+<div class="cell">
+<div class="sourceCode" id="cb91"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">samplingPS2</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span>quantile <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  .extra_trafo <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">param_set</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>fun <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">input</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/quantile.html">quantile</a></span><span class="op">(</span><span class="va">input</span>, <span class="va">x</span><span class="op">$</span><span class="va">quantile</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb92"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">design</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_random.html">generate_design_random</a></span><span class="op">(</span><span class="va">samplingPS2</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;Design&gt; with 2 rows:
+   quantile
+1:   0.9492
+2:   0.4423</code></pre>
+</div>
+</div>
+<p><code>Design</code> 现在包含 “<code>quantile</code>” 列，<code>$transpose()</code> 函数将使用它来创建 <code>fun</code> 参数。我们还检查它满足 <code>methodPS</code> 设定的要求，并且它是一个函数。</p>
+<div class="cell">
+<div class="sourceCode" id="cb94"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">xvals</span> <span class="op">=</span> <span class="va">design</span><span class="op">$</span><span class="fu">transpose</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">xvals</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$fun
+function (input) 
+quantile(input, x$quantile)
+&lt;environment: 0x558b99c10460&gt;</code></pre>
+</div>
+<div class="sourceCode" id="cb96"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">methodPS</span><span class="op">$</span><span class="fu">check</span><span class="op">(</span><span class="va">xvals</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+<div class="sourceCode" id="cb98"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">xvals</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="fu">fun</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>94.92011% 
+    9.543 </code></pre>
+</div>
+</div>
+</section><section id="automatic-factor-level-transformation" class="level3" data-number="16.4.2"><h3 data-number="16.4.2" class="anchored" data-anchor-id="automatic-factor-level-transformation">
+<span class="header-section-number">16.4.2</span> 自动因子水平变换</h3>
+<p>一个常见的用例是需要指定一组都应当被尝试（或从中采样）的值。可能某个超参数接受函数对象作为值，而一组特定的函数应当被尝试。也可能是一组特殊的数值选择应当被尝试。为此，<code><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct()</a></code> 构造器的 <code>level</code> 参数可以是某个不是 <code>character</code> 向量的值，而是其他东西。</p>
+<p>假设我们按<a href="../chapter4/hyperparameter_optimization.html#sec-tune-ps" class="quarto-xref"><span>4.4.2 节</span></a>中的描述用 <code><a href="https://paradox.mlr-org.com/reference/ps.html">ps()</a></code> 定义一个搜索空间。如果，例如，对 <code>cost</code> 参数只应尝试 <code>0.1</code>、<code>3</code> 和 <code>10</code> 这些值，即使是在做随机搜索时，我们可以如下构造搜索空间：</p>
+<div class="cell">
+<div class="sourceCode" id="cb100"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">search_space</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span></span>
+<span>  cost <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">3</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  kernel <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"polynomial"</span>, <span class="st">"radial"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu">rbindlist</span><span class="op">(</span><span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_grid.html">generate_design_grid</a></span><span class="op">(</span><span class="va">search_space</span>, <span class="fl">3</span><span class="op">)</span><span class="op">$</span><span class="fu">transpose</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   cost     kernel
+1:  0.1 polynomial
+2:  0.1     radial
+3:  3.0 polynomial
+4:  3.0     radial
+5: 10.0 polynomial
+6: 10.0     radial</code></pre>
+</div>
+</div>
+<p>这等价于下面这样：</p>
+<div class="cell">
+<div class="sourceCode" id="cb102"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">search_space</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span></span>
+<span>  cost <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"0.1"</span>, <span class="st">"3"</span>, <span class="st">"10"</span><span class="op">)</span>,</span>
+<span>    trafo <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>`0.1` <span class="op">=</span> <span class="fl">0.1</span>, `3` <span class="op">=</span> <span class="fl">3</span>, `10` <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">[[</span><span class="va">x</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>  kernel <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"polynomial"</span>, <span class="st">"radial"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">rbindlist</span><span class="op">(</span><span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_grid.html">generate_design_grid</a></span><span class="op">(</span><span class="va">search_space</span>, <span class="fl">3</span><span class="op">)</span><span class="op">$</span><span class="fu">transpose</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   cost     kernel
+1:  0.1 polynomial
+2:  0.1     radial
+3:  3.0 polynomial
+4:  3.0     radial
+5: 10.0 polynomial
+6: 10.0     radial</code></pre>
+</div>
+</div>
+<p>注意：虽然这里的分辨率是 3，但在这种情况下无关紧要，因为 <code>cost</code> 和 <code>kernel</code> 都是因子（分类变量的分辨率会被忽略，这些参数总是生成覆盖其所有合法水平的网格）。</p>
+<p>这看起来可能有点傻，但考虑到因子调优参数总是 <code>character</code> 值，这是有意义的：</p>
+<div class="cell">
+<div class="sourceCode" id="cb104"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">search_space</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span></span>
+<span>  cost <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">3</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  kernel <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"polynomial"</span>, <span class="st">"radial"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/typeof.html">typeof</a></span><span class="op">(</span><span class="va">search_space</span><span class="op">$</span><span class="va">params</span><span class="op">$</span><span class="va">cost</span><span class="op">$</span><span class="va">levels</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "NULL"</code></pre>
+</div>
+</div>
+<p>然而，请注意这会产生一个「无序」的超参数。利用参数顺序信息的调优算法，如遗传算法或基于模型的优化，在这种情况下会表现得更差。对这些算法来说，定义一个带更合适 trafo 的 <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_dbl()</code></a> 或 <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_int()</code></a> 可能更有意义。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>用 <code>p_fct()</code> 把一组离散数值（或函数对象）当作类别水平，可以让随机搜索 / 网格搜索恰好「只尝试」你指定的候选值。这在实践中非常有用：例如 SVM 的 <code>cost</code> 你只想试 0.1、3、10 三个值，就不必把它定义成连续区间再做网格划分。但要注意一个代价：这样定义出的参数是「无序（unordered）」类别，遗传算法、基于模型的优化（如贝叶斯优化）等依赖参数间「距离/顺序」信息的算法将无法利用数值的大小关系，从而降低搜索效率。因此，若候选值本身是数值且存在单调关系（例如 1→10→100），更推荐 <code>p_dbl()</code>/<code>p_int()</code> 配一个合适的 <code>trafo</code>（如对数变换），让优化器感知「相邻取值相近」这一结构。这是一个「易用性」与「可优化性」之间的典型权衡。</p>
+</div>
+<p>一个例子是支持向量机（Support Vector Machine, SVM）的 <code>class.weights</code> 参数，它接受一个命名向量，其中每个目标类对应一个类权重条目。如果只尝试少数几个候选向量，<code>class.weights</code> 可以如下实现。注意，如果 <a href="https://www.rdocumentation.org/packages/base/topics/character"><code>as.character()</code></a> 难以创建名称，<code><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct()</a></code> 的 <code>levels</code> 参数必须是命名的：</p>
+<div class="cell">
+<div class="sourceCode" id="cb106"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">search_space</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span></span>
+<span>  class.weights <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span></span>
+<span>      candidate_a <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>spam <span class="op">=</span> <span class="fl">0.5</span>, nonspam <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
+<span>      candidate_b <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>spam <span class="op">=</span> <span class="fl">0.3</span>, nonspam <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_grid.html">generate_design_grid</a></span><span class="op">(</span><span class="va">search_space</span><span class="op">)</span><span class="op">$</span><span class="fu">transpose</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[1]]
+[[1]]$class.weights
+   spam nonspam 
+    0.5     0.5 
+
+
+[[2]]
+[[2]]$class.weights
+   spam nonspam 
+    0.3     0.7 </code></pre>
+</div>
+</div>
+</section></section><section id="sec-paradox-tuning-spaces" class="level2" data-number="16.5"><h2 data-number="16.5" class="anchored" data-anchor-id="sec-paradox-tuning-spaces">
+<span class="header-section-number">16.5</span> 定义调优空间</h2>
+<p>运行优化时，重要的是让调优算法知道哪些超参数是合法的。这里每个超参数的名称、类型和合法范围都很重要。所有这些信息都通过 <a href="https://paradox.mlr-org.com/reference/ParamSet.html"><code>ParamSet</code></a> 类的对象传达，该类定义在 <a href="https://paradox.mlr-org.com"><code>paradox</code></a> 中。</p>
+<p>注意，<code>ParamSet</code> 对象存在于两种上下文中。第一，参数集对象被用来为一个学习器（和其他对象）定义合法参数设置的空间。第二，它们被用来为调优定义搜索空间。我们主要对后者感兴趣。例如，我们可以考虑 <code>lrn("classif.rpart")</code> 的 <code>minsplit</code> 参数。与该学习器关联的 <code>ParamSet</code> 有一个下界但<em>没有</em>上界。然而，为了调优该值，必须给出下界<em>和</em>上界，因为调优搜索空间需要有界。对 <a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 或 <a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a> 对象，通常使用「无界」的参数集。而在这里，我们将主要关注创建可以用于调优的「有界」参数集。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>同一个 <code>ParamSet</code> 在 mlr3 生态里扮演两个不同角色，理解这一点对使用调优至关重要。其一，作为学习器的「参数说明书」，它只需要给出合法取值范围即可，因此经常出现只有下界、没有上界的参数（例如 rpart 的 <code>minsplit</code> 可以大到任意正整数）；其二，作为调优的「搜索空间（search space）」，它必须让采样器和优化器知道「在哪里搜索」，所以所有数值参数都必须有上下界，否则无法生成候选点。mlr3tuning 要求调优空间有界，正是为了保证搜索过程始终在明确定义的区域内进行。这也是为什么 <code>to_tune()</code> 常常需要你补充 <code>upper</code>（上界）——它无法从学习器那半开（open-ended）的参数定义中推断出来。</p>
+</div>
+<p>如何使用 <a href="https://paradox.mlr-org.com/reference/ps.html"><code>ps()</code></a> 创建搜索空间已经在<a href="../chapter4/hyperparameter_optimization.html#sec-tune-ps" class="quarto-xref"><span>4.4.2 节</span></a>中概述。</p>
+<section id="sec-paradox-creation-tuning-paramset-from-learner" class="level3" data-number="16.5.1"><h3 data-number="16.5.1" class="anchored" data-anchor-id="sec-paradox-creation-tuning-paramset-from-learner">
+<span class="header-section-number">16.5.1</span> 从其他 ParamSet 创建调优 ParamSet</h3>
+<p>为一个已经拥有参数集信息的学习器定义调优 <code>ParamSet</code> 可能看起来不必要的繁琐，而确实有一种方法可以从一个学习器的参数集创建调优 <code>ParamSet</code>，充分利用已有信息。</p>
+<p>这是通过把学习器的 <code>ParamSet</code> 的值设置为所谓的 <a href="https://paradox.mlr-org.com/reference/to_tune.html"><code>TuneToken</code></a> 来完成的，这些 token 通过 <a href="https://paradox.mlr-org.com/reference/to_tune.html"><code>to_tune()</code></a> 调用构造。这可以像把其他超参数设置为特定值那样完成。它可以被理解为这些超参数被标记为稍后要调优。用于调优的结果 <code>ParamSet</code> 可以通过 <code>$search_space()</code> 方法获取。</p>
+<div class="cell">
+<div class="sourceCode" id="cb108"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="st"><a href="https://mlr3learners.mlr-org.com">"mlr3learners"</a></span><span class="op">)</span></span>
+<span><span class="va">learner</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.svm"</span><span class="op">)</span></span>
+<span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">kernel</span> <span class="op">=</span> <span class="st">"polynomial"</span> <span class="co"># 例如</span></span>
+<span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">degree</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/to_tune.html">to_tune</a></span><span class="op">(</span>lower <span class="op">=</span> <span class="fl">1</span>, upper <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">search_space</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;ParamSet(1)&gt;
+       id    class lower upper nlevels        default  value
+1: degree ParamInt     1     3       3 &lt;NoDefault[0]&gt; [NULL]</code></pre>
+</div>
+<div class="sourceCode" id="cb110"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">rbindlist</span><span class="op">(</span><span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_grid.html">generate_design_grid</a></span><span class="op">(</span></span>
+<span>  <span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">search_space</span><span class="op">(</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span><span class="op">$</span><span class="fu">transpose</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   degree
+1:      1
+2:      2
+3:      3</code></pre>
+</div>
+</div>
+<p>这里可以省略 <code>lower</code>，因为它可以从 <code>degree</code> 参数本身的下界推断出来。对其他已经有界的参数，可以完全不给任何边界，因为它们的范围已经是有界的。一个例子是逻辑型 <code>$shrinking</code> 超参数：</p>
+<div class="cell">
+<div class="sourceCode" id="cb112"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">shrinking</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/to_tune.html">to_tune</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">search_space</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;ParamSet(2)&gt;
+          id    class lower upper nlevels        default  value
+1:    degree ParamInt     1     3       3 &lt;NoDefault[0]&gt; [NULL]
+2: shrinking ParamLgl    NA    NA       2           TRUE [NULL]</code></pre>
+</div>
+<div class="sourceCode" id="cb114"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">rbindlist</span><span class="op">(</span><span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_grid.html">generate_design_grid</a></span><span class="op">(</span></span>
+<span>  <span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">search_space</span><span class="op">(</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span><span class="op">$</span><span class="fu">transpose</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   degree shrinking
+1:      1      TRUE
+2:      1     FALSE
+3:      2      TRUE
+4:      2     FALSE
+5:      3      TRUE
+6:      3     FALSE</code></pre>
+</div>
+</div>
+<p><code><a href="https://paradox.mlr-org.com/reference/to_tune.html">to_tune()</a></code> 也可以用一个 <code>Domain</code> 对象构造，即用 <code>p_***</code> 调用构造的东西。这样就有可能用离散值调优连续参数，或者给出 trafo 或依赖。例如，可以把 <code>$cost</code> 像上面那样在三个给定的特殊值上调优，并引入 <code>$shrinking</code> 对它的依赖。注意，<code>to_tune(&lt;levels&gt;)</code> 是 <code>to_tune(p_fct(&lt;levels&gt;))</code> 的简写形式。在引入依赖时，我们需要使用<em>隐式</em> trafo <em>之前</em>的 <code>cost</code> 值，即相应值的名称或 <a href="https://www.rdocumentation.org/packages/base/topics/character"><code>as.character()</code></a>，这里是 <code>"val2"</code>！</p>
+<div class="cell">
+<div class="sourceCode" id="cb116"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">cost</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/to_tune.html">to_tune</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>val1 <span class="op">=</span> <span class="fl">0.3</span>, val2 <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">shrinking</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/to_tune.html">to_tune</a></span><span class="op">(</span><span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_lgl</a></span><span class="op">(</span>depends <span class="op">=</span> <span class="va">cost</span> <span class="op">==</span> <span class="st">"val2"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">search_space</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;ParamSet(3)&gt;
+          id    class lower upper nlevels        default parents  value
+1:      cost ParamFct    NA    NA       2 &lt;NoDefault[0]&gt;  [NULL] [NULL]
+2:    degree ParamInt     1     3       3 &lt;NoDefault[0]&gt;  [NULL] [NULL]
+3: shrinking ParamLgl    NA    NA       2 &lt;NoDefault[0]&gt;    cost [NULL]
+Trafo is set.</code></pre>
+</div>
+<div class="sourceCode" id="cb118"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">rbindlist</span><span class="op">(</span><span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_grid.html">generate_design_grid</a></span><span class="op">(</span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">search_space</span><span class="op">(</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span><span class="op">$</span><span class="fu">transpose</span><span class="op">(</span><span class="op">)</span>, fill <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   cost degree shrinking
+1:  0.3      1        NA
+2:  0.3      2        NA
+3:  0.3      3        NA
+4:  0.7      1      TRUE
+5:  0.7      1     FALSE
+6:  0.7      2      TRUE
+7:  0.7      2     FALSE
+8:  0.7      3      TRUE
+9:  0.7      3     FALSE</code></pre>
+</div>
+</div>
+<p><code>$search_space()</code> 会自动拾取底层 <code>ParamSet</code> 的依赖。因此，如果 <code>kernel</code> 被调优，<code>degree</code> 会自动获得对它的依赖，而无需我们指定。（这里我们把 <code>$cost</code> 和 <code>$shrinking</code> 重置为 <code>NULL</code>，以便生成的输出更清晰。）</p>
+<div class="cell">
+<div class="sourceCode" id="cb120"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">cost</span> <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">shrinking</span> <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">kernel</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/to_tune.html">to_tune</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"polynomial"</span>, <span class="st">"radial"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">search_space</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;ParamSet(2)&gt;
+       id    class lower upper nlevels        default parents  value
+1: degree ParamInt     1     3       3 &lt;NoDefault[0]&gt;  kernel [NULL]
+2: kernel ParamFct    NA    NA       2 &lt;NoDefault[0]&gt;  [NULL] [NULL]</code></pre>
+</div>
+<div class="sourceCode" id="cb122"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">rbindlist</span><span class="op">(</span><span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_grid.html">generate_design_grid</a></span><span class="op">(</span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">search_space</span><span class="op">(</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span><span class="op">$</span><span class="fu">transpose</span><span class="op">(</span><span class="op">)</span>, fill <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   degree     kernel
+1:      1 polynomial
+2:     NA     radial
+3:      2 polynomial
+4:      3 polynomial</code></pre>
+</div>
+</div>
+<p>甚至可以为单个参数定义整个待调优的 <code>ParamSet</code>。这对于应该沿多个维度搜索的向量超参数可能特别有用。然而，这个参数集必须有一个返回单元素列表的 <code>.extra_trafo</code>，因为它对应一个正在被调优的单一超参数。假设 <code>$class.weights</code> 超参数应该沿两个维度调优：</p>
+<div class="cell">
+<div class="sourceCode" id="cb124"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">class.weights</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/to_tune.html">to_tune</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span>spam <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">0.9</span><span class="op">)</span>, nonspam <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">0.9</span><span class="op">)</span>,</span>
+<span>    .extra_trafo <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">param_set</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>spam <span class="op">=</span> <span class="va">x</span><span class="op">$</span><span class="va">spam</span>, nonspam <span class="op">=</span> <span class="va">x</span><span class="op">$</span><span class="va">nonspam</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="fu"><a href="https://paradox.mlr-org.com/reference/generate_design_grid.html">generate_design_grid</a></span><span class="op">(</span><span class="va">learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">search_space</span><span class="op">(</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span><span class="op">$</span><span class="fu">transpose</span><span class="op">(</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[1]]
+[[1]]$degree
+[1] 1
+
+[[1]]$kernel
+[1] "polynomial"
+
+[[1]]$class.weights
+   spam nonspam 
+    0.1     0.1 
+
+
+[[2]]
+[[2]]$kernel
+[1] "radial"
+
+[[2]]$class.weights
+   spam nonspam 
+    0.1     0.1 
+
+
+[[3]]
+[[3]]$degree
+[1] 2
+
+[[3]]$kernel
+[1] "polynomial"
+
+[[3]]$class.weights
+   spam nonspam 
+    0.1     0.1 </code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>本节展示了把 <code>to_tune()</code> 与 <code>ps()</code> 组合带来的高阶用法，值得特别注意三点。第一，对因子水平做调优时，采样发生在水平名（<code>character</code>）上，trafo 才把名字映射为真正的值，所以定义依赖时条件必须写在<em>变换前</em>的名字上（如 <code>cost == "val2"</code> 而非 <code>cost == 0.7</code>）。第二，<code>$search_space()</code> 会继承学习器参数集中已有的依赖——例如 SVM 的 <code>degree</code> 只在 <code>kernel = "polynomial"</code> 时有效，这份依赖会自动进入搜索空间，网格/随机采样时会自动把 <code>degree</code> 置为缺失（如输出中的 <code>NA</code>），从而避免评估无意义配置。第三，向量超参数（如 <code>class.weights</code>）可以通过「整体 <code>ps()</code> + <code>.extra_trafo</code> 返回单元素列表」的方式被当作单一超参数调优，这是 paradox 以标量原语表达复杂结构能力的又一例证。</p>
+</div>
+</section></section><section id="citation" class="level2" data-number="16.6"><h2 data-number="16.6" class="anchored" data-anchor-id="citation">
+<span class="header-section-number">16.6</span> 引用</h2>
+<p>请按如下方式引用本章：</p>
+<p>Binder M, Fischer S, Lang M, Winterstetter A. (2024). Advanced Hyperparameter Specification using paradox. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/advanced_hyperparameter_specification_using_paradox.html.</p>
+<div class="sourceCode" id="cb126"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb126-1"><a href="#cb126-1" aria-hidden="true" tabindex="-1"></a><span class="va">@incollection</span>{<span class="ot">citekey</span>,</span>
+<span id="cb126-2"><a href="#cb126-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span> = "<span class="st">Martin Binder and Sebastian Fischer and Michel Lang and Alexander Winterstetter</span>",</span>
+<span id="cb126-3"><a href="#cb126-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span> = "<span class="st">Advanced Hyperparameter Specification using paradox</span>",</span>
+<span id="cb126-4"><a href="#cb126-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">booktitle</span> = "<span class="st">Applied Machine Learning Using {m}lr3 in {R}</span>",</span>
+<span id="cb126-5"><a href="#cb126-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">publisher</span> = "<span class="st">CRC Press</span>", <span class="st">year</span> = "<span class="st">2024</span>",</span>
+<span id="cb126-6"><a href="#cb126-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">editor</span> = "<span class="st">Bernd Bischl and Raphael Sonabend and Lars Kotthoff and Michel Lang</span>",</span>
+<span id="cb126-7"><a href="#cb126-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">url</span> = "<span class="st">https://mlr3book.mlr-org.com/advanced_hyperparameter_specification_using_paradox.html</span>"</span>
+<span id="cb126-8"><a href="#cb126-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+
+
+<!-- -->
+
+</section>
+  </main>
+  <nav class="chnav">
+    <a class="" href="ch15-predsets-validation-inttune.html"><span class="dir">上一章</span><span class="ch">第 15 章 预测集、验证与内部调优</span></a>
+    <a class="" href="chref-references.html"><span class="dir">下一章</span><span class="ch">参考文献</span></a>
+  </nav>
+  <div class="footer">
+    <div>《Applied Machine Learning Using mlr3 in R》中文译本 · 非官方翻译</div>
+    <div class="lic">原文 © 2024 CRC Press（Bischl, Sonabend, Kotthoff &amp; Lang 主编，CC BY-NC-SA 4.0）· 本站由志愿翻译，仅供学习交流</div>
+  </div>
+</div>
+<script>
+MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] } };
+</script>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
+</body>
+</html>

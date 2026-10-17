@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>算法公平性（Algorithmic Fairness）</title>
+<script>
+(function(){
+  var saved = localStorage.getItem("mlr3-theme");
+  if (saved === null) saved = "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+})();
+</script>
+<style>
+:root {
+  --bg: #1e2228; --fg: #d8dee4; --muted: #9aa4b0;
+  --panel: #262c34; --panel2: #2e3540; --border: #3a4350;
+  --accent: #4ea1ff; --accent2: #8f7ae6;
+  --code-bg: #161a20; --code-fg: #d8dee4;
+  --note-bg: #2a3450; --note-border: #5a7fff;
+  --callout-bg: #2b3826; --callout-border: #6bbf59;
+  --table-head: #2e3540; --table-row: #262c34; --link: #6cb0ff;
+  --h-border: #3a4350;
+}
+[data-theme="light"] {
+  --bg: #f7f8fa; --fg: #24292f; --muted: #57606a;
+  --panel: #ffffff; --panel2: #f0f2f5; --border: #d9dee3;
+  --accent: #0969da; --accent2: #8250df;
+  --code-bg: #f3f4f6; --code-fg: #24292f;
+  --note-bg: #eef2ff; --note-border: #5a7fff;
+  --callout-bg: #eff7ec; --callout-border: #6bbf59;
+  --table-head: #eef1f4; --table-row: #ffffff; --link: #0969da;
+  --h-border: #d9dee3;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  line-height: 1.78; font-size: 16px;
+  transition: background .2s, color .2s;
+}
+.container { max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+/* 顶栏 */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+}
+.topbar .brand { font-weight: 600; font-size: 15px; color: var(--fg); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+.topbar .brand .logo { color: var(--accent); }
+.topbar .right { display: flex; align-items: center; gap: 10px; }
+.topbar .home-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+.topbar .home-link:hover { color: var(--accent); }
+.theme-toggle {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+/* 章头 */
+.header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
+.header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
+.header-block h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.35; }
+.header-block .subtitle { color: var(--muted); font-size: 14px; }
+/* 章节导航 */
+.chnav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0 6px; flex-wrap: wrap; }
+.chnav a {
+  background: var(--panel); border: 1px solid var(--border); color: var(--fg);
+  text-decoration: none; font-size: 14px; padding: 10px 16px; border-radius: 8px;
+  max-width: 46%; display: block;
+}
+.chnav a:hover { border-color: var(--accent); color: var(--accent); }
+.chnav .dir { color: var(--muted); font-size: 12px; display: block; }
+.chnav .ch { font-weight: 600; }
+.chnav a.disabled { opacity: .4; pointer-events: none; }
+/* 正文 */
+main { padding: 0 0 20px; }
+main h1 { font-size: 26px; margin: 40px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--h-border); }
+main h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--h-border); }
+main h3 { font-size: 18px; margin: 28px 0 10px; }
+main h4 { font-size: 16px; margin: 22px 0 8px; color: var(--accent); }
+main p { margin: 10px 0; }
+main a { color: var(--link); text-decoration: none; }
+main a:hover { text-decoration: underline; }
+main strong { font-weight: 600; }
+main ul, main ol { padding-left: 26px; }
+main li { margin: 5px 0; }
+main blockquote {
+  margin: 12px 0; padding: 10px 16px; border-left: 4px solid var(--border);
+  background: var(--panel2); color: var(--muted); border-radius: 0 6px 6px 0;
+}
+main hr { border: none; border-top: 1px solid var(--border); margin: 26px 0; }
+main img { max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 6px; }
+main table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+main th { background: var(--table-head); font-weight: 600; }
+main th, main td { border: 1px solid var(--border); padding: 7px 11px; }
+main tr:nth-child(even) td { background: var(--table-row); }
+/* 代码 */
+pre {
+  background: var(--code-bg); color: var(--code-fg);
+  padding: 14px 16px; border-radius: 8px; overflow-x: auto;
+  border: 1px solid var(--border); font-size: 13.5px; line-height: 1.6;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+code {
+  font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+  background: var(--panel2); color: var(--accent);
+  padding: 2px 5px; border-radius: 4px; font-size: 13.5px;
+}
+pre code { background: none; color: var(--code-fg); padding: 0; }
+/* 代码块容器（Quarto 结构） */
+.sourceCode { margin: 14px 0; }
+.sourceCode pre { margin: 0; }
+/* 输出块 */
+.cell { margin: 6px 0; }
+.cell-output { margin: 0 0 6px; }
+.cell-output pre { background: var(--panel2); border-style: dashed; }
+.cell-output-stderr { border-color: #d29922; }
+.cell-output-stdout pre { border-color: var(--border); }
+/* figure */
+figure { margin: 18px 0; text-align: center; }
+figure img { margin: 0 auto; }
+figcaption, .caption { color: var(--muted); font-size: 13px; margin-top: 6px; text-align: center; }
+.quarto-float { margin: 18px 0; }
+.quarto-figure { margin: 18px 0; text-align: center; }
+/* 背景与解释（译者注）框 */
+.bg-note {
+  background: var(--note-bg); border: 1px solid var(--note-border);
+  border-radius: 8px; padding: 14px 18px; margin: 18px 0;
+  font-size: 15px;
+}
+.bg-note p { margin: 6px 0; }
+.bg-note .bg-title { font-weight: 600; color: var(--accent); }
+/* 原书 callout 提示框 */
+.callout {
+  border-radius: 8px; padding: 12px 18px; margin: 16px 0;
+  border-left: 5px solid var(--accent); background: var(--panel2);
+}
+.callout-tip { border-left-color: #6bbf59; }
+.callout-note { border-left-color: var(--accent); }
+.callout-warning { border-left-color: #d29922; }
+.callout-important { border-left-color: #e05d5d; }
+.callout-header { font-weight: 600; margin-bottom: 4px; }
+.callout-title-container { display: inline; }
+.callout-body p { margin: 6px 0; }
+.callout-icon-container { display: none; }
+/* 脚注 */
+.footnote-ref { font-size: 12px; vertical-align: super; }
+/* 页脚 */
+.footer {
+  margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 13px; text-align: center;
+}
+.footer .lic { margin-top: 6px; font-size: 12px; }
+/* 表格滚动 */
+main table { display: block; overflow-x: auto; }
+/* banner 样式（原书 callout 可能以其他名目出现） */
+[class*="callout"] > p:first-child { margin-top: 4px; }
+</style>
+<script>
+function toggleTheme(){
+  var cur = document.documentElement.getAttribute("data-theme");
+  var next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("mlr3-theme", next);
+}
+</script>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <div class="right">
+    <a class="home-link" href="index.html">目录</a>
+    <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
+  </div>
+</div>
+<div class="container">
+  <div class="header-block">
+    <div class="part">第四部分 高级专题</div>
+    <h1>算法公平性（Algorithmic Fairness）</h1>
+    <div class="subtitle">《Applied Machine Learning Using mlr3 in R》中文翻译 · 章节 第 14 章 算法公平性</div>
+  </div>
+  <main>
+<p><strong>Florian Pfisterer</strong> <br><em>Ludwig-Maximilians-Universität München</em> <br><br></p>
+<p>在本章中，我们将探讨自动化决策中的算法公平性（algorithmic fairness），以及如何构建公平、无偏（或至少偏差更小）的预测模型。用于审计和解决 <a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 模型中偏倚问题的相关方法，已在 <a href="https://mlr3fairness.mlr-org.com"><code>mlr3fairness</code></a> 中实现。我们将首先讨论算法公平性背后的一些理论，然后展示其在 <code>mlr3fairness</code> 中是如何实现的。</p>
+<p>基于数据驱动模型的自动化决策系统正变得越来越普遍，但若缺乏适当的审计，这些模型可能给个体带来负面后果，尤其是那些来自弱势群体的个体。这类系统在日常生活中的普及，使得解决这些模型中潜在的偏倚问题变得十分重要。举一个现实中的例子：由于历史偏倚和采样偏倚，白人（White）种族患者的医疗数据质量高于其他种族患者。如果一个模型主要在来自白人患者的数据上训练，那么该模型在给定的性能指标（例如分类误差）上可能看起来很「好」，但实际上这个模型可能同时对白人患者做出良好预测，却对其他患者做出糟糕甚至有害的预测 <span class="citation" data-cites="Huang2022">(<a href="../references.html#ref-Huang2022" role="doc-biblioref">Huang et al. 2022</a>)</span>。由于基于机器学习（ML）的系统正被用于极具影响力的决策，因此发展相关能力去分析和评估这些模型——不仅就其稳健性和预测性能而言，也就其潜在的偏倚而言——至关重要。</p>
+<p>在阅读本章的过程中，我们将使用 <code>mlr3fairness</code> 中的 <code>"adult_train"</code> 和 <code>"adult_test"</code> 两个任务，它们包含 <code>Adult</code> 数据集的一个子集 <span class="citation" data-cites="uci">(<a href="../references.html#ref-uci" role="doc-biblioref">Dua and Graff 2017</a>)</span>。这是一个二分类任务，用于预测一个人年收入是否超过 50,000 美元，非常适合用来演示数据中的偏倚。</p>
+<div class="cell">
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3fairness.mlr-org.com">mlr3fairness</a></span><span class="op">)</span></span>
+<span><span class="va">tsk_adult_train</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"adult_train"</span><span class="op">)</span></span>
+<span><span class="va">tsk_adult_train</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;TaskClassif&gt; (30718x13) ─────────────────────────────────────────────
+• Target: target
+• Properties: twoclass
+• Features (12):
+  • fct (7): education, marital_status, occupation, race, relationship,
+  sex, workclass
+  • int (5): age, capital_gain, capital_loss, education_num,
+  hours_per_week
+• Protected attribute: sex
+• Target classes: &lt;=50K (positive class, 75%), &gt;50K (25%)</code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong><code>Adult</code> 数据集（又称 Census Income，人口普查收入数据）是公平性机器学习领域最常用的公开数据集之一，由美国人口普查数据整理而成。任务是根据人口统计学属性（年龄、性别、教育程度、职业、工作时长等）预测个人年收入是否超过 50,000 美元。需要注意，该数据集的标签本身可能存在系统性偏倚（例如收入与性别、种族的历史性不平等），这使得它非常适合展示「数据中的偏倚」如何在模型中被放大。</p>
+</div>
+<section id="bias-and-fairness" class="level2 page-columns page-full" data-number="14.1"><h2 data-number="14.1" class="anchored" data-anchor-id="bias-and-fairness">
+<span class="header-section-number">14.1</span> 偏倚与公平性（Bias and Fairness）</h2>
+<p>在公平性语境中，偏倚（bias）是指模型对待个体或群体方式上的差异。本章中，我们只关注偏倚定义中的一部分：关于群体公平性（group fairness）的定义。例如，在 adult 数据集中可以看到，与「女性」群体相比，「男性」群体中的成年人年收入超过 50K 美元的可能性显著更高。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">偏倚（Bias）</span><span class="margin-aside">群体公平性（Group Fairness）</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">sex_salary</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/table.html">table</a></span><span class="op">(</span><span class="va">tsk_adult_train</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span>cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"sex"</span>, <span class="st">"target"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/proportions.html">proportions</a></span><span class="op">(</span><span class="va">sex_salary</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        target
+sex      &lt;=50K &gt;50K
+  Female  0.29 0.04
+  Male    0.46 0.21</code></pre>
+</div>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/chisq.test.html">chisq.test</a></span><span class="op">(</span><span class="va">sex_salary</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Pearson's Chi-squared test with Yates' continuity correction
+
+data:  sex_salary
+X-squared = 1440, df = 1, p-value &lt;2e-16</code></pre>
+</div>
+</div>
+<p>在这个例子中，我们把「性别」变量称为敏感属性（sensitive attribute）。群体公平性的目标，就是判定由敏感属性划分出的不同群体之间的决策是否公平。任务中的敏感属性通过 <code>"pta"</code>（<strong>p</strong>ro<strong>t</strong>ected <strong>a</strong>ttribute，受保护属性的缩写）列角色来设置（<a href="../chapter2/data_and_basic_modeling.html#sec-row-col-roles" class="quarto-xref"><span>2.6 节</span></a>）。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">敏感属性（Sensitive Attribute）</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_adult_train</span><span class="op">$</span><span class="fu">set_col_roles</span><span class="op">(</span><span class="st">"sex"</span>, add_to <span class="op">=</span> <span class="st">"pta"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>如果指定了多个敏感属性，那么公平性将基于这些指定群体交集处的观测来评估。本章中我们只关注群体公平性，但同样也可以考虑审计个体公平性（individual fairness，在个体层面评估公平性）和因果公平性（causal fairness，在数据中引入因果关系，并基于有向无环图提出相应指标）<span class="citation" data-cites="fairmlbook mitchell21">(<a href="../references.html#ref-fairmlbook" role="doc-biblioref">Barocas, Hardt, and Narayanan 2019</a>; <a href="../references.html#ref-mitchell21" role="doc-biblioref">Mitchell et al. 2021</a>)</span>。虽然这里我们只关注二分类任务的指标，但讨论的大多数指标都可以自然地扩展到更复杂的场景，例如多分类、回归和生存分析 <span class="citation" data-cites="Mehrabi2021 Sonabend2022a">(<a href="../references.html#ref-Mehrabi2021" role="doc-biblioref">Mehrabi et al. 2021</a>; <a href="../references.html#ref-Sonabend2022a" role="doc-biblioref">Sonabend et al. 2022</a>)</span>。</p>
+</section><section id="group-fairness-notions" class="level2 page-columns page-full" data-number="14.2"><h2 data-number="14.2" class="anchored" data-anchor-id="group-fairness-notions">
+<span class="header-section-number">14.2</span> 群体公平性观念（Group Fairness Notions）</h2>
+<p>在选择合适的公平性指标来衡量算法偏倚之前，有必要先选定一种群体公平性观念（notion of group fairness）。</p>
+<p>如果模型做出的预测与敏感属性无关，则称该模型的预测是偏差转化式的（bias-transforming）<span class="citation" data-cites="Wachter2021">(<a href="../references.html#ref-Wachter2021" role="doc-biblioref">Wachter, Mittelstadt, and Russell 2021</a>)</span>，或者说满足了独立性（independence）。这一类观念包括「人口均等」（Demographic Parity），它检验的是所有群体中正类预测（positive prediction）的比例是否相等。偏差转化式方法（即检验独立性的方法）不依赖标签，可以帮助发现由不同群体的基础发生率（base rate）差异引起的偏倚。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">偏差转化式（Bias-transforming）</span></div></div>
+<p>如果模型做出的预测在<em>已知真实标签</em>的情况下与敏感属性无关，则称该模型是偏差保持式的（bias-preserving），或者说满足了分离性（separation）。换言之，模型在每个群体中做出的正确/错误预测的数量应当大致相同。落入这一类的指标有很多，例如「机会均等」（equalized odds），它检验的是各群体的真阳性率（TPR）和假阳性率（FPR）是否相等。偏差保持式指标（检验分离性）检验的是模型在不同群体中的错误是否相等，但可能无法解释标签本身的偏倚（例如，现实世界中的结果可能存在偏倚，比如不同种族群体的人被逮捕的比例不同）。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">偏差保持式（Bias-preserving）</span></div></div>
+<p>选择哪种公平性观念取决于模型的用途及其社会背景。例如，如果一个模型被用来预测某人是否有罪，那么我们可能更想关注假阳性率或错误发现率，而不是真阳性率。无论选择哪个指标，我们本质上都是在把系统性的偏差与偏见压缩成几个数字，所有指标都有局限，没有任何一个指标能够识别数据中可能存在的所有偏倚。例如，如果社会偏见导致具有相同潜在能力的不同个体在某个可观测量（如学校考试成绩）上出现差异，那么这些指标可能无法识别出已有的偏倚。</p>
+<p>为了在实践中理解这些观念，设 <span class="math inline">\(A\)</span> 为一个二元敏感属性，取值为 <span class="math inline">\(0\)</span> 和 <span class="math inline">\(1\)</span>，设 <span class="math inline">\(M\)</span> 为一个公平性指标。那么要度量独立性，我们只需计算这些值之间的差值，并检验结果是否小于某个阈值 <span class="math inline">\(\epsilon\)</span>。</p>
+<p><span class="math display">\[
+|\Delta_{M}| = |M_{A=0} - M_{A=1}| &lt; \epsilon
+\]</span></p>
+<p>如果我们以 TPR 作为指标 <span class="math inline">\(M\)</span>，那么当 <span class="math inline">\(|\Delta_{M}| &gt; \epsilon\)</span>（例如 <span class="math inline">\(\epsilon = 0.05\)</span>）时，我们会认为模型的预测违反了机会均等（equality of opportunity）指标，即模型不满足分离性。如果我们选择准确率或 PPV 作为 <span class="math inline">\(M\)</span>，那么我们会判定模型的预测不满足独立性。</p>
+<p>在 <code>mlr3fairness</code> 中，我们可以通过 <code>msr("fairness", base_measure, range)</code> 从任意一个 <a href="https://mlr3.mlr-org.com/reference/Measure.html"><code>Measure</code></a> 构造公平性指标：把我们选定的指标传给 <code>base_measure</code>，同时给出该指标可能的取值范围（即基于该基础指标可能得到的差值范围）：</p>
+<div class="cell">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">fair_tpr</span> <span class="op">=</span> <span class="fu">msr</span><span class="op">(</span><span class="st">"fairness"</span>, base_measure <span class="op">=</span> <span class="fu">msr</span><span class="op">(</span><span class="st">"classif.tpr"</span><span class="op">)</span>,</span>
+<span>  range <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">fair_tpr</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;MeasureFairness&gt; (fairness.tpr) ─────────────────────────────────────
+• Packages: mlr3 and mlr3fairness
+• Range: [0, 1]
+• Minimize: TRUE
+• Average: macro
+• Parameters: list()
+• Properties: requires_task
+• Predict type: response
+• Predict sets: test
+• Aggregator: mean()</code></pre>
+</div>
+</div>
+<p>我们在 <code>mlr3fairness</code> 中实现了若干 <code>Measure</code> 以简化此步骤，它们被命名为 <code>fairness.&lt;base_measure&gt;</code>，例如对于 TPR：<code>msr("fairness.tpr")</code> 会运行与上面相同的代码。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>本节出现的「人口均等」（independence）、「机会均等」（separation）和「机会平等」（equality of opportunity）是公平性机器学习中最核心的三个概念，常让初学者混淆。简单记法：<em>独立性</em>要求预测与敏感属性无关（只看预测是否「同样乐观」）；<em>分离性</em>要求在真实标签给定时预测与敏感属性无关（各群体的错误率相等）；<em>机会平等</em>是分离性的限定版本，只要求各群体的真阳性率相等（常用于「合格者应获得相同录取率」这类场景）。三者一般无法同时满足，只能根据应用场景选其一。</p>
+</div>
+</section><section id="auditing-a-model-for-bias" class="level2" data-number="14.3"><h2 data-number="14.3" class="anchored" data-anchor-id="auditing-a-model-for-bias">
+<span class="header-section-number">14.3</span> 审计模型中的偏倚（Auditing a Model For Bias）</h2>
+<p>设置好敏感属性并选定公平性指标后，我们现在可以训练一个 <a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 并检验偏倚。下面我们使用随机森林，评估「男性」和「女性」群体之间真阳性率的绝对差值：</p>
+<div class="cell">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_adult_test</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"adult_test"</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.rpart"</span>, predict_type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span></span>
+<span><span class="va">prediction</span> <span class="op">=</span> <span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_adult_train</span><span class="op">)</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_adult_test</span><span class="op">)</span></span>
+<span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">fair_tpr</span>, <span class="va">tsk_adult_test</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>fairness.tpr 
+     0.06034 </code></pre>
+</div>
+</div>
+<p>当 <span class="math inline">\(\epsilon\)</span> 取 <span class="math inline">\(0.05\)</span> 时，我们会认为模型中存在偏倚；不过这个 <span class="math inline">\(\epsilon\)</span> 值是任意的，应根据具体语境来决定。公平性指标除用于评估单个模型外，也可以用于更大规模的基准实验，以比较多个模型之间的偏倚。</p>
+<p>可视化也有助于更好地理解群体之间的差异或模型之间的不同。<a href="https://mlr3fairness.mlr-org.com/reference/fairness_prediction_density.html"><code>fairness_prediction_density()</code></a> 画出各群体层面上的子群体密度图，<a href="https://mlr3fairness.mlr-org.com/reference/compare_metrics.html"><code>compare_metrics()</code></a> 则在多个指标上对预测进行评分：</p>
+<div class="cell">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com">patchwork</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org">ggplot2</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">p1</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3fairness.mlr-org.com/reference/fairness_prediction_density.html">fairness_prediction_density</a></span><span class="op">(</span><span class="va">prediction</span>, task <span class="op">=</span> <span class="va">tsk_adult_test</span><span class="op">)</span></span>
+<span><span class="va">p2</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3fairness.mlr-org.com/reference/fairness_compare_metrics.html">compare_metrics</a></span><span class="op">(</span><span class="va">prediction</span>,</span>
+<span>  <span class="fu">msrs</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"fairness.fpr"</span>, <span class="st">"fairness.tpr"</span>, <span class="st">"fairness.eod"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  task <span class="op">=</span> <span class="va">tsk_adult_test</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="op">(</span><span class="va">p1</span> <span class="op">+</span> <span class="va">p2</span><span class="op">)</span> <span class="op">*</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">*</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html">scale_fill_viridis_d</a></span><span class="op">(</span>end <span class="op">=</span> <span class="fl">0.8</span>, alpha <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">*</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html">theme</a></span><span class="op">(</span></span>
+<span>    axis.text.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span><span class="op">(</span>angle <span class="op">=</span> <span class="fl">15</span>, hjust <span class="op">=</span> <span class="fl">.7</span><span class="op">)</span>,</span>
+<span>    legend.position <span class="op">=</span> <span class="st">"bottom"</span></span>
+<span>  <span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-fairness" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Two panel plot. Left: Density plot showing that 'Female' observations are more likely to be predicted as having a salary less than $50K than 'Male' observations. Right: Three bar charts for the metrics 'fairness.fpr', 'fairness.tpr', 'fairness.eod' with bars at roughly 0.08, 0.06, and 0.07 respectively.">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-fairness-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/algorithmic_fairness_files/figure-html/fig-fairness-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Two panel plot. Left: Density plot showing that 'Female' observations are more likely to be predicted as having a salary less than $50K than 'Male' observations. Right: Three bar charts for the metrics 'fairness.fpr', 'fairness.tpr', 'fairness.eod' with bars at roughly 0.08, 0.06, and 0.07 respectively.">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-fairness-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;14.1: 公平性预测密度图（左）显示了按「男性」和「女性」个体划分的、正类预测的概率密度。指标对比条形图（右）展示了模型在各指定指标上的得分。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>在这个例子（<a href="#fig-fairness" class="quarto-xref">图&nbsp;<span>14.1</span></a>）中，我们可以看到模型更倾向于把「女性」观测预测为较低收入。这可能是因为数据中存在的系统性偏见（即女性的收入在社会偏见的影响下普遍更低），也可能是因为算法引入的偏倚。由于右图显示所有公平性指标都超过了 0.05，这支持了「算法可能引入了进一步的偏倚」这一论点（关于 0.05 这一阈值的注意事项同样适用）。</p>
+</section><section id="fair-machine-learning" class="level2" data-number="14.4"><h2 data-number="14.4" class="anchored" data-anchor-id="fair-machine-learning">
+<span class="header-section-number">14.4</span> 公平机器学习（Fair Machine Learning）</h2>
+<p>如果我们检测到模型不公平，那么一个自然的后续步骤就是缓解这类偏倚。<code>mlr3fairness</code> 提供了多种处理模型偏倚的方案，大体可以分为三类 <span class="citation" data-cites="caton-arxiv20a">(<a href="../references.html#ref-caton-arxiv20a" role="doc-biblioref">Caton and Haas 2020</a>)</span>：</p>
+<ol type="1">
+<li>预处理数据——对底层数据以某种方式进行预处理，在数据传给 <a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 之前处理数据中的偏倚；</li>
+<li>采用公平模型——某些算法可以直接将公平性考量纳入其中，例如带公平性约束的广义线性模型（<code>lrn("classif.fairzlrm")</code>）。</li>
+<li>后处理模型预测——对预测结果应用启发式方法/算法，以缓解预测中存在的偏倚。</li>
+</ol>
+<p>所有方法通常都会略微降低预测性能，因此把各种方法都试一试、从经验上看看哪种方法能在预测性能与公平性之间取得平衡，是有用的做法。一般来说，所有偏倚都应尽可能在其根源处（或尽可能接近根源处）解决，因为任何其他的干预措施都是次优的。</p>
+<p>预处理和后处理方案可以通过 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 来集成（<a href="../chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>）。下面我们给出两个例子：第一个是用 <code>po("reweighing_wts")</code> 做预处理、平衡观测权重；第二个是用 <code>po("EOd")</code> 做后处理。后者通过随机翻转特定预测来执行机会均等（equalized odds）的公平性定义。我们还将 <code>lrn("classif.fairzlrm")</code> 与其他方法进行了对比测试。</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+警告
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>以下是代码块当前已无法成功运行，因此已被禁用。涉及 <code>lrn("classif.fairzlrm")</code> 的基准测试目前会执行失败。</p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># load learners</span></span>
+<span><span class="va">lrn_rpart</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.rpart"</span>, predict_type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="va">id</span> <span class="op">=</span> <span class="st">"rpart"</span></span>
+<span><span class="va">l1</span> <span class="op">=</span> <span class="fu">as_learner</span><span class="op">(</span><span class="fu">po</span><span class="op">(</span><span class="st">"reweighing_wts"</span><span class="op">)</span> <span class="op">%&gt;&gt;%</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.rpart"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">l1</span><span class="op">$</span><span class="va">id</span> <span class="op">=</span> <span class="st">"reweight"</span></span>
+<span></span>
+<span><span class="va">l2</span> <span class="op">=</span> <span class="fu">as_learner</span><span class="op">(</span><span class="fu">po</span><span class="op">(</span><span class="st">"learner_cv"</span>, <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.rpart"</span><span class="op">)</span><span class="op">)</span> <span class="op">%&gt;&gt;%</span></span>
+<span>  <span class="fu">po</span><span class="op">(</span><span class="st">"EOd"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">l2</span><span class="op">$</span><span class="va">id</span> <span class="op">=</span> <span class="st">"EOd"</span></span>
+<span></span>
+<span><span class="co"># preprocess by collapsing factors</span></span>
+<span><span class="va">l3</span> <span class="op">=</span> <span class="fu">as_learner</span><span class="op">(</span><span class="fu">po</span><span class="op">(</span><span class="st">"collapsefactors"</span><span class="op">)</span> <span class="op">%&gt;&gt;%</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.fairzlrm"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">l3</span><span class="op">$</span><span class="va">id</span> <span class="op">=</span> <span class="st">"fairzlrm"</span></span>
+<span></span>
+<span><span class="co"># load task and subset by rows and columns</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">task</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"adult_train"</span><span class="op">)</span></span>
+<span><span class="va">task</span><span class="op">$</span><span class="fu">set_col_roles</span><span class="op">(</span><span class="st">"sex"</span>, <span class="st">"pta"</span><span class="op">)</span><span class="op">$</span></span>
+<span>  <span class="fu">filter</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span><span class="op">(</span><span class="va">task</span><span class="op">$</span><span class="va">nrow</span>, <span class="fl">500</span><span class="op">)</span><span class="op">)</span><span class="op">$</span></span>
+<span>  <span class="fu">select</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html">setdiff</a></span><span class="op">(</span><span class="va">task</span><span class="op">$</span><span class="va">feature_names</span>, <span class="st">"education_num"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># run experiment</span></span>
+<span><span class="va">lrns</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">lrn_rpart</span>, <span class="va">l1</span>, <span class="va">l2</span>, <span class="va">l3</span><span class="op">)</span></span>
+<span><span class="va">bmr</span> <span class="op">=</span> <span class="fu">benchmark</span><span class="op">(</span><span class="fu">benchmark_grid</span><span class="op">(</span><span class="va">task</span>, <span class="va">lrns</span>, <span class="fu">rsmp</span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">meas</span> <span class="op">=</span> <span class="fu">msrs</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"classif.acc"</span>, <span class="st">"fairness.eod"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bmr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="va">meas</span><span class="op">)</span><span class="op">[</span>,</span>
+<span>  <span class="fu">.</span><span class="op">(</span><span class="va">learner_id</span>, <span class="va">classif.acc</span>, <span class="va">fairness.equalized_odds</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>原文在警告框中说明，本节涉及 <code>lrn("classif.fairzlrm")</code> 的基准测试代码当前无法成功运行（因此没有展示输出结果）。读到这里建议了解一下翻译规范的处理原则：我们保留原文代码与警告声明原样，不做修改，避免破坏代码与正文的对应关系。三类缓解偏倚的方法中，「预处理」与「后处理」本质上都是对数据/预测做变换后再交给学习器，因此在 <code>mlr3pipelines</code> 中可以用管道 <code>po(...) %&gt;&gt;% lrn(...)</code> 无缝组合成新学习器（如 <code>as_learner()</code> 所示）。</p>
+</div>
+<p>我们可以用内置的绘图函数来研究结果，下面使用 <a href="https://mlr3fairness.mlr-org.com/reference/fairness_accuracy_tradeoff.html"><code>fairness_accuracy_tradeoff()</code></a>，在交叉验证的各个折（fold）上比较分类准确率（该函数的默认准确率指标）和机会均等（<code>msr("fairness.eod")</code>）：</p>
+<div class="cell">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://mlr3fairness.mlr-org.com/reference/fairness_accuracy_tradeoff.html">fairness_accuracy_tradeoff</a></span><span class="op">(</span><span class="va">bmr</span>, fairness_measure <span class="op">=</span> <span class="fu">msr</span><span class="op">(</span><span class="st">"fairness.eod"</span><span class="op">)</span>,</span>
+<span>  accuracy_measure <span class="op">=</span> <span class="fu">msr</span><span class="op">(</span><span class="st">"classif.ce"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html">scale_color_viridis_d</a></span><span class="op">(</span><span class="st">"Learner"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>查看结果表（table）和 <span class="quarto-unresolved-ref">?fig-fairness-tradeoff</span> 可以看到，重加权（reweighting）方法的公平性指标似乎比其他方法略好，但差异不太可能显著。因此在这种情况下，我们很可能会得出结论：引入缓解偏倚的步骤并没有改善算法公平性。</p>
+<p>除了手工计算和分析公平性指标之外，还可以利用 <a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a>（<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>）在单个或多个指标上自动化这一过程（<a href="../chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-multi-metrics-tuning" class="quarto-xref"><span>5.2 节</span></a>）。</p>
+</section><section id="conclusion" class="level2 page-columns page-full" data-number="14.5"><h2 data-number="14.5" class="anchored" data-anchor-id="conclusion">
+<span class="header-section-number">14.5</span> 结论（Conclusion）</h2>
+<p>上面介绍的功能旨在帮助用户调查模型中可能存在的偏倚并加以缓解。公平性指标不能用来证明或保证公平。判定一个模型是否公平，还需要额外的调查，例如：理解所测得的量对现实世界中的个体意味着什么，以及数据中可能还存在哪些其他偏倚，导致例如协变量或标签在测量方式上的差异。</p>
+<p>公平性指标的简单性意味着它们只应用于探索性目的，从业者不应仅仅依赖它们来决定是否采用某个机器学习模型，或评估某个系统是否公平。相反，从业者应当把目光投向模型之外，考虑用于训练的数据以及数据和标签的采集过程。为协助这一过程，为数据收集方法、最终的数据以及由这些数据得到的模型提供健全的文档十分重要。让审计人员了解已部署模型的这些方面，可以对模型公平性做出更好的评估。针对机器学习模型和数据集的问卷已在文献中提出，并且可通过 <a href="https://mlr3fairness.mlr-org.com"><code>mlr3fairness</code></a> 中基于 R markdown 的自动化报告模板（针对数据集和机器学习模型，<a href="https://mlr3fairness.mlr-org.com/reference/report_modelcard.html"><code>report_modelcard()</code></a> 和 <a href="https://mlr3fairness.mlr-org.com/reference/report_datasheet.html"><code>report_datasheet()</code></a>）来使用。此外，<a href="https://mlr3fairness.mlr-org.com/reference/report_fairness.html"><code>report_fairness()</code></a> 提供了一个受 Aequitas Toolkit 启发的公平性报告模板 <span class="citation" data-cites="2018aequitas">(<a href="../references.html#ref-2018aequitas" role="doc-biblioref">Saleiro et al. 2018</a>)</span>。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">公平性报告（Fairness Report）</span></div></div>
+<p>我们希望，把 <code>mlr3fairness</code> 提供的功能与额外的探索性数据分析、对决策所在社会背景的扎实理解、以及整合其他工具（例如 <a href="../chapter12/model_interpretation.html" class="quarto-xref"><span>第 12 章</span></a> 中的可解释性方法）结合起来，可能有助于减轻或减弱未来部署系统中的不公平。</p>
+<div id="tbl-api-fair" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-api-fair-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+表&nbsp;14.1: 本章涉及的重要类与函数，包括底层类（如适用）、类构造函数或函数，以及重要的类字段与方法（如适用）。
+</figcaption><div aria-describedby="tbl-api-fair-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead><tr class="header">
+<th>类（Class）</th>
+<th>构造函数/函数（Constructor/Function）</th>
+<th>字段/方法（Fields/Methods）</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://mlr3fairness.mlr-org.com/reference/MeasureFairness.html"><code>MeasureFairness</code></a></td>
+<td><code>msr("fairness", ...)</code></td>
+<td>—</td>
+</tr>
+<tr class="even">
+<td>—</td>
+<td><a href="https://mlr3fairness.mlr-org.com/reference/fairness_prediction_density.html"><code>fairness_prediction_density()</code></a></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>—</td>
+<td><a href="https://mlr3fairness.mlr-org.com/reference/compare_metrics.html"><code>compare_metrics()</code></a></td>
+<td>—</td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3fairness.mlr-org.com/reference/mlr_pipeops_reweighing.html"><code>PipeOpReweighingWeights</code></a></td>
+<td><code>po("reweighing_wts")</code></td>
+<td>—</td>
+</tr>
+<tr class="odd">
+<td><a href="https://mlr3fairness.mlr-org.com/reference/mlr_pipeops_EOd.html"><code>PipeOpEOd</code></a></td>
+<td><code>po("EOd")</code></td>
+<td>—</td>
+</tr>
+<tr class="even">
+<td>—</td>
+<td><a href="https://mlr3fairness.mlr-org.com/reference/fairness_accuracy_tradeoff.html"><code>fairness_accuracy_tradeoff()</code></a></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>—</td>
+<td><a href="https://mlr3fairness.mlr-org.com/reference/report_fairness.html"><code>report_fairness()</code></a></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>公平性领域有「公平性-准确性权衡」（fairness–accuracy trade-off）这一重要现象：加入公平性约束几乎总会以一定的预测准确率为代价，因为模型不再只追求性能最大化。这并非总是坏事——在许多高风险场景（司法、信贷、医疗）中，接受少量准确率损失以换取更公平的结果是值得的。此外，正如本章结论强调的，<em>公平性指标只是「指标」</em>：它能量化某一种公平性定义的差距，却无法回答「系统是否真正公平」这一远为复杂的社会性问题。</p>
+</div>
+</section><section id="exercises" class="level2" data-number="14.6"><h2 data-number="14.6" class="anchored" data-anchor-id="exercises">
+<span class="header-section-number">14.6</span> 练习（Exercises）</h2>
+<ol type="1">
+<li>在 <code>tsk("adult_train")</code> 上训练一个你选择的模型，并在 <code>tsk("adult_test")</code> 上测试它，使用你选择的任何指标评估你的预测结果。假设我们的目标是在受保护的「性别」属性上实现假遗漏率（false omission rate）的均等。构造一个能体现这一目标的公平性指标并评估你的模型。为了更深入理解，可以查看 <a href="https://mlr3fairness.mlr-org.com/reference/groupwise_metrics.html"><code>groupwise_metrics</code></a> 函数，以获取每个群体的性能。</li>
+<li>使用采用预处理或后处理方法的管道来改进你的模型。沿这两个指标评估你的模型并可视化所得指标。用合适的可视化方法比较不同模型。</li>
+<li>在你的数据集中把「种族（race）」添加为第二个敏感属性。把这个信息加入你的任务，并再次评估最初的模型。发生了什么变化？再次研究 <code>groupwise_metrics</code>。</li>
+<li>在本章中我们未能降低实验中的偏倚。运用你在本书中学到的所有知识，看看能否成功降低模型中的偏倚。批判性地反思这个练习：为什么这可能并不是一个好主意？</li>
+</ol>
+</section><section id="citation" class="level2" data-number="14.7"><h2 data-number="14.7" class="anchored" data-anchor-id="citation">
+<span class="header-section-number">14.7</span> 引用（Citation）</h2>
+<p>请按以下格式引用本章：</p>
+<p>Pfisterer F. (2024). Algorithmic Fairness. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/algorithmic_fairness.html.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="va">@incollection</span>{<span class="ot">citekey</span>,</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span> = "<span class="st">Florian Pfisterer</span>",</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span> = "<span class="st">Algorithmic Fairness</span>",</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">booktitle</span> = "<span class="st">Applied Machine Learning Using {m}lr3 in {R}</span>",</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">publisher</span> = "<span class="st">CRC Press</span>", <span class="st">year</span> = "<span class="st">2024</span>",</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">editor</span> = "<span class="st">Bernd Bischl and Raphael Sonabend and Lars Kotthoff and Michel Lang</span>",</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">url</span> = "<span class="st">https://mlr3book.mlr-org.com/algorithmic_fairness.html</span>"</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+
+
+<!-- -->
+
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-fairmlbook" class="csl-entry" role="listitem">
+Barocas, Solon, Moritz Hardt, and Arvind Narayanan. 2019. <em>Fairness and Machine Learning: Limitations and Opportunities</em>. fairmlbook.org.
+</div>
+<div id="ref-caton-arxiv20a" class="csl-entry" role="listitem">
+Caton, S., and C. Haas. 2020. <span>“Fairness in Machine Learning: A Survey.”</span> <em>Arxiv</em> 2010.04053 <span>[cs.LG]</span>. <a href="https://doi.org/10.48550/arXiv.2010.04053">https://doi.org/10.48550/arXiv.2010.04053</a>.
+</div>
+<div id="ref-uci" class="csl-entry" role="listitem">
+Dua, Dheeru, and Casey Graff. 2017. <span>“<span>UCI</span> Machine Learning Repository.”</span> University of California, Irvine, School of Information; Computer Sciences. <a href="https://archive.ics.uci.edu/ml">https://archive.ics.uci.edu/ml</a>.
+</div>
+<div id="ref-Huang2022" class="csl-entry" role="listitem">
+Huang, Jonathan, Galal Galal, Mozziyar Etemadi, and Mahesh Vaidyanathan. 2022. <span>“Evaluation and Mitigation of Racial Bias in Clinical Machine Learning Models: Scoping Review.”</span> <em>JMIR Med Inform</em> 10 (5). <a href="https://doi.org/10.2196/36388">https://doi.org/10.2196/36388</a>.
+</div>
+<div id="ref-Mehrabi2021" class="csl-entry" role="listitem">
+Mehrabi, Ninareh, Fred Morstatter, Nripsuta Saxena, Kristina Lerman, and Aram Galstyan. 2021. <span>“A Survey on Bias and Fairness in Machine Learning.”</span> <em>ACM Comput. Surv.</em> 54 (6). <a href="https://doi.org/10.1145/3457607">https://doi.org/10.1145/3457607</a>.
+</div>
+<div id="ref-mitchell21" class="csl-entry" role="listitem">
+Mitchell, Shira, Eric Potash, Solon Barocas, Alexander D’Amour, and Kristian Lum. 2021. <span>“Algorithmic Fairness: Choices, Assumptions, and Definitions.”</span> <em>Annual Review of Statistics and Its Application</em> 8: 141–63. <a href="https://doi.org/10.1146/annurev-statistics-042720-125902">https://doi.org/10.1146/annurev-statistics-042720-125902</a>.
+</div>
+<div id="ref-2018aequitas" class="csl-entry" role="listitem">
+Saleiro, Pedro, Benedict Kuester, Abby Stevens, Ari Anisfeld, Loren Hinkson, Jesse London, and Rayid Ghani. 2018. <span>“Aequitas: A Bias and Fairness Audit Toolkit.”</span> <em>arXiv Preprint arXiv:1811.05577</em>. <a href="https://doi.org/10.48550/arXiv.1811.05577">https://doi.org/10.48550/arXiv.1811.05577</a>.
+</div>
+<div id="ref-Sonabend2022a" class="csl-entry" role="listitem">
+Sonabend, Raphael, Florian Pfisterer, Alan Mishler, Moritz Schauer, Lukas Burk, Sumantrak Mukherjee, and Sebastian Vollmer. 2022. <span>“Flexible Group Fairness Metrics for Survival Analysis.”</span> In <em>DSHealth 2022 Workshop on Applied Data Science for Healthcare at KDD2022</em>. <a href="https://arxiv.org/abs/2206.03256">https://arxiv.org/abs/2206.03256</a>.
+</div>
+<div id="ref-Wachter2021" class="csl-entry" role="listitem">
+Wachter, Sandra, Brent Mittelstadt, and Chris Russell. 2021. <span>“Why Fairness Cannot Be Automated: Bridging the Gap Between EU Non-Discrimination Law and AI.”</span> <em>Computer Law &amp; Security Review</em> 41: 105567. https://doi.org/<a href="https://doi.org/10.1016/j.clsr.2021.105567">https://doi.org/10.1016/j.clsr.2021.105567</a>.
+</div>
+</div>
+</section>
+  </main>
+  <nav class="chnav">
+    <a class="" href="ch13-beyond-regression-classification.html"><span class="dir">上一章</span><span class="ch">第 13 章 回归与分类之外</span></a>
+    <a class="" href="ch15-predsets-validation-inttune.html"><span class="dir">下一章</span><span class="ch">第 15 章 预测集、验证与内部调优</span></a>
+  </nav>
+  <div class="footer">
+    <div>《Applied Machine Learning Using mlr3 in R》中文译本 · 非官方翻译</div>
+    <div class="lic">原文 © 2024 CRC Press（Bischl, Sonabend, Kotthoff &amp; Lang 主编，CC BY-NC-SA 4.0）· 本站由志愿翻译，仅供学习交流</div>
+  </div>
+</div>
+<script>
+MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] } };
+</script>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
+</body>
+</html>

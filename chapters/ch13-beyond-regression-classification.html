@@ -59,6 +59,50 @@ body {
   border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
 }
 .theme-toggle:hover { border-color: var(--accent); }
+/* 搜索 */
+.search-box { position: relative; display: flex; align-items: center; }
+.search-box input {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 5px 10px 5px 28px; font-size: 13px; width: 190px;
+  font-family: inherit; outline: none;
+}
+.search-box input:focus { border-color: var(--accent); width: 240px; }
+.search-box .ico { position: absolute; left: 9px; color: var(--muted); font-size: 12px; pointer-events: none; }
+.search-panel {
+  display: none; position: absolute; top: calc(100% + 6px); right: 0; width: 460px;
+  max-width: 90vw; max-height: 66vh; overflow-y: auto; z-index: 200;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 12px 34px rgba(0,0,0,.42); padding: 6px;
+}
+.search-panel.open { display: block; }
+.search-panel .s-head {
+  padding: 8px 11px 7px; font-size: 12px; color: var(--muted);
+  border-bottom: 1px solid var(--border); margin-bottom: 5px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.search-panel .s-hint { font-size: 12px; color: var(--muted); padding: 18px 12px; text-align: center; }
+.s-item { display: block; padding: 8px 11px; border-radius: 7px; text-decoration: none; color: var(--fg); }
+.s-item:hover, .s-item.sel { background: var(--panel2); }
+.s-item .s-ch { font-size: 11px; color: var(--accent2); margin-bottom: 2px; }
+.s-item .s-sec { font-size: 12px; color: var(--accent); margin-bottom: 3px; }
+.s-item .s-txt { font-size: 13px; line-height: 1.6; color: var(--fg); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.s-item mark { background: rgba(255, 200, 0, .32); color: inherit; border-radius: 2px; padding: 0 1px; }
+[data-theme="light"] .s-item mark { background: rgba(255, 200, 0, .45); }
+/* 搜索结果页 */
+.search-page-box { margin: 26px 0 0; }
+.search-page-box input {
+  width: 100%; background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 8px; padding: 12px 15px; font-size: 15px; font-family: inherit; outline: none;
+}
+.search-page-box input:focus { border-color: var(--accent); }
+.s-meta { color: var(--muted); font-size: 13px; margin: 14px 0 8px; }
+.s-list { list-style: none; margin: 0; padding: 0; }
+.s-list .s-item { border: 1px solid var(--border); margin: 8px 0; }
+@media (max-width: 640px) {
+  .search-box input { width: 130px; }
+  .search-box input:focus { width: 170px; }
+  .search-panel { width: 84vw; }
+}
 /* 章头 */
 .header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
 .header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
@@ -170,9 +214,14 @@ function toggleTheme(){
 </head>
 <body>
 <div class="topbar">
-  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <a class="brand" href="../index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
   <div class="right">
-    <a class="home-link" href="index.html">目录</a>
+    <div class="search-box">
+      <span class="ico">&#128269;</span>
+      <input type="search" id="mlr3-search" placeholder="搜索全书…（按 /）" autocomplete="off" aria-label="全书搜索">
+      <div class="search-panel" id="mlr3-search-panel"></div>
+    </div>
+    <a class="home-link" href="../index.html">目录</a>
     <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
   </div>
 </div>
@@ -188,7 +237,7 @@ function toggleTheme(){
 <p><strong>Damir Pulatov</strong> <br><em>怀俄明大学（University of Wyoming）</em></p>
 <p><strong>John Zobolas</strong> <br><em>奥斯陆大学医院癌症研究所（Institute for Cancer Research, Oslo University Hospital）</em></p>
 <p><strong>Lona Koers</strong> <br><em>慕尼黑大学（Ludwig-Maximilians-Universität München）</em> <br><br></p>
-<p>到目前为止，本书只考虑了两种任务。在<a href="../chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>中，我们介绍了确定性回归（deterministic regression）以及确定性与概率性的单标签分类（single-label classification）（<a href="#tbl-alltasks" class="quarto-xref">表&nbsp;<span>13.1</span></a>）。但我们的基础设施同样适用于许多其他任务，其中一些任务在扩展包中可用（<a href="../chapter1/introduction_and_overview.html#fig-mlr3verse" class="quarto-xref">图&nbsp;<span>1.1</span></a>），另一些则可以通过 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 构建管道（pipeline）来实现。在本章中，我们将带你了解这些新任务中的一小部分，重点关注那些拥有稳定 API 的任务。在阅读本章的过程中，我们会反复提到 <a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 的「构建模块」（building blocks），这指的是为了创建新任务而必须扩展的基础类，即 <a href="https://mlr3.mlr-org.com/reference/Prediction.html"><code>Prediction</code></a>、<a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a>、<a href="https://mlr3.mlr-org.com/reference/Measure.html"><code>Measure</code></a> 和 <a href="https://mlr3.mlr-org.com/reference/Task.html"><code>Task</code></a>。<a href="#tbl-alltasks" class="quarto-xref">表&nbsp;<span>13.1</span></a> 汇总了可用的扩展任务，包括它们所在的包以及任务的简要描述。</p>
+<p>到目前为止，本书只考虑了两种任务。在<a href="https://mlr3book.mlr-org.com/chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>中，我们介绍了确定性回归（deterministic regression）以及确定性与概率性的单标签分类（single-label classification）（<a href="#tbl-alltasks" class="quarto-xref">表&nbsp;<span>13.1</span></a>）。但我们的基础设施同样适用于许多其他任务，其中一些任务在扩展包中可用（<a href="https://mlr3book.mlr-org.com/chapter1/introduction_and_overview.html#fig-mlr3verse" class="quarto-xref">图&nbsp;<span>1.1</span></a>），另一些则可以通过 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 构建管道（pipeline）来实现。在本章中，我们将带你了解这些新任务中的一小部分，重点关注那些拥有稳定 API 的任务。在阅读本章的过程中，我们会反复提到 <a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 的「构建模块」（building blocks），这指的是为了创建新任务而必须扩展的基础类，即 <a href="https://mlr3.mlr-org.com/reference/Prediction.html"><code>Prediction</code></a>、<a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a>、<a href="https://mlr3.mlr-org.com/reference/Measure.html"><code>Measure</code></a> 和 <a href="https://mlr3.mlr-org.com/reference/Task.html"><code>Task</code></a>。<a href="#tbl-alltasks" class="quarto-xref">表&nbsp;<span>13.1</span></a> 汇总了可用的扩展任务，包括它们所在的包以及任务的简要描述。</p>
 <div id="tbl-alltasks" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-alltasks-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 表&nbsp;13.1：可以与 <code>mlr3</code> 基础设施一起使用的扩展任务列表。由于我们的贡献者社区在不断壮大，这个列表远非详尽无遗，还存在许多「实验性（experimental）」的任务实现；此列表仅代表那些具备可用接口的任务。
@@ -254,7 +303,7 @@ function toggleTheme(){
 </div>
 </figure>
 </div>
-<section id="sec-cost-sens" class="level2 page-columns page-full" data-number="13.1"><h2 data-number="13.1" class="anchored" data-anchor-id="sec-cost-sens">
+<section id="sec-cost-sens" class="level2 page-columns page-full" data-number="13.1"><h2 data-number="13.1" class="anchored" data-anchor-id="sec-cost-sens" id="sec-cost-sens">
 <span class="header-section-number">13.1</span> 代价敏感分类（Cost-Sensitive Classification）</h2>
 <p>我们先来讨论一个不需要任何额外包或基础设施的任务，只需要用到前几章已经学过的工具。在「常规」分类中，目标是在假设所有误分类错误同等严重的情况下优化某个指标（通常是误分类率）。更一般的方法是代价敏感分类（cost-sensitive classification），其中不同类型错误所导致的代价可能不相等。代价敏感分类的目标是最小化期望代价（expected costs）。我们将使用 <code>tsk("german_credit")</code> 作为贯穿示例。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">代价敏感分类</span></div></div>
 <p>想象一下，你正在计算给某人一笔 5,000 美元的贷款能否在一年后带来利润（假设预期偿还 6,000 美元）。要完成这个计算，你需要预测这个人是否具有良好的信用。这是一个确定性分类问题，我们预测某人属于「好（Good）」类还是「坏（Bad）」类。现在让我们考虑每个预测及最终真相可能关联的一些代价。由于代价敏感分类是一个最小化问题，我们假设较低的代价对应较高的利润/正向结果，因此把利润写成负值、损失写成正值：</p>
@@ -274,7 +323,7 @@ Predicted Credit good bad
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>代价敏感分类与标准的分类问题之间的关键区别在于错误代价矩阵（cost matrix）的不对称性。在普通分类中，我们默认所有错误「等值」，因此模型只需努力降低总错误数；而代价敏感分类把「把坏人当好人放贷」与「把好人拒之门外」的成本区分开，模型会倾向于少犯代价更高的错误。本例中信用「好」但被预测为「坏」的代价是 0（不放贷、无损失），而信用「坏」却被预测为「好」的代价是 5（放贷后违约）。这种不平衡在现实中普遍存在，例如医疗误诊、金融风控等场景中不同类型的错误代价往往差异巨大。代价矩阵中利润记为负值、损失记为正值，是为了把问题统一转化为「最小化总代价」的优化问题。</p>
 </div>
-<section id="cost-sensitive-measure" class="level3" data-number="13.1.1"><h3 data-number="13.1.1" class="anchored" data-anchor-id="cost-sensitive-measure">
+<section id="cost-sensitive-measure" class="level3" data-number="13.1.1"><h3 data-number="13.1.1" class="anchored" data-anchor-id="cost-sensitive-measure" id="cost-sensitive-measure">
 <span class="header-section-number">13.1.1</span> 代价敏感度量（Cost-Sensitive Measure）</h3>
 <p>我们现在将看到如何用 <code>msr("classif.costs")</code> 实现一种更精细的分类错误处理方式。该度量接受一个参数，即一个行名和列名对应任务中类别标签的矩阵。让我们把前面的保险示例付诸实践，注意我们已经按该度量的要求为代价矩阵命了名：</p>
 <div class="cell">
@@ -310,9 +359,9 @@ Predicted Credit good bad
 </div>
 </div>
 <p>在这次实验中，我们发现逻辑回归学习器碰巧表现最好，因为它最小化了期望代价（从而最大化了期望利润），而 featureless 学习器表现最差。所有损失都表现为正代价，这意味着每个模型都让我们亏钱。为了改进模型，我们现在转向阈值化（thresholding）。</p>
-</section><section id="thresholding" class="level3" data-number="13.1.2"><h3 data-number="13.1.2" class="anchored" data-anchor-id="thresholding">
+</section><section id="thresholding" class="level3" data-number="13.1.2"><h3 data-number="13.1.2" class="anchored" data-anchor-id="thresholding" id="thresholding">
 <span class="header-section-number">13.1.2</span> 阈值化（Thresholding）</h3>
-<p>正如我们在<a href="../chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>中讨论过的，阈值化是一种微调（fine-tune）概率的方法，用来决定一个观测将被预测为哪个类别标签。目前在我们的贯穿示例中，如果好信用的概率大于 0.5，上述模型就会预测客户具有好信用。在这里，这可能不是一个合理的做法，因为由于代价不均等，我们很可能会采取更保守的行动，用更高的阈值拒绝更多的贷款申请。<code>"threshold"</code> 的 <code>autoplot</code>（<a href="#fig-costsens-threshold" class="quarto-xref">图&nbsp;<span>13.1</span></a>）突出显示了这一点，图中绘制了所有可能阈值下的 <code>msr("classif.costs")</code>。</p>
+<p>正如我们在<a href="https://mlr3book.mlr-org.com/chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>中讨论过的，阈值化是一种微调（fine-tune）概率的方法，用来决定一个观测将被预测为哪个类别标签。目前在我们的贯穿示例中，如果好信用的概率大于 0.5，上述模型就会预测客户具有好信用。在这里，这可能不是一个合理的做法，因为由于代价不均等，我们很可能会采取更保守的行动，用更高的阈值拒绝更多的贷款申请。<code>"threshold"</code> 的 <code>autoplot</code>（<a href="#fig-costsens-threshold" class="quarto-xref">图&nbsp;<span>13.1</span></a>）突出显示了这一点，图中绘制了所有可能阈值下的 <code>msr("classif.costs")</code>。</p>
 <div class="cell">
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.log_reg"</span>,</span>
 <span>  predict_type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_german</span><span class="op">)</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_german</span><span class="op">)</span></span>
@@ -322,7 +371,7 @@ Predicted Credit good bad
 <div class="cell-output-display">
 <div id="fig-costsens-threshold" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Line graph with x-axis labeled 'Probability Threshold' ranging between 0-1, and y-axis labeled 'classif.costs' ranging between -0.3 and 0.7'. Line starts at (0,0.7) decreases linearly to around (0.8,-0.3) then increases linearly to (1, 0).">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-costsens-threshold-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/beyond_regression_and_classification_files/figure-html/fig-costsens-threshold-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Line graph with x-axis labeled 'Probability Threshold' ranging between 0-1, and y-axis labeled 'classif.costs' ranging between -0.3 and 0.7'. Line starts at (0,0.7) decreases linearly to around (0.8,-0.3) then increases linearly to (1, 0).">
+<img src="../images/beyond_regression_and_classification_files/figure-html/fig-costsens-threshold-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Line graph with x-axis labeled 'Probability Threshold' ranging between 0-1, and y-axis labeled 'classif.costs' ranging between -0.3 and 0.7'. Line starts at (0,0.7) decreases linearly to around (0.8,-0.3) then increases linearly to (1, 0).">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-costsens-threshold-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;13.1：随着预测阈值的改变，代价敏感度量的取值变化。
@@ -331,7 +380,7 @@ Predicted Credit good bad
 </div>
 </div>
 <p>正如预期的那样，最优阈值大于 0.5，这意味着最优模型应当更频繁地预测「坏」信用。</p>
-<p>最优阈值可以通过使用 <a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a>（<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>）和 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a>（<a href="../chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>）调节 <code>po("tunethreshold")</code> 来自动化实现。继续同一个例子：</p>
+<p>最优阈值可以通过使用 <a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a>（<a href="https://mlr3book.mlr-org.com/chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>）和 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a>（<a href="https://mlr3book.mlr-org.com/chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>）调节 <code>po("tunethreshold")</code> 来自动化实现。继续同一个例子：</p>
 <div class="cell">
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">po_cv</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"learner_cv"</span>, <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.log_reg"</span>, predict_type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">graph</span> <span class="op">=</span>  <span class="va">po_cv</span> <span class="op"><a href="https://mlr3pipelines.mlr-org.com/reference/grapes-greater-than-greater-than-grapes.html">%&gt;&gt;%</a></span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"tunethreshold"</span>, measure <span class="op">=</span> <span class="va">msr_costs</span><span class="op">)</span></span>
@@ -353,7 +402,7 @@ Predicted Credit good bad
 </div>
 </div>
 <p>通过使用 <code>po("learner_cv")</code> 进行内部重采样（internal resampling），并使用 <code>po("tunethreshold")</code> 寻找最优阈值，我们显著提升了模型性能，现在甚至有望实现盈利。</p>
-</section></section><section id="sec-survival" class="level2" data-number="13.2"><h2 data-number="13.2" class="anchored" data-anchor-id="sec-survival">
+</section></section><section id="sec-survival" class="level2" data-number="13.2"><h2 data-number="13.2" class="anchored" data-anchor-id="sec-survival" id="sec-survival">
 <span class="header-section-number">13.2</span> 生存分析（Survival Analysis）</h2>
 <p>生存分析是统计学中致力于预测/估计事件发生时间的一个领域。这个预测问题的独特之处在于，生存模型是在可能包含「删失（censoring）」的数据上训练和测试的；删失是指某些受试者的确切事件时间<em>没有</em>被观测到。最常见的删失类型是「右删失（right censoring）」，当感兴趣的事件在观测结束时尚未发生时便会出现这样的情况——要么是因为固定的研究截止时间（<em>管理性删失，administrative censoring</em>），要么是因为个体在随访中失联（<em>随机删失，random censoring</em>）。抽象地解释生存分析可能比较困难，所以我们用一个跑步比赛的马拉松选手作为工作示例。这里的「生存问题」是试图预测马拉松选手完成比赛的时间。然而，并非所有的完赛时间都能被观测到。例如，如果组织者在某一时间点之后停止记录完赛时间，那么任何在那一时刻之后仍在奔跑的选手都将被<em>管理性</em>地删失。另外，一名选手可能意外退出比赛——例如，他们的追踪芯片出现故障，或者他们意外离开赛道而不再被跟踪——这就导致了<em>随机</em>删失。生存分析并不是舍弃这类不完整的观测，而是引入一个状态变量来反映事件是否被观测到。在我们的例子中，如果一名选手在三个小时内完赛并被我们观测到，我们会把其结果记录为 <span class="math inline">\((3, 1)\)</span>；如果他们在观测结束四小时时仍在奔跑（管理性删失），则记录为 <span class="math inline">\((4, 0)\)</span>；如果他们的追踪设备在 2.5 小时时失效而我们失去了联系（随机删失），则记录为 <span class="math inline">\((2.5, 0)\)</span>。</p>
 <p>生存分析建模的关键在于：我们假设哪怕选手被删失，也存在着一个假想的完赛时间，生存学习器的工作就是为一名相似的选手估计在<em>未</em>被删失的情况下真实的生存时间会是多少（见<a href="#fig-censoring" class="quarto-xref">图&nbsp;<span>13.2</span></a>）。从数学上讲，这由假想的事件时间 <span class="math inline">\(Y\)</span>、假想的删失时间 <span class="math inline">\(C\)</span>、观测到的事件时间 <span class="math inline">\(T = \min(Y, C)\)</span>、事件指示符 <span class="math inline">\(\Delta := (T = Y)\)</span> 以及像往常一样的若干特征 <span class="math inline">\(X\)</span> 来表示。学习器在 <span class="math inline">\((T, \Delta)\)</span> 上训练，但关键在于，它们要从先前未见过的特征上预测 <span class="math inline">\(Y\)</span>。这意味着与分类和回归不同，学习器是在两个变量 <span class="math inline">\((T, \Delta)\)</span> 上训练的，而在 R 中，这通常被封装在一个 <a href="https://www.rdocumentation.org/packages/survival/topics/Surv"><code>Surv</code></a> 对象中。回到上面的例子，选手的结果可以表示为：若三小时完赛则为 <span class="math inline">\((T = 3, \Delta = 1)\)</span>，若比赛时钟结束时仍在奔跑则为 <span class="math inline">\((T = 4, \Delta = 0)\)</span>，若中途失去联系则为 <span class="math inline">\((T = 2.5, \Delta = 0)\)</span>。另一个例子见下面的代码，我们随机生成了六个生存时间和六个事件指示符，结尾带 <code>+</code> 的结果表示该观测被删失，否则表示感兴趣的事件发生了。</p>
@@ -373,16 +422,16 @@ Attaching package: 'survival'</code></pre>
 <pre><code>[1] 0.5523+ 0.2905  0.4404+ 0.1184  0.9216+ 0.7326 </code></pre>
 </div>
 </div>
-<p>熟悉生存分析的读者会意识到，上面的描述特指「右删失」。目前，<code>mlr3</code> 生态中只支持这一种删失形式，因此我们把讨论限制在这种情形下。关于生存分析的优秀入门读物，参见 <span class="citation" data-cites="Collett2014">Collett (<a href="../references.html#ref-Collett2014" role="doc-biblioref">2014</a>)</span>；专门针对生存分析中的机器学习，参见 <span class="citation" data-cites="MLSA">R. Sonabend and Bender (<a href="../references.html#ref-MLSA" role="doc-biblioref">2023</a>)</span>。</p>
-<p>在本节的其余部分，我们将看到 <a href="https://mlr3proba.mlr-org.com"><code>mlr3proba</code></a> <span class="citation" data-cites="mlr3proba">(<a href="../references.html#ref-mlr3proba" role="doc-biblioref">R. Sonabend et al. 2021</a>)</span> 如何为生存分析扩展 <code>mlr3</code> 的构建模块。我们首先考察用于构建生存分析机器学习任务的对象，然后转向我们为实现这些任务而实现的学习器，接着是用于评估生存分析预测的度量，最后我们将考虑如何在预测类型之间进行转换。</p>
+<p>熟悉生存分析的读者会意识到，上面的描述特指「右删失」。目前，<code>mlr3</code> 生态中只支持这一种删失形式，因此我们把讨论限制在这种情形下。关于生存分析的优秀入门读物，参见 <span class="citation" data-cites="Collett2014">Collett (<a href="https://mlr3book.mlr-org.com/references.html#ref-Collett2014" role="doc-biblioref">2014</a>)</span>；专门针对生存分析中的机器学习，参见 <span class="citation" data-cites="MLSA">R. Sonabend and Bender (<a href="https://mlr3book.mlr-org.com/references.html#ref-MLSA" role="doc-biblioref">2023</a>)</span>。</p>
+<p>在本节的其余部分，我们将看到 <a href="https://mlr3proba.mlr-org.com"><code>mlr3proba</code></a> <span class="citation" data-cites="mlr3proba">(<a href="https://mlr3book.mlr-org.com/references.html#ref-mlr3proba" role="doc-biblioref">R. Sonabend et al. 2021</a>)</span> 如何为生存分析扩展 <code>mlr3</code> 的构建模块。我们首先考察用于构建生存分析机器学习任务的对象，然后转向我们为实现这些任务而实现的学习器，接着是用于评估生存分析预测的度量，最后我们将考虑如何在预测类型之间进行转换。</p>
 <div class="cell">
 <div class="cell-output-display">
 <div id="fig-censoring" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Figure shows give horizontal lines at 1,2,3,4,5 on the y-axis and a vertical line at 8 on the x-axis. Top line (subject 5) has a circle at x=8 and a diamond at x=9, second line (subject 4) has a circle at x=1 and a diamond at x=9, subject 3 has a circle at x=4 and a diamond at x=6, subject 2 has a diamond at x=8, and subject 1 has a diamond at x=7.">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-censoring-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/beyond_regression_and_classification_files/figure-html/fig-censoring-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Figure shows give horizontal lines at 1,2,3,4,5 on the y-axis and a vertical line at 8 on the x-axis. Top line (subject 5) has a circle at x=8 and a diamond at x=9, second line (subject 4) has a circle at x=1 and a diamond at x=9, subject 3 has a circle at x=4 and a diamond at x=6, subject 2 has a diamond at x=8, and subject 1 has a diamond at x=7.">
+<img src="../images/beyond_regression_and_classification_files/figure-html/fig-censoring-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Figure shows give horizontal lines at 1,2,3,4,5 on the y-axis and a vertical line at 8 on the x-axis. Top line (subject 5) has a circle at x=8 and a diamond at x=9, second line (subject 4) has a circle at x=1 and a diamond at x=9, subject 3 has a circle at x=4 and a diamond at x=6, subject 2 has a diamond at x=8, and subject 1 has a diamond at x=7.">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-censoring-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-图&nbsp;13.2：说明不同类型删失的图示。纵轴为已死亡和被删失的受试者，横轴为时间。黑色菱形表示真实的死亡时间，白色圆圈表示删失时间。竖线为研究结束时间。受试者 1 和 2 在研究期间死亡。受试者 3 在研究期间被删失，且（未知地）在研究期间内死亡。受试者 4 在研究期间被删失，且（未知地）在研究结束后死亡。受试者 5 在研究结束后死亡。图与图注来自 <span class="citation" data-cites="Sonabend2021b">R. E. B. Sonabend (<a href="../references.html#ref-Sonabend2021b" role="doc-biblioref">2021</a>)</span>。
+图&nbsp;13.2：说明不同类型删失的图示。纵轴为已死亡和被删失的受试者，横轴为时间。黑色菱形表示真实的死亡时间，白色圆圈表示删失时间。竖线为研究结束时间。受试者 1 和 2 在研究期间死亡。受试者 3 在研究期间被删失，且（未知地）在研究期间内死亡。受试者 4 在研究期间被删失，且（未知地）在研究结束后死亡。受试者 5 在研究结束后死亡。图与图注来自 <span class="citation" data-cites="Sonabend2021b">R. E. B. Sonabend (<a href="https://mlr3book.mlr-org.com/references.html#ref-Sonabend2021b" role="doc-biblioref">2021</a>)</span>。
 </figcaption></figure>
 </div>
 </div>
@@ -390,7 +439,7 @@ Attaching package: 'survival'</code></pre>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>删失（censoring）是生存分析最核心也最易混淆的概念。右删失指「事件在观测截止时尚未发生，只知道真实事件时间大于某个值」；与此相对的还有左删失（真实时间小于观测值）和区间删失（只知道真实时间落在一个区间内）。生存分析方法的核心价值之一，就是能够在大量观测被删失的情况下依然正确地利用其信息——直接丢弃删失观测会导致系统性偏倚（因为删失观测往往对应更长的事件时间），而简单把删失时间当作事件时间又会严重低估。`Surv` 对象用 `+` 后缀标记删失观测，R 中几乎所有生存分析函数都能理解这一约定。</p>
 </div>
-<section id="tasksurv" class="level3" data-number="13.2.1"><h3 data-number="13.2.1" class="anchored" data-anchor-id="tasksurv">
+<section id="tasksurv" class="level3" data-number="13.2.1"><h3 data-number="13.2.1" class="anchored" data-anchor-id="tasksurv" id="tasksurv">
 <span class="header-section-number">13.2.1</span> TaskSurv</h3>
 <p>正如我们在本节的引言中所看到的，生存算法需要两个训练目标，这意味着新的 <a href="https://mlr3proba.mlr-org.com/reference/TaskSurv.html"><code>TaskSurv</code></a> 对象期望两个目标。创建生存任务最简单的方法是使用 <a href="https://mlr3proba.mlr-org.com/reference/as_task_surv.html"><code>as_task_surv()</code></a>，如下面的代码块所示。注意它比 <a href="https://mlr3.mlr-org.com/reference/as_task_regr.html"><code>as_task_regr()</code></a> 拥有更多参数，以反映多个目标和删失类型：<code>time</code> 和 <code>event</code> 参数接受表示存储「时间」和「事件」变量的列名的字符串，<code>type</code> 指删失类型（目前仅支持右删失，因此这是默认值）。<code><a href="https://mlr3proba.mlr-org.com/reference/as_task_surv.html">as_task_surv()</a></code> 会将目标列强制转换为一个 <a href="https://www.rdocumentation.org/packages/survival/topics/Surv"><code>Surv</code></a> 对象。在本节中，我们将使用 <code>rats</code> 数据集作为贯穿示例，该数据集研究药物处理是否成功阻止了 150 只老鼠发展出肿瘤。这个数据集自己也承认并不完美，通常应被当作「模拟（dummy）」数据，它适合做示例，但不适合真实的实证分析。</p>
 <div class="cell">
@@ -420,7 +469,7 @@ Attaching package: 'survival'</code></pre>
 <div class="cell-output-display">
 <div id="fig-autokm" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Figure shows a line plot with &quot;Time&quot; on the x-axis from 0 to 100 and &quot;Survival&quot; on the y-axis from 0.80 to 1.00. The line plot is a black line from (0, 1) to (25, 1) then starts to drop slowly and then quickly down to (100, 0.80).">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-autokm-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/beyond_regression_and_classification_files/figure-html/fig-autokm-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Figure shows a line plot with &quot;Time&quot; on the x-axis from 0 to 100 and &quot;Survival&quot; on the y-axis from 0.80 to 1.00. The line plot is a black line from (0, 1) to (25, 1) then starts to drop slowly and then quickly down to (100, 0.80).">
+<img src="../images/beyond_regression_and_classification_files/figure-html/fig-autokm-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Figure shows a line plot with &quot;Time&quot; on the x-axis from 0 to 100 and &quot;Survival&quot; on the y-axis from 0.80 to 1.00. The line plot is a black line from (0, 1) to (25, 1) then starts to drop slowly and then quickly down to (100, 0.80).">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-autokm-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;13.3：<code>tsk("rats")</code> 的 Kaplan-Meier 图。x 轴是时间变量，y 轴是生存函数 S(T)，定义为 <span class="math inline">\(1 -\)</span> F(T)，其中 F 是累积分布函数。十字标记表示发生删失的时间点。
@@ -445,9 +494,9 @@ Attaching package: 'survival'</code></pre>
 8 variables not shown: [int, dbl, chr, fct, ord, pxc, dte, lt]</code></pre>
 </div>
 </div>
-</section><section id="learnersurv-predictionsurv-and-predict-types" class="level3" data-number="13.2.2"><h3 data-number="13.2.2" class="anchored" data-anchor-id="learnersurv-predictionsurv-and-predict-types">
+</section><section id="learnersurv-predictionsurv-and-predict-types" class="level3" data-number="13.2.2"><h3 data-number="13.2.2" class="anchored" data-anchor-id="learnersurv-predictionsurv-and-predict-types" id="learnersurv-predictionsurv-and-predict-types">
 <span class="header-section-number">13.2.2</span> LearnerSurv、PredictionSurv 与预测类型（Predict Types）</h3>
-<p><a href="https://mlr3proba.mlr-org.com/reference/LearnerSurv.html"><code>LearnerSurv</code></a> 和 <a href="https://mlr3proba.mlr-org.com/reference/PredictionSurv.html"><code>PredictionSurv</code></a> 对象的接口与<a href="../chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>讨论的回归和分类设置完全相同。与这些设置类似，生存学习器也是用 <a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html"><code>lrn()</code></a> 构建的。</p>
+<p><a href="https://mlr3proba.mlr-org.com/reference/LearnerSurv.html"><code>LearnerSurv</code></a> 和 <a href="https://mlr3proba.mlr-org.com/reference/PredictionSurv.html"><code>PredictionSurv</code></a> 对象的接口与<a href="https://mlr3book.mlr-org.com/chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>讨论的回归和分类设置完全相同。与这些设置类似，生存学习器也是用 <a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html"><code>lrn()</code></a> 构建的。</p>
 <p><code>mlr3proba</code> 与 <code>mlr3</code> 具有不同的预测接口，因为只要可能，所有类型的预测（「预测类型」）都会返回给所有生存模型——也就是说，如果一个模型<em>能够</em>计算某种预测类型，那么它将<em>被</em>返回到 <code>PredictionSurv</code> 中。这一设计决策的理由是，所有这些预测类型都可以相互转换，因此一次性全部返回在计算上比重新运行模型来改变预测类型更简单。在生存分析中，可以进行以下预测：</p>
 <ul>
 <li>
@@ -479,7 +528,7 @@ Attaching package: 'survival'</code></pre>
      300  102  FALSE -2.2609 -2.2609 &lt;list[1]&gt;</code></pre>
 </div>
 </div>
-<section id="predict_type-response" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="predict_type-response">predict_type = “response”</h4>
+<section id="predict_type-response" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="predict_type-response" id="predict_type-response">predict_type = “response”</h4>
 <p>可能令许多人感到反直觉的是，预测生存时间的 <code>response</code> 预测是生存分析中最不常见的预测类型。可能的原因在于删失的存在。对于许多观测，我们很少能观测到真实的生存时间，因此任何生存模型都很难有把握地对生存时间做出预测。下面的代码说明了这一点。</p>
 <p>在下面的示例中，我们训练并预测了一个生存 SVM（<code>lrn("surv.svm")</code>），注意我们使用 <code>type = "regression"</code> 来选择优化生存时间预测的算法，而 <code>gamma.mu = 1e-3</code> 是随意选择的，因为这是一个必填参数（这个参数通常应当被调节）。然后我们把模型的预测与真实数据进行比较。</p>
 <div class="cell">
@@ -496,7 +545,7 @@ Attaching package: 'survival'</code></pre>
 </div>
 </div>
 <p>从输出中可以看到，我们的预测都小于真实的观测时间，这意味着我们知道模型低估了真实值。然而，由于每个真实值都是删失时间，我们完全没有办法知道这些预测是略微糟糕还是极其糟糕（也就是说，真实的生存时间可能是 <span class="math inline">\(105, 99, 92\)</span>，也可能是 <span class="math inline">\(300, 1000, 200\)</span>）。因此，在没有现实可行的方法来评估这些模型的情况下，生存时间预测很少有用。</p>
-</section><section id="predict_type-distr" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="predict_type-distr">predict_type = “distr”</h4>
+</section><section id="predict_type-distr" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="predict_type-distr" id="predict_type-distr">predict_type = “distr”</h4>
 <p>与回归中确定性/点预测最为常见不同，在生存分析中分布预测要常见得多。因此你会发现，<code>mlr3proba</code> 中的大多数生存模型默认都会做出分布预测。这些预测使用的是 <a href="https://alan-turing-institute.r-universe.dev/ui#package:distr6"><code>distr6</code></a> 包实现的，它可以实现生存曲线（定义为 <span class="math inline">\(1 -\)</span> 累积分布函数）的可视化与评估。下面我们从贯穿示例中提取前三个 <code>$distr</code> 预测，并计算在 <span class="math inline">\(t = 77\)</span> 处的生存概率。</p>
 <div class="cell">
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction_cph</span><span class="op">$</span><span class="va">distr</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span><span class="op">$</span><span class="fu">survival</span><span class="op">(</span><span class="fl">77</span><span class="op">)</span></span></code></pre></div>
@@ -506,9 +555,9 @@ Attaching package: 'survival'</code></pre>
 </div>
 </div>
 <p>输出表明，前三只被预测的老鼠分别在时间 77 时活着的概率为 94.1%、99.6%、86.8%。</p>
-</section><section id="predict_type-lp" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="predict_type-lp">predict_type = “lp”</h4>
+</section><section id="predict_type-lp" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="predict_type-lp" id="predict_type-lp">predict_type = “lp”</h4>
 <p><code>lp</code>，在学术写作中常写作 <span class="math inline">\(\eta\)</span>，是计算上最简单的预测，并且在回归建模中有自然的对应物。熟悉线性回归的读者会知道，在拟合简单线性回归模型 <span class="math inline">\(Y = X\beta\)</span> 时，我们估计的是 <span class="math inline">\(\beta\)</span> 的值，而估计的线性预测器（lp）就是 <span class="math inline">\(X\hat{\beta}\)</span>，其中 <span class="math inline">\(\hat{\beta}\)</span> 是我们估计的系数。在简单的生存模型中，线性预测器是同样的量（只是估计方式稍复杂一些）。<code>mlr3proba</code> 中的学习器实现主要以机器学习为导向，其中很少有模型具有简单的线性形式，这意味着大多数这样的模型都无法计算 <code>lp</code>。在实践中，当用于预测时，<code>lp</code> 是相对风险/连续排序预测的代理，这一点将在下面讨论。</p>
-</section><section id="predict_type-crank" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="predict_type-crank">predict_type = “crank”</h4>
+</section><section id="predict_type-crank" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="predict_type-crank" id="predict_type-crank">predict_type = “crank”</h4>
 <p>最后一种预测类型 <code>crank</code> 在生存分析中最常见，或许也最容易令人困惑。学术文献常常提到生存分析中的「风险（risk）」预测（因此生存模型常被称为「风险预测模型」），却没有定义「风险」究竟是什么意思。通常，风险被定义为 <span class="math inline">\(\exp(\eta)\)</span>，因为这是简单线性生存模型中的一个常见量。然而，有时风险被定义为 <span class="math inline">\(\exp(-\eta)\)</span>，有时它又是一个没有任何有意义的解释的任意量。为避免这种混乱，在 <code>mlr3proba</code> 中我们定义了预测类型 <code>crank</code>，它代表<strong>连</strong>续<strong>排</strong>名（<strong>c</strong>ontinuous <strong>rank</strong>ing）。这最好通过例子来理解；接续前面的内容，我们输出前三个 <code>crank</code> 预测。</p>
 <div class="cell">
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction_cph</span><span class="op">$</span><span class="va">crank</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></span></code></pre></div>
@@ -532,7 +581,7 @@ Attaching package: 'survival'</code></pre>
 <p>不同 R 包对生存预测中「风险」的解读各不相同，有时甚至在同一包内的不同模型之间也有所不同。在 <code>mlr3proba</code> 中，对 <code>crank</code> 有一个一致的解读：较低的值代表事件发生的风险较低，较高的值代表风险较高。</p>
 </div>
 </div>
-</section></section><section id="measuresurv" class="level3" data-number="13.2.3"><h3 data-number="13.2.3" class="anchored" data-anchor-id="measuresurv">
+</section></section><section id="measuresurv" class="level3" data-number="13.2.3"><h3 data-number="13.2.3" class="anchored" data-anchor-id="measuresurv" id="measuresurv">
 <span class="header-section-number">13.2.3</span> MeasureSurv</h3>
 <p><code>mlr3proba</code> 中的生存模型使用 <a href="https://mlr3proba.mlr-org.com/reference/MeasureSurv.html"><code>MeasureSurv</code></a> 对象进行评估，这些对象以惯常的方式用 <code><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr()</a></code> 构建。</p>
 <p>一般来说，生存度量可以分为以下几类：</p>
@@ -563,20 +612,20 @@ Attaching package: 'survival'</code></pre>
 </div>
 </div>
 <p>模型的性能看起来还可以，因为 ISBS 和 DCalib 相对较低，C-index 大于 0.5；然而，如果不与某个基线（通常是 Kaplan-Meier）进行比较，就很难确定任何生存模型的性能。</p>
-</section><section id="sec-surv-comp" class="level3" data-number="13.2.4"><h3 data-number="13.2.4" class="anchored" data-anchor-id="sec-surv-comp">
+</section><section id="sec-surv-comp" class="level3" data-number="13.2.4"><h3 data-number="13.2.4" class="anchored" data-anchor-id="sec-surv-comp" id="sec-surv-comp">
 <span class="header-section-number">13.2.4</span> 组合（Composition）</h3>
 <p>在 <code>mlr3proba</code> 的整个文档中，我们提到「原生（native）」和「组合（composed）」预测。我们将「原生」预测定义为模型在没有任何后处理的情况下做出的预测，而「组合」预测则是在后处理之后返回的预测。</p>
-<section id="internal-composition" class="level4" data-number="13.2.4.1"><h4 data-number="13.2.4.1" class="anchored" data-anchor-id="internal-composition">
+<section id="internal-composition" class="level4" data-number="13.2.4.1"><h4 data-number="13.2.4.1" class="anchored" data-anchor-id="internal-composition" id="internal-composition">
 <span class="header-section-number">13.2.4.1</span> 内部组合（Internal Composition）</h4>
 <p><code>mlr3proba</code> 在内部使用组合来为每个学习器返回一个 <code>"crank"</code> 预测。这是为了确保我们能够至少根据一个标准（判别性能）有意义地对所有模型进行基准测试。该包使用以下规则来创建 <code>"crank"</code> 预测：</p>
 <ol type="1">
 <li>如果模型返回「风险」预测，则 <code>crank = risk</code>（我们可能会将其乘以 <span class="math inline">\(-1\)</span> 以确保「低值低风险」的解读）。</li>
 <li>如果模型返回 <code>response</code> 预测，则我们设 <code>crank = -response</code>。</li>
 <li>如果模型返回 <code>lp</code> 预测，则我们设 <code>crank = lp</code>（如有需要则为 <code>crank = -lp</code>）。</li>
-<li>如果模型返回 <code>distr</code> 预测，则我们设 <code>crank</code> 为累积风险函数（cumulative hazard function）之和（关于我们为什么选择这个方法，详见 <span class="citation" data-cites="Sonabend2022">R. Sonabend, Bender, and Vollmer (<a href="../references.html#ref-Sonabend2022" role="doc-biblioref">2022</a>)</span> 的完整讨论）。</li>
-</ol></section><section id="explicit-composition-and-pipelines" class="level4" data-number="13.2.4.2"><h4 data-number="13.2.4.2" class="anchored" data-anchor-id="explicit-composition-and-pipelines">
+<li>如果模型返回 <code>distr</code> 预测，则我们设 <code>crank</code> 为累积风险函数（cumulative hazard function）之和（关于我们为什么选择这个方法，详见 <span class="citation" data-cites="Sonabend2022">R. Sonabend, Bender, and Vollmer (<a href="https://mlr3book.mlr-org.com/references.html#ref-Sonabend2022" role="doc-biblioref">2022</a>)</span> 的完整讨论）。</li>
+</ol></section><section id="explicit-composition-and-pipelines" class="level4" data-number="13.2.4.2"><h4 data-number="13.2.4.2" class="anchored" data-anchor-id="explicit-composition-and-pipelines" id="explicit-composition-and-pipelines">
 <span class="header-section-number">13.2.4.2</span> 显式组合与管道（Explicit Composition and Pipelines）</h4>
-<p>在本节开头，我们提到预测类型之间可以相互转换。在 <code>mlr3proba</code> 中，这可以通过「组合器（compositor）」管道来实现（<a href="../chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>）。该包中实现了若干管道，但其中三个特别专注于预测类型的转换：</p>
+<p>在本节开头，我们提到预测类型之间可以相互转换。在 <code>mlr3proba</code> 中，这可以通过「组合器（compositor）」管道来实现（<a href="https://mlr3book.mlr-org.com/chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>）。该包中实现了若干管道，但其中三个特别专注于预测类型的转换：</p>
 <ol type="1">
 <li>
 <a href="https://mlr3proba.mlr-org.com/reference/mlr_graphs_crankcompositor.html"><code>pipeline_crankcompositor()</code></a> —— 将 <code>"distr"</code> 预测转换为 <code>"crank"</code></li>
@@ -641,8 +690,8 @@ Attaching package: 'survival'</code></pre>
 <li>将所有部分整合为 <span class="math inline">\(S(t) = \hat{S}_0(\frac{t}{\exp(\hat{\eta})})\)</span>
 </li>
 </ol>
-<p>关于预测类型和组合的更详细信息，我们推荐 <span class="citation" data-cites="Kalbfleisch2011">Kalbfleisch and Prentice (<a href="../references.html#ref-Kalbfleisch2011" role="doc-biblioref">2011</a>)</span>。</p>
-</section></section><section id="sec-survival-all" class="level3" data-number="13.2.5"><h3 data-number="13.2.5" class="anchored" data-anchor-id="sec-survival-all">
+<p>关于预测类型和组合的更详细信息，我们推荐 <span class="citation" data-cites="Kalbfleisch2011">Kalbfleisch and Prentice (<a href="https://mlr3book.mlr-org.com/references.html#ref-Kalbfleisch2011" role="doc-biblioref">2011</a>)</span>。</p>
+</section></section><section id="sec-survival-all" class="level3" data-number="13.2.5"><h3 data-number="13.2.5" class="anchored" data-anchor-id="sec-survival-all" id="sec-survival-all">
 <span class="header-section-number">13.2.5</span> 综合应用（Putting It All Together）</h3>
 <p>最后，我们将在一个小型基准测试实验中把以上所有内容付诸实践。我们首先加载 <code>tsk("grace")</code>（只有数值特征）并随机抽样 500 行。然后我们选择 ISBS、D-校准和 C-index 来评估预测，搭建我们在上一个实验中使用的同一个管道，并加载一个 Cox PH 和一个 Kaplan-Meier 估计器。我们用三折 CV 运行实验并聚合结果。</p>
 <div class="cell">
@@ -677,9 +726,9 @@ Attaching package: 'survival'</code></pre>
 </div>
 <p>在这个小型实验中，XGBoost-AFT 和 Cox PH 的判别能力最好，Kaplan-Meier 基线的校准最好，而 Cox PH 的整体预测准确性最高（ISBS 最低）。</p>
 </section></section>
-<section id="sec-density" class="level2" data-number="13.3"><h2 data-number="13.3" class="anchored" data-anchor-id="sec-density">
+<section id="sec-density" class="level2" data-number="13.3"><h2 data-number="13.3" class="anchored" data-anchor-id="sec-density" id="sec-density">
 <span class="header-section-number">13.3</span> 密度估计（Density Estimation）</h2>
-<p>密度估计是一种学习任务，用于估计生成单变量数据集的那个未知分布，更简单地说，就是估计单个变量的概率密度（或质量）函数。与生存分析一样，密度估计也是在 <code>mlr3proba</code> 中实现的，因为两者都可以做出概率分布预测（这就是「mlr3**proba**bilistic」（概率）这个名称中 proba 的由来）。无条件密度估计（即不带任何协变量地估计一个目标）被视为无监督任务，这意味着「真相」永远不会被知晓。关于密度估计的综述，参见 <span class="citation" data-cites="Silverman1986">Silverman (<a href="../references.html#ref-Silverman1986" role="doc-biblioref">1986</a>)</span>。</p>
+<p>密度估计是一种学习任务，用于估计生成单变量数据集的那个未知分布，更简单地说，就是估计单个变量的概率密度（或质量）函数。与生存分析一样，密度估计也是在 <code>mlr3proba</code> 中实现的，因为两者都可以做出概率分布预测（这就是「mlr3**proba**bilistic」（概率）这个名称中 proba 的由来）。无条件密度估计（即不带任何协变量地估计一个目标）被视为无监督任务，这意味着「真相」永远不会被知晓。关于密度估计的综述，参见 <span class="citation" data-cites="Silverman1986">Silverman (<a href="https://mlr3book.mlr-org.com/references.html#ref-Silverman1986" role="doc-biblioref">1986</a>)</span>。</p>
 <p><code>mlr3proba</code> 包通过以下对象为密度估计扩展 <code>mlr3</code>：</p>
 <ul>
 <li>
@@ -695,7 +744,7 @@ Attaching package: 'survival'</code></pre>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>密度估计属于无监督学习，因为它没有「目标变量」用于有监督的学习信号。它与回归/分类的关键区别在于：有监督任务通常只估计条件分布的某个概括量（如均值或类别），而密度估计要尽可能完整地恢复整个分布。这在风险建模、异常检测等场景中非常有用。`mlr3proba` 之所以同时实现生存分析和密度估计，正是因为这两个任务的核心预测对象都是「概率分布」（`distr` 预测类型），本质上都依赖 `distr6` 包的分布对象体系。</p>
 </div>
-<section id="taskdens" class="level3" data-number="13.3.1"><h3 data-number="13.3.1" class="anchored" data-anchor-id="taskdens">
+<section id="taskdens" class="level3" data-number="13.3.1"><h3 data-number="13.3.1" class="anchored" data-anchor-id="taskdens" id="taskdens">
 <span class="header-section-number">13.3.1</span> TaskDens</h3>
 <p>由于密度估计是无监督任务，因此没有用于预测的目标。在下面的代码中，我们使用 <a href="https://mlr3proba.mlr-org.com/reference/as_task_dens.html"><code>as_task_dens()</code></a> 构造一个密度任务，它接受一个参数，即一个恰好只有一列的 <code>data.frame</code> 类型对象（我们将用这一列来估计底层分布）。</p>
 <div class="cell">
@@ -719,7 +768,7 @@ Attaching package: 'survival'</code></pre>
 2:   precip   Annual Precipitation   70    1</code></pre>
 </div>
 </div>
-</section><section id="learnerdens-and-predictiondens" class="level3" data-number="13.3.2"><h3 data-number="13.3.2" class="anchored" data-anchor-id="learnerdens-and-predictiondens">
+</section><section id="learnerdens-and-predictiondens" class="level3" data-number="13.3.2"><h3 data-number="13.3.2" class="anchored" data-anchor-id="learnerdens-and-predictiondens" id="learnerdens-and-predictiondens">
 <span class="header-section-number">13.3.2</span> LearnerDens 与 PredictionDens</h3>
 <p>密度学习器可以返回以下预测类型：</p>
 <ol type="1">
@@ -740,7 +789,7 @@ Attaching package: 'survival'</code></pre>
 <div class="cell-output-display">
 <div id="fig-dens-hist" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Image shows a line plot with x-axis between (-2,2) and y-axis between (0,0.4). The plot closely resembles a Normal(0, 1) distribution with a peak at 0.4.">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-dens-hist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/beyond_regression_and_classification_files/figure-html/fig-dens-hist-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Image shows a line plot with x-axis between (-2,2) and y-axis between (0,0.4). The plot closely resembles a Normal(0, 1) distribution with a peak at 0.4.">
+<img src="../images/beyond_regression_and_classification_files/figure-html/fig-dens-hist-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Image shows a line plot with x-axis between (-2,2) and y-axis between (0,0.4). The plot closely resembles a Normal(0, 1) distribution with a peak at 0.4.">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-dens-hist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;13.4：直方图学习器预测的密度，与底层的 N(0, 1) 数据非常接近。
@@ -772,7 +821,7 @@ Attaching package: 'survival'</code></pre>
 [3,] 0.6208 0.6208</code></pre>
 </div>
 </div>
-</section><section id="measuredens-and-putting-it-all-together" class="level3" data-number="13.3.3"><h3 data-number="13.3.3" class="anchored" data-anchor-id="measuredens-and-putting-it-all-together">
+</section><section id="measuredens-and-putting-it-all-together" class="level3" data-number="13.3.3"><h3 data-number="13.3.3" class="anchored" data-anchor-id="measuredens-and-putting-it-all-together" id="measuredens-and-putting-it-all-together">
 <span class="header-section-number">13.3.3</span> MeasureDens 与综合应用（Putting It All Together）</h3>
 <p>在本书出版时，<code>mlr3proba</code> 为密度估计实现的唯一度量是 logloss（对数损失），其定义方式与分类中相同，<span class="math inline">\(L(y) = -\log(\hat{f}_Y(y))\)</span>，其中 <span class="math inline">\(\hat{f}_Y\)</span> 是我们估计的概率密度函数。将这一点与上述内容结合起来，我们现在就可以训练密度学习器、估计分布并评估我们的估计：</p>
 <div class="cell">
@@ -825,7 +874,7 @@ Attaching package: 'survival'</code></pre>
 </div>
 <p>该实验的结果（<span class="quarto-unresolved-ref">?fig-beyond-density</span>）表明，复杂的惩罚密度估计器（Penalized Density Estimator）并没有胜过基线直方图，但核密度估计器（Kernel Density Estimator）至少在 logloss 结果上始终更好（即更低）。</p>
 </section></section>
-<section id="sec-cluster" class="level2 page-columns page-full" data-number="13.4"><h2 data-number="13.4" class="anchored" data-anchor-id="sec-cluster">
+<section id="sec-cluster" class="level2 page-columns page-full" data-number="13.4"><h2 data-number="13.4" class="anchored" data-anchor-id="sec-cluster" id="sec-cluster">
 <span class="header-section-number">13.4</span> 聚类分析（Cluster Analysis）</h2>
 <p>聚类分析（cluster analysis）是 <code>mlr3</code> 中实现的另一个无监督任务。聚类分析的目标是把数据分组为若干簇（cluster），每个簇包含彼此相似的观测。相似性基于事先指定的度量来判定，而这些度量取决于具体任务与应用场景。与分类不同——分类要为每个观测预测一个类别——在聚类分析中并不存在可供预测的「真实」标签或类别。</p>
 <p><a href="https://mlr3cluster.mlr-org.com"><code>mlr3cluster</code></a> 包通过以下对象扩展 <code>mlr3</code> 以支持聚类分析：</p>
@@ -843,9 +892,9 @@ Attaching package: 'survival'</code></pre>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>聚类是无监督学习（unsupervised learning）的典型任务：数据没有标签，算法需要自己发现数据内在的结构。这里「相似性」并非天生的属性，而完全依赖于我们选择的距离度量与特征表示——同一份数据先用欧氏距离、再用余弦距离聚类，往往会得到差别很大的结果。因此聚类结果更多是「在给定度量与超参数下的一个划分方案」，而不是数据中客观存在的「真实类别」。这与 K-均值（K-means）、层次聚类（hierarchical clustering）等经典算法一脉相承，只是 <code>mlr3cluster</code> 把它们包装成了统一的 <code>LearnerClust</code> 接口，从而可以和分类、回归学习器放进同一个基准测试（benchmark）框架里比较。阅读本章时请始终带着这个前提：聚类没有标准答案。</p>
 </div>
-<section id="taskclust" class="level3" data-number="13.4.1"><h3 data-number="13.4.1" class="anchored" data-anchor-id="taskclust">
+<section id="taskclust" class="level3" data-number="13.4.1"><h3 data-number="13.4.1" class="anchored" data-anchor-id="taskclust" id="taskclust">
 <span class="header-section-number">13.4.1</span> TaskClust</h3>
-<p>与密度估计类似（<a href="#sec-density" class="quarto-xref"><span>第 13.3 节</span></a>），聚类没有可供预测的目标，因而 <a href="https://mlr3cluster.mlr-org.com/reference/TaskClust.html"><code>TaskClust</code></a> 中也没有 <code>truth</code> 字段。作为示例，我们将使用 <a href="https://www.rdocumentation.org/packages/cluster/topics/ruspini"><code>ruspini</code></a> 数据集——它有 75 行、两列，最早由 <span class="citation" data-cites="Ruspini1970">Ruspini (<a href="../references.html#ref-Ruspini1970" role="doc-biblioref">1970</a>)</span> 提出，用于演示各种不同的聚类技术。该数据集中的观测自然形成四个簇（<a href="#fig-beyond-clust-ruspini" class="quarto-xref">图&nbsp;<span>13.5</span></a>）。在下面的代码中，我们用 <a href="https://mlr3cluster.mlr-org.com/reference/as_task_clust.html"><code>as_task_clust()</code></a> 构造一个聚类任务，该函数只接受一个参数，即一个 <code>data.frame</code> 类型的对象。</p>
+<p>与密度估计类似（<a href="#sec-density" class="quarto-xref"><span>第 13.3 节</span></a>），聚类没有可供预测的目标，因而 <a href="https://mlr3cluster.mlr-org.com/reference/TaskClust.html"><code>TaskClust</code></a> 中也没有 <code>truth</code> 字段。作为示例，我们将使用 <a href="https://www.rdocumentation.org/packages/cluster/topics/ruspini"><code>ruspini</code></a> 数据集——它有 75 行、两列，最早由 <span class="citation" data-cites="Ruspini1970">Ruspini (<a href="https://mlr3book.mlr-org.com/references.html#ref-Ruspini1970" role="doc-biblioref">1970</a>)</span> 提出，用于演示各种不同的聚类技术。该数据集中的观测自然形成四个簇（<a href="#fig-beyond-clust-ruspini" class="quarto-xref">图&nbsp;<span>13.5</span></a>）。在下面的代码中，我们用 <a href="https://mlr3cluster.mlr-org.com/reference/as_task_clust.html"><code>as_task_clust()</code></a> 构造一个聚类任务，该函数只接受一个参数，即一个 <code>data.frame</code> 类型的对象。</p>
 <div class="cell">
 <div class="sourceCode" id="cb55"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3verse.mlr-org.com">mlr3verse</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://svn.r-project.org/R-packages/trunk/cluster/">cluster</a></span><span class="op">)</span></span>
@@ -870,7 +919,7 @@ Attaching package: 'survival'</code></pre>
 <div class="cell-output-display">
 <div id="fig-beyond-clust-ruspini" class="quarto-float quarto-figure quarto-figure-center anchored" alt="四个网格图。左上是一条曲线：在 (0,0.003) 到 (30,0.012) 之间急剧上升，随后下降到 (120, 0.003)。右上只写有「Corr: 0.065」。左下显示出四个界限分明的点簇。右下从 (0, 50) 上升到 (140, 150)，随后下降到 (155, 100)。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-beyond-clust-ruspini-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-ruspini-1.png" class="img-fluid figure-img" style="width:100.0%" alt="四个网格图。左上是一条曲线：在 (0,0.003) 到 (30,0.012) 之间急剧上升，随后下降到 (120, 0.003)。右上只写有「Corr: 0.065」。左下显示出四个界限分明的点簇。右下从 (0, 50) 上升到 (140, 150)，随后下降到 (155, 100)。">
+<img src="../images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-ruspini-1.png" class="img-fluid figure-img" style="width:100.0%" alt="四个网格图。左上是一条曲线：在 (0,0.003) 到 (30,0.012) 之间急剧上升，随后下降到 (120, 0.003)。右上只写有「Corr: 0.065」。左下显示出四个界限分明的点簇。右下从 (0, 50) 上升到 (140, 150)，随后下降到 (155, 100)。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-beyond-clust-ruspini-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;13.5：<code>ruspini</code> 数据集的分布。
@@ -887,7 +936,7 @@ Attaching package: 'survival'</code></pre>
 2: usarrests US Arrests   50    4</code></pre>
 </div>
 </div>
-</section><section id="learnerclust-and-predictionclust" class="level3 page-columns page-full" data-number="13.4.2"><h3 data-number="13.4.2" class="anchored" data-anchor-id="learnerclust-and-predictionclust">
+</section><section id="learnerclust-and-predictionclust" class="level3 page-columns page-full" data-number="13.4.2"><h3 data-number="13.4.2" class="anchored" data-anchor-id="learnerclust-and-predictionclust" id="learnerclust-and-predictionclust">
 <span class="header-section-number">13.4.2</span> LearnerClust 与 PredictionClust</h3>
 <p>与密度估计一样，为了与 <code>mlr3</code> 接口保持一致，我们也沿用「训练（training）」和「预测（predicting）」这两个说法来描述聚类；但严格说来，它们应该叫「聚类（clustering）」和「分配（assigning）」（后者我们很快会再谈）。聚类学习器提供两种 <code>predict_types</code>：</p>
 <ol type="1">
@@ -936,7 +985,7 @@ Attaching package: 'survival'</code></pre>
 <div class="cell-output-display">
 <div id="fig-beyond-clust-ruspini-estimated" class="quarto-float quarto-figure quarto-figure-center anchored" alt="四个网格图。左上是三条相互重叠的曲线，分别为紫色（簇 1）、蓝色（簇 2）和绿色（簇 3）。紫曲线和蓝曲线在大部分位置为零，随后分别在 (30, 120) 和 (60, 120) 处达到峰值。绿曲线从 (0,0) 出发，缓慢上升到 (40, 120)，随后起伏下降至 (120, 60)。右上以绿色（簇 3）写有「-0.78」，以蓝色（簇 2）写有「0」，以紫色（簇 1）写有「-0.05」。左下显示出四个界限分明的点簇，其中两个是绿色，一个是蓝色（下方），一个是紫色（左下）。右下是折线图，形状与左上相似但上下颠倒。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-beyond-clust-ruspini-estimated-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-ruspini-estimated-1.png" class="img-fluid figure-img" style="width:100.0%" alt="四个网格图。左上是三条相互重叠的曲线，分别为紫色（簇 1）、蓝色（簇 2）和绿色（簇 3）。紫曲线和蓝曲线在大部分位置为零，随后分别在 (30, 120) 和 (60, 120) 处达到峰值。绿曲线从 (0,0) 出发，缓慢上升到 (40, 120)，随后起伏下降至 (120, 60)。右上以绿色（簇 3）写有「-0.78」，以蓝色（簇 2）写有「0」，以紫色（簇 1）写有「-0.05」。左下显示出四个界限分明的点簇，其中两个是绿色，一个是蓝色（下方），一个是紫色（左下）。右下是折线图，形状与左上相似但上下颠倒。">
+<img src="../images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-ruspini-estimated-1.png" class="img-fluid figure-img" style="width:100.0%" alt="四个网格图。左上是三条相互重叠的曲线，分别为紫色（簇 1）、蓝色（簇 2）和绿色（簇 3）。紫曲线和蓝曲线在大部分位置为零，随后分别在 (30, 120) 和 (60, 120) 处达到峰值。绿曲线从 (0,0) 出发，缓慢上升到 (40, 120)，随后起伏下降至 (120, 60)。右上以绿色（簇 3）写有「-0.78」，以蓝色（簇 2）写有「0」，以紫色（簇 1）写有「-0.05」。左下显示出四个界限分明的点簇，其中两个是绿色，一个是蓝色（下方），一个是紫色（左下）。右下是折线图，形状与左上相似但上下颠倒。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-beyond-clust-ruspini-estimated-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;13.6：所估计簇的分布。
@@ -970,7 +1019,7 @@ Attaching package: 'survival'</code></pre>
 <div class="cell-output-display">
 <div id="fig-beyond-clust-dend" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图中一条水平线连接着两条竖直线，每条竖直线又连接到另一条水平线，而该水平线再分成两条竖直线，如此一直分下去，最多可见九处分叉。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-beyond-clust-dend-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-dend-1.png" class="img-fluid figure-img" style="width:100.0%" alt="图中一条水平线连接着两条竖直线，每条竖直线又连接到另一条水平线，而该水平线再分成两条竖直线，如此一直分下去，最多可见九处分叉。">
+<img src="../images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-dend-1.png" class="img-fluid figure-img" style="width:100.0%" alt="图中一条水平线连接着两条竖直线，每条竖直线又连接到另一条水平线，而该水平线再分成两条竖直线，如此一直分下去，最多可见九处分叉。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-beyond-clust-dend-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;13.7：表示 <code>ruspini</code> 数据集层次聚类结果的树状图。y 轴表示点的相似度，因此位置越靠下（x 轴）的观测相似度越高、越容易被连在一起。最上方的分叉代表两个簇的分离。
@@ -979,7 +1028,7 @@ Attaching package: 'survival'</code></pre>
 </div>
 </div>
 <p>在这种情况下，<code>predict</code> 方法所做的仅仅是按学习器的 <code>k</code> 参数所指定的簇数，把树状图切开而已。</p>
-</section><section id="measureclust" class="level3" data-number="13.4.3"><h3 data-number="13.4.3" class="anchored" data-anchor-id="measureclust">
+</section><section id="measureclust" class="level3" data-number="13.4.3"><h3 data-number="13.4.3" class="anchored" data-anchor-id="measureclust" id="measureclust">
 <span class="header-section-number">13.4.3</span> MeasureClust</h3>
 <p>正如前面讨论过的，无监督任务在模型评估时没有可供比较的真实标签数据。不过，我们仍然可以通过量化同一簇内对象之间关联的紧密程度（簇内聚度，cluster cohesion），以及不同簇之间彼此区分的程度（簇间离散度，cluster separation），来衡量簇分配的质量。<code>mlr3</code> 中提供了若干内置的评估指标来考察聚类质量，可以在 <a href="https://mlr3.mlr-org.com/reference/mlr_measures.html"><code>mlr_measures</code></a> 字典中检索到。</p>
 <p>两个常用的度量是簇内平方和（within sum of squares，WSS）度量（<code>msr("clust.wss")</code>）和轮廓系数（silhouette coefficient，<code>msr("clust.silhouette")</code>）。WSS 计算观测与其簇心之间平方差的总和，用以量化簇的聚度（数值越小说明簇越紧凑）。轮廓系数则量化每个点归属于其所分配簇、而非邻近簇的程度，得分越接近 <code>1</code> 表示聚类效果越好，越接近 <code>-1</code> 表示聚类效果越差。请注意，<code>mlr3cluster</code> 中的轮廓度量返回的是所有观测的平均轮廓得分，并且当只有一个簇时，该度量直接输出 0。</p>
@@ -995,9 +1044,9 @@ Attaching package: 'survival'</code></pre>
 </div>
 <p>非常高的 WSS 和中等偏上的平均轮廓系数表明，我们的聚类结果还有改进空间。</p>
 <p>由于没有真实标签可依，把一个无监督任务压缩成一个量化指标往往未必有多大用处；相比之下，可视化（下一节讨论）可能是评估聚类质量更有效的工具。</p>
-</section><section id="visualization" class="level3" data-number="13.4.4"><h3 data-number="13.4.4" class="anchored" data-anchor-id="visualization">
+</section><section id="visualization" class="level3" data-number="13.4.4"><h3 data-number="13.4.4" class="anchored" data-anchor-id="visualization" id="visualization">
 <span class="header-section-number">13.4.4</span> 可视化</h3>
-<p>由于聚类是无监督任务，可视化不仅对「评估」模型至关重要，也能帮助我们判断学习器在我们的任务上是否表现得符合预期。本节先介绍用于辅助聚类选择（clustering choices）的可视化，随后再讨论用于评估模型性能的图形。</p><section id="visualizing-clusters" class="level4" data-number="13.4.4.1"><h4 data-number="13.4.4.1" class="anchored" data-anchor-id="visualizing-clusters">
+<p>由于聚类是无监督任务，可视化不仅对「评估」模型至关重要，也能帮助我们判断学习器在我们的任务上是否表现得符合预期。本节先介绍用于辅助聚类选择（clustering choices）的可视化，随后再讨论用于评估模型性能的图形。</p><section id="visualizing-clusters" class="level4" data-number="13.4.4.1"><h4 data-number="13.4.4.1" class="anchored" data-anchor-id="visualizing-clusters" id="visualizing-clusters">
 <span class="header-section-number">13.4.4.1</span> 簇的可视化</h4>
 <p>依靠聚类度量来评估聚类质量很容易，但这样做需要谨慎，因为在模型之间做选择时，最终可能取决于簇是如何形成的等其他决策。举个例子，考虑由 <a href="https://www.rdocumentation.org/packages/mlbench/topics/mlbench.spirals"><code>mlbench.spirals</code></a> 生成的数据，它会形成两条彼此缠绕的独立曲线（<a href="#fig-beyond-clust-spirals" class="quarto-xref">图&nbsp;<span>13.8</span></a>）。</p>
 <div class="cell">
@@ -1007,7 +1056,7 @@ Attaching package: 'survival'</code></pre>
 <div class="cell-output-display">
 <div id="fig-beyond-clust-spirals" class="quarto-float quarto-figure quarto-figure-center anchored" alt="四幅图的网格。左上：一条曲线从 (-1,0.1) 上升到 (0,0.5)，随后下降到 (1,0.1)。右上：文字写有「Corr: -0.145」。左下：两条点线紧密地相互缠绕成螺旋状，互不重叠。右下：形状与左上相同。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-beyond-clust-spirals-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-spirals-1.png" class="img-fluid figure-img" style="width:100.0%" alt="四幅图的网格。左上：一条曲线从 (-1,0.1) 上升到 (0,0.5)，随后下降到 (1,0.1)。右上：文字写有「Corr: -0.145」。左下：两条点线紧密地相互缠绕成螺旋状，互不重叠。右下：形状与左上相同。">
+<img src="../images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-spirals-1.png" class="img-fluid figure-img" style="width:100.0%" alt="四幅图的网格。左上：一条曲线从 (-1,0.1) 上升到 (0,0.5)，随后下降到 (1,0.1)。右上：文字写有「Corr: -0.145」。左下：两条点线紧密地相互缠绕成螺旋状，互不重叠。右下：形状与左上相同。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-beyond-clust-spirals-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;13.8：<code>spirals</code> 数据的分布。
@@ -1048,7 +1097,7 @@ Attaching package: 'survival'</code></pre>
 <div class="cell-output-display">
 <div id="fig-beyond-clust-spirals-pred" class="quarto-float quarto-figure quarto-figure-center anchored" alt="与上一幅图中相同的螺旋数据的两幅图。左（K-means）：位于直线 x=y 上方的点为紫色（簇 1），其余点为绿色（簇 2）。右（DBSCAN）：其中一条螺旋为紫色，另一条为绿色。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-beyond-clust-spirals-pred-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-spirals-pred-1.png" class="img-fluid figure-img" style="width:100.0%" alt="与上一幅图中相同的螺旋数据的两幅图。左（K-means）：位于直线 x=y 上方的点为紫色（簇 1），其余点为绿色（簇 2）。右（DBSCAN）：其中一条螺旋为紫色，另一条为绿色。">
+<img src="../images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-spirals-pred-1.png" class="img-fluid figure-img" style="width:100.0%" alt="与上一幅图中相同的螺旋数据的两幅图。左（K-means）：位于直线 x=y 上方的点为紫色（簇 1），其余点为绿色（簇 2）。右（DBSCAN）：其中一条螺旋为紫色，另一条为绿色。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-beyond-clust-spirals-pred-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;13.9：比较 <code>lrn("clust.kmeans")</code> 与 <code>lrn("clust.dbscan")</code> 所估计出的簇。两者都产生了两个界限分明的簇，但分离的方式不同。
@@ -1060,7 +1109,7 @@ Attaching package: 'survival'</code></pre>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>这个螺旋（spirals）数据集是聚类文献中著名的反例，它用来说明「无监督聚类中不存在普适的最好算法」。K-均值隐含假设簇是凸的、大小相近、方差相近，它以欧氏距离为基础，因此只能切出直线边界；DBSCAN 基于密度连通性，能跟随任意形状的弯曲结构。但轮廓系数（silhouette）度量的是「到本簇质心的距离」与「到最近邻簇质心的距离」之比，它是嵌入在欧氏几何里的量，无法识别螺旋这种拓扑结构上的差异。原文此处存在一处表述上的硬伤：作者由轮廓得分（K-均值 0.37248 > DBSCAN 0.02935）推出「K-均值是更好的选择」，但随后的图 13.9 又显示 DBSCAN 的划分才符合数据的真实生成结构。正确理解应是：轮廓得分在此处具有误导性，度量指标必须与可视化结合使用，脱离任务背景单看数值会得出错误结论。这也是本节反复强调「可视化比量化指标更可靠」的用意所在。</p>
 </div>
-</section><section id="pca-and-silhouette-plots" class="level4" data-number="13.4.4.2"><h4 data-number="13.4.4.2" class="anchored" data-anchor-id="pca-and-silhouette-plots">
+</section><section id="pca-and-silhouette-plots" class="level4" data-number="13.4.4.2"><h4 data-number="13.4.4.2" class="anchored" data-anchor-id="pca-and-silhouette-plots" id="pca-and-silhouette-plots">
 <span class="header-section-number">13.4.4.2</span> PCA 图与轮廓图</h4>
 <p><a href="https://mlr3viz.mlr-org.com"><code>mlr3viz</code></a> 中为支持聚类学习器评估而实现的两幅最重要的图，是 PCA 图和轮廓图。</p>
 <p>主成分分析（principal components analysis，PCA）是机器学习中常用的一种降维方法，用于减少数据集中的变量数量，或用于可视化最重要的若干「成分」——所谓成分，就是对数据集特征所做的线性变换。如果某个成分的方差更大（因而预测能力更强），就认为它更重要。在聚类的场景中，把观测按前两个主成分作图、再按簇着色，我们就能把高维数据集可视化出来，并且预期会看到观测分成界限分明的若干组。</p>
@@ -1073,7 +1122,7 @@ Attaching package: 'survival'</code></pre>
 <div class="cell-output-display">
 <div id="fig-beyond-clust-usarrests" class="quarto-float quarto-figure quarto-figure-center anchored" alt="绿色（簇 2）与紫色（簇 1）点的散点图。x 轴：PC1（96.55%），范围在 -0.3 到 0.2 之间。y 轴：PC2（2.78%），范围在 -0.3 到 0.2 之间。点在颜色上被干净地分成两簇。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-beyond-clust-usarrests-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-usarrests-1.png" class="img-fluid figure-img" style="width:100.0%" alt="绿色（簇 2）与紫色（簇 1）点的散点图。x 轴：PC1（96.55%），范围在 -0.3 到 0.2 之间。y 轴：PC2（2.78%），范围在 -0.3 到 0.2 之间。点在颜色上被干净地分成两簇。">
+<img src="../images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-usarrests-1.png" class="img-fluid figure-img" style="width:100.0%" alt="绿色（簇 2）与紫色（簇 1）点的散点图。x 轴：PC1（96.55%），范围在 -0.3 到 0.2 之间。y 轴：PC2（2.78%），范围在 -0.3 到 0.2 之间。点在颜色上被干净地分成两簇。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-beyond-clust-usarrests-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;13.10：对 <code>tsk("usarrests")</code> 做 PCA 所得的前两个主成分。
@@ -1088,7 +1137,7 @@ Attaching package: 'survival'</code></pre>
 <div class="cell-output-display">
 <div id="fig-beyond-clust-sil" class="quarto-float quarto-figure quarto-figure-center anchored" alt="水平条形图，x 轴为「Silhouette Values」（轮廓值），范围 0 到 1；y 轴为「Observations」（观测），范围 0 到 50。编号 0-20 的观测全为紫色（簇 1），编号 21-50 的观测为绿色（簇 2）。一条竖向虚线穿过 x=0.59 处。多数条形在该线之前就结束了。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-beyond-clust-sil-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-sil-1.png" class="img-fluid figure-img" style="width:100.0%" alt="水平条形图，x 轴为「Silhouette Values」（轮廓值），范围 0 到 1；y 轴为「Observations」（观测），范围 0 到 50。编号 0-20 的观测全为紫色（簇 1），编号 21-50 的观测为绿色（簇 2）。一条竖向虚线穿过 x=0.59 处。多数条形在该线之前就结束了。">
+<img src="../images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-sil-1.png" class="img-fluid figure-img" style="width:100.0%" alt="水平条形图，x 轴为「Silhouette Values」（轮廓值），范围 0 到 1；y 轴为「Observations」（观测），范围 0 到 50。编号 0-20 的观测全为紫色（簇 1），编号 21-50 的观测为绿色（簇 2）。一条竖向虚线穿过 x=0.59 处。多数条形在该线之前就结束了。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-beyond-clust-sil-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;13.11：<code>lrn("clust.kmeans")</code> 在 <code>tsk("usarrests")</code> 上所作预测的轮廓图。
@@ -1096,7 +1145,7 @@ Attaching package: 'survival'</code></pre>
 </div>
 </div>
 </div>
-</section></section><section id="sec-cluster-all" class="level3" data-number="13.4.5"><h3 data-number="13.4.5" class="anchored" data-anchor-id="sec-cluster-all">
+</section></section><section id="sec-cluster-all" class="level3" data-number="13.4.5"><h3 data-number="13.4.5" class="anchored" data-anchor-id="sec-cluster-all" id="sec-cluster-all">
 <span class="header-section-number">13.4.5</span> 综合应用</h3>
 <p>最后，我们用 <code>tsk("usarrests")</code> 和若干内置的聚类学习器做一次小型基准测试研究：</p>
 <div class="cell">
@@ -1118,16 +1167,16 @@ Attaching package: 'survival'</code></pre>
 </div>
 </div>
 <p>C-Means 和 K-均值算法都要明显优于无特征基线，但要判断二者中哪一个更适合我们的需求，仍需进一步的分析（以及可视化）。</p>
-</section></section><section id="sec-spatiotemporal" class="level2 page-columns page-full" data-number="13.5"><h2 data-number="13.5" class="anchored" data-anchor-id="sec-spatiotemporal">
+</section></section><section id="sec-spatiotemporal" class="level2 page-columns page-full" data-number="13.5"><h2 data-number="13.5" class="anchored" data-anchor-id="sec-spatiotemporal" id="sec-spatiotemporal">
 <span class="header-section-number">13.5</span> 空间分析（Spatial Analysis）</h2>
 <p>本书最后要讨论的任务是空间分析。空间分析可以是任何其他机器学习任务（例如回归或分类）的一个子集，其定义依据是数据集中存在空间信息——通常以坐标的形式存储，坐标常被命名为「x」和「y」，或「lat」和「lon」（分别表示「纬度」和「经度」）。</p>
-<p>空间分析之所以能作为独立任务，是因为空间数据必须被谨慎处理——这是由「自相关（autocorrelation）」的复杂性所决定的。相关性被定义为<em>两个</em>变量之间的统计关联，而自相关则是<em>同一个</em>变量内部的统计关联。用机器学习的语言来说：在一个包含特征与观测的数据集中，相关性发生在两个或更多特征以某种方式统计关联的时候，而自相关发生在同一个特征上两个或更多观测之间存在统计关联的时候。因此，自相关违反了机器学习中「数据集中所有观测相互独立」这一基本假设，其后果是我们对训练出的机器学习模型质量以及由此得到的性能估计的信心都会降低 <span class="citation" data-cites="hastie2001">(<a href="../references.html#ref-hastie2001" role="doc-biblioref">Hastie, Friedman, and Tibshirani 2001</a>)</span>。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">自相关</span></div></div>
+<p>空间分析之所以能作为独立任务，是因为空间数据必须被谨慎处理——这是由「自相关（autocorrelation）」的复杂性所决定的。相关性被定义为<em>两个</em>变量之间的统计关联，而自相关则是<em>同一个</em>变量内部的统计关联。用机器学习的语言来说：在一个包含特征与观测的数据集中，相关性发生在两个或更多特征以某种方式统计关联的时候，而自相关发生在同一个特征上两个或更多观测之间存在统计关联的时候。因此，自相关违反了机器学习中「数据集中所有观测相互独立」这一基本假设，其后果是我们对训练出的机器学习模型质量以及由此得到的性能估计的信心都会降低 <span class="citation" data-cites="hastie2001">(<a href="https://mlr3book.mlr-org.com/references.html#ref-hastie2001" role="doc-biblioref">Hastie, Friedman, and Tibshirani 2001</a>)</span>。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">自相关</span></div></div>
 <p>空间数据中之所以存在自相关，是因为坐标中编码了隐含信息，例如两个观测（如城市、国家、大洲）是彼此靠近还是相距遥远。举个例子，假设我们要预测德国某次疫情暴发两个月之后的病例数（<a href="#fig-autocorrelation" class="quarto-xref">图&nbsp;<span>13.12</span></a>）。疫情会从一个震中向外扩散，因此离德国越近的国家病例数越高，离德国越远的国家病例数越低（<a href="#fig-autocorrelation" class="quarto-xref">图&nbsp;<span>13.12</span></a>，下图）。因此，从空间角度审视数据，就能看到邻近观测之间存在明显的自相关迹象。请注意，在这个例子中自相关是放射状的，但在实际情形中并不总是如此。</p>
 <div class="cell">
 <div class="cell-output-display">
 <div id="fig-autocorrelation" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图中是欧洲的两幅分开的地图。上图为从白色到深灰色的随机颜色分布。下图显示德国处颜色最深（深灰），而随着各国离德国越来越远，颜色逐渐变浅。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-autocorrelation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/beyond_regression_and_classification_files/figure-html/fig-autocorrelation-1.png" style="width:60.0%;height:60.0%" alt="图中是欧洲的两幅分开的地图。上图为从白色到深灰色的随机颜色分布。下图显示德国处颜色最深（深灰），而随着各国离德国越来越远，颜色逐渐变浅。" class="figure-img">
+<img src="../images/beyond_regression_and_classification_files/figure-html/fig-autocorrelation-1.png" style="width:60.0%;height:60.0%" alt="图中是欧洲的两幅分开的地图。上图为从白色到深灰色的随机颜色分布。下图显示德国处颜色最深（深灰），而随着各国离德国越来越远，颜色逐渐变浅。" class="figure-img">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-autocorrelation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;13.12：两幅热力图，颜色越深的表示病例数越高，颜色越浅的表示「疾病 X」（震中位于德国的虚构疾病）病例数越低。上图设想的是一个不存在空间自相关的世界，疾病病例数随机分布；下图则展示了一个更真实的世界，病例数自震中（德国）向外扩散。
@@ -1140,7 +1189,7 @@ Attaching package: 'survival'</code></pre>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>这是全书关于交叉验证原理最重要的一节，值得反复强调：交叉验证成立的前提是「测试折与训练折来自同一个分布，且相互独立」。在空间数据中，相邻近的点几乎必然共享大量信息（同一片土壤、同一段河流、同一份气象条件），于是训练折与测试折之间的「信息泄漏」会系统性抬高测试得分。原文用 <code>ecuador</code> 数据集给出了量化证据：同一棵决策树，用普通交叉验证得到 0.6911 的准确率，用空间交叉验证只有 0.5842，相差超过 10 个百分点——这个差额正是自相关泄漏造成的虚假乐观。实务建议：凡涉及地理信息的建模，都应默认改用空间/时空重采样；若确实用普通 CV，必须在文中说明该偏差的存在。</p>
 </div>
-<section id="taskclassifst-and-taskregrst" class="level3" data-number="13.5.1"><h3 data-number="13.5.1" class="anchored" data-anchor-id="taskclassifst-and-taskregrst">
+<section id="taskclassifst-and-taskregrst" class="level3" data-number="13.5.1"><h3 data-number="13.5.1" class="anchored" data-anchor-id="taskclassifst-and-taskregrst" id="taskclassifst-and-taskregrst">
 <span class="header-section-number">13.5.1</span> TaskClassifST 与 TaskRegrST</h3>
 <p>为了使用空间重采样方法，我们实现了 <a href="https://mlr3.mlr-org.com/reference/TaskClassif.html"><code>TaskClassif</code></a> 和 <a href="https://mlr3.mlr-org.com/reference/TaskRegr.html"><code>TaskRegr</code></a> 的两个扩展类以容纳空间数据，分别是 <a href="https://mlr3spatial.mlr-org.com/reference/TaskClassifST.html"><code>TaskClassifST</code></a> 和 <a href="https://mlr3spatial.mlr-org.com/reference/TaskRegrST.html"><code>TaskRegrST</code></a>。下面我们只展示分类的示例，回归的做法完全可以照搬。</p>
 <div class="cell">
@@ -1198,7 +1247,7 @@ Attaching package: 'survival'</code></pre>
 </div>
 </div>
 <p>然而，正如前面讨论过的，最好还是使用专门的重采样方法，以获得偏差更小的模型性能估计。</p>
-</section><section id="spatiotemp-cv" class="level3" data-number="13.5.2"><h3 data-number="13.5.2" class="anchored" data-anchor-id="spatiotemp-cv">
+</section><section id="spatiotemp-cv" class="level3" data-number="13.5.2"><h3 data-number="13.5.2" class="anchored" data-anchor-id="spatiotemp-cv" id="spatiotemp-cv">
 <span class="header-section-number">13.5.2</span> 时空交叉验证（Spatiotemporal Cross-Validation）</h3>
 <p>在介绍 <code>mlr3spatiotempcv</code> 中实现的空间重采样方法之前，我们先来展示一下：如果对空间数据使用非空间重采样方法，会出什么问题。下面我们在 <code>tsk("ecuador")</code> 上对一棵决策树做基准测试，使用两种不同的重复交叉验证重采样方法：第一种（「NSpCV」，即非空间交叉验证）是来自 <code>mlr3</code> 的非空间重采样方法，第二种（「SpCV」，即空间交叉验证）来自 <code>mlr3spatiotempcv</code>，是针对空间数据优化的。这个例子凸显出，「NSpCV」会让决策树看上去表现比实际更好，其估计性能要高得多；然而，这不过是一种因数据存在自相关而导致的过度自信的估计。</p>
 <div class="cell">
@@ -1216,7 +1265,7 @@ Attaching package: 'survival'</code></pre>
 2:          SpCV      0.5842</code></pre>
 </div>
 </div>
-<p>在上面的例子中，由于底层存在的空间自相关，套用非空间重采样会得到高度相似的训练集和测试集。因此，这跟在用训练过的同一份数据上测试模型几乎没有区别，而为了得到诚实的性能结果，这正是应当避免的做法（参见<a href="../chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>）。相比之下，空间方法已经考虑了自相关性，测试数据与训练数据之间的相关性较低（尽管仍会残留部分关联）。用 <a href="https://mlr3spatiotempcv.mlr-org.com/reference/autoplot.html"><code>autoplot()</code></a> 方法可以直观地看到这一点。在<a href="#fig-sprsmp" class="quarto-xref">图&nbsp;<span>13.13</span></a> 中，我们可视化了任务分别按照空间重采样方法（<a href="#fig-sprsmp" class="quarto-xref">图&nbsp;<span>13.13</span></a>，左图）和非空间重采样方法（<a href="#fig-sprsmp" class="quarto-xref">图&nbsp;<span>13.13</span></a>，右图）划分的情形。使用空间重采样时，相应的各个划分在空间上有清晰的分离；而使用非空间方法时，训练集与测试集的划分大量重叠（因而相关性更强）。</p>
+<p>在上面的例子中，由于底层存在的空间自相关，套用非空间重采样会得到高度相似的训练集和测试集。因此，这跟在用训练过的同一份数据上测试模型几乎没有区别，而为了得到诚实的性能结果，这正是应当避免的做法（参见<a href="https://mlr3book.mlr-org.com/chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>）。相比之下，空间方法已经考虑了自相关性，测试数据与训练数据之间的相关性较低（尽管仍会残留部分关联）。用 <a href="https://mlr3spatiotempcv.mlr-org.com/reference/autoplot.html"><code>autoplot()</code></a> 方法可以直观地看到这一点。在<a href="#fig-sprsmp" class="quarto-xref">图&nbsp;<span>13.13</span></a> 中，我们可视化了任务分别按照空间重采样方法（<a href="#fig-sprsmp" class="quarto-xref">图&nbsp;<span>13.13</span></a>，左图）和非空间重采样方法（<a href="#fig-sprsmp" class="quarto-xref">图&nbsp;<span>13.13</span></a>，右图）划分的情形。使用空间重采样时，相应的各个划分在空间上有清晰的分离；而使用非空间方法时，训练集与测试集的划分大量重叠（因而相关性更强）。</p>
 <div class="cell">
 <div class="sourceCode" id="cb89"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com">patchwork</a></span><span class="op">)</span></span>
 <span></span>
@@ -1230,7 +1279,7 @@ Attaching package: 'survival'</code></pre>
 <div class="cell-output-display">
 <div id="fig-sprsmp" class="quarto-float quarto-figure quarto-figure-center anchored" alt="两幅散点图，蓝色点为训练数据，橙色点为测试数据。左图（空间重采样）中橙色点与蓝色点分离得很干净。右图（非空间重采样）中蓝色点与橙色点随机地混杂在一起。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-sprsmp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/beyond_regression_and_classification_files/figure-html/fig-sprsmp-1.png" class="img-fluid figure-img" style="width:100.0%" alt="两幅散点图，蓝色点为训练数据，橙色点为测试数据。左图（空间重采样）中橙色点与蓝色点分离得很干净。右图（非空间重采样）中蓝色点与橙色点随机地混杂在一起。">
+<img src="../images/beyond_regression_and_classification_files/figure-html/fig-sprsmp-1.png" class="img-fluid figure-img" style="width:100.0%" alt="两幅散点图，蓝色点为训练数据，橙色点为测试数据。左图（空间重采样）中橙色点与蓝色点分离得很干净。右图（非空间重采样）中蓝色点与橙色点随机地混杂在一起。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-sprsmp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;13.13：两幅散点图展示了交叉验证第一次重复中第一折的训练数据（蓝色）与测试数据（橙色）是如何分离的。左图是空间重采样，训练数据与测试数据被清楚地分开；右图是非空间重采样，训练数据与测试数据存在重叠。
@@ -1246,7 +1295,7 @@ Attaching package: 'survival'</code></pre>
 <li>特征空间聚类（Feature space clustering）——基于特征空间而非时空信息进行聚类</li>
 <li>自定义（分区）（Custom (partitioning)）——按因子变量分组</li>
 </ul>
-<p>方法的选择可能取决于数据集的具体特性，不存在挑选某一种方法而轻易排除其他方法的简单规则；不同方法的完整细节可见 <span class="citation" data-cites="Schratz2021">Schratz et al. (<a href="../references.html#ref-Schratz2021" role="doc-biblioref">2021</a>)</span>——该论文有意避免推荐某一种方法，因为「最优」选择高度依赖于预测任务、数据中的自相关以及抽样设计的空间结构。每个已实现方法的文档中都包含该方法的细节以及原始文献的引用。</p>
+<p>方法的选择可能取决于数据集的具体特性，不存在挑选某一种方法而轻易排除其他方法的简单规则；不同方法的完整细节可见 <span class="citation" data-cites="Schratz2021">Schratz et al. (<a href="https://mlr3book.mlr-org.com/references.html#ref-Schratz2021" role="doc-biblioref">2021</a>)</span>——该论文有意避免推荐某一种方法，因为「最优」选择高度依赖于预测任务、数据中的自相关以及抽样设计的空间结构。每个已实现方法的文档中都包含该方法的细节以及原始文献的引用。</p>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -1257,10 +1306,10 @@ Attaching package: 'survival'</code></pre>
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>我们一直聚焦于空间分析，但在文中却使用了「时空（spatiotemporal）」和「时空（spatiotemp）」这样的说法。本节讨论的纯空间重采样方法，可以通过在任务中设置 <code>"time"</code> <code>col_role</code>（<a href="../chapter2/data_and_basic_modeling.html#sec-row-col-roles" class="quarto-xref"><span>第 2.6 节</span></a>）来扩展到时间分析（或空间与时间相结合的分析）——这是一个进阶话题，可能会在本书未来的版本中补充。关于三维时空可视化的具体细节，请参见 <code>mlr3spatiotempcv</code> 的可视化 vignette：<a href="https://mlr3spatiotempcv.mlr-org.com/articles/spatiotemp-viz.html">https://mlr3spatiotempcv.mlr-org.com/articles/spatiotemp-viz.html</a>。</p>
+<p>我们一直聚焦于空间分析，但在文中却使用了「时空（spatiotemporal）」和「时空（spatiotemp）」这样的说法。本节讨论的纯空间重采样方法，可以通过在任务中设置 <code>"time"</code> <code>col_role</code>（<a href="https://mlr3book.mlr-org.com/chapter2/data_and_basic_modeling.html#sec-row-col-roles" class="quarto-xref"><span>第 2.6 节</span></a>）来扩展到时间分析（或空间与时间相结合的分析）——这是一个进阶话题，可能会在本书未来的版本中补充。关于三维时空可视化的具体细节，请参见 <code>mlr3spatiotempcv</code> 的可视化 vignette：<a href="https://mlr3spatiotempcv.mlr-org.com/articles/spatiotemp-viz.html">https://mlr3spatiotempcv.mlr-org.com/articles/spatiotemp-viz.html</a>。</p>
 </div>
 </div>
-</section><section id="sec-spatial-prediction" class="level3" data-number="13.5.3"><h3 data-number="13.5.3" class="anchored" data-anchor-id="sec-spatial-prediction">
+</section><section id="sec-spatial-prediction" class="level3" data-number="13.5.3"><h3 data-number="13.5.3" class="anchored" data-anchor-id="sec-spatial-prediction" id="sec-spatial-prediction">
 <span class="header-section-number">13.5.3</span> 空间预测（Spatial Prediction）</h3>
 <p>到目前为止，我们讨论的都是如何通过重采样来应对时空<em>特征</em>；但如果你想做的是时空<em>预测</em>呢？在这种情况下，目标是在像元层面（即栅格图像中由几何分辨率定义的区域）上做出分类或回归预测。</p>
 <p>为支持这类预测，我们创建了新函数 <a href="https://mlr3spatial.mlr-org.com/reference/predict_spatial.html"><code>predict_spatial()</code></a>，它允许使用以下任意一种空间数据类来做空间预测：</p>
@@ -1317,7 +1366,7 @@ max value   :      water</code></pre>
 <div class="cell-output-display">
 <div id="fig-beyond-raster" class="quarto-float quarto-figure quarto-figure-center anchored" alt="一张放大程度很高的地图，x 轴从 732000 到 733000，y 轴从 5692500 到 5693500。不同的簇分别以绿色、蓝色、紫色和黄色标示。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-beyond-raster-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/beyond_regression_and_classification_files/figure-html/fig-beyond-raster-1.png" style="width:50.0%;height:50.0%" alt="一张放大程度很高的地图，x 轴从 732000 到 733000，y 轴从 5692500 到 5693500。不同的簇分别以绿色、蓝色、紫色和黄色标示。" class="figure-img">
+<img src="../images/beyond_regression_and_classification_files/figure-html/fig-beyond-raster-1.png" style="width:50.0%;height:50.0%" alt="一张放大程度很高的地图，x 轴从 732000 到 733000，y 轴从 5692500 到 5693500。不同的簇分别以绿色、蓝色、紫色和黄色标示。" class="figure-img">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-beyond-raster-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;13.14：对森林（紫色）、草地（蓝色）、城市（绿色）和水体（黄色）类别所作的空间预测。
@@ -1328,7 +1377,7 @@ max value   :      water</code></pre>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>这里补充一点坐标系背景，供中国读者使用时注意：<code>ecuador</code> 任务中设置的 <code>crs = "32717"</code> 是南半球 WGS 84 / UTM zone 17S（EPSG:32717）；而 <code>leipzig_raster</code> 输出显示的 <code>EPSG:32632</code> 则是北半球 UTM zone 32N。UTM 分带的编号与南半球编号并非简单镜像关系（UTM zone N 的南半球带号是 327XX、北半球是 326XX），混用会导致投影偏移。处理中国境内数据时应改用 EPSG:4490（CGCS2000 地理坐标）或对应的 UTM 带（如北京约落在 zone 50N，即 EPSG:32650）。另外，<code>predict_spatial()</code> 的 <code>format</code> 参数决定了返回对象的类型（这里指定 <code>"terra"</code>），若省略则返回默认格式；不同后端（<code>stars</code>、<code>terra</code>、<code>raster</code>）的绘图函数签名略有差异，移植代码时需相应调整。</p>
 </div>
-</section></section><section id="sec-quantile-regression" class="level2" data-number="13.6"><h2 data-number="13.6" class="anchored" data-anchor-id="sec-quantile-regression">
+</section></section><section id="sec-quantile-regression" class="level2" data-number="13.6"><h2 data-number="13.6" class="anchored" data-anchor-id="sec-quantile-regression" id="sec-quantile-regression">
 <span class="header-section-number">13.6</span> 分位数回归（Quantile Regression）（+）</h2>
 <p>回归模型通常预测的是目标在给定输入特征下的条件均值。分位数回归（quantile regression）则允许预测条件分位数，从而给出更能体现不确定性、信息量也更丰富的预测，或者对条件分布本身作出近似。它回答的不再是「给定这些特征，预期结果是什么？」，而是「在给定概率水平上（例如第 10 百分位、中位数、第 90 百分位），结果是什么？」。</p>
 <p>这在那些希望对数据中的不确定性和极端情形建模的场景中特别有用：</p>
@@ -1342,7 +1391,7 @@ max value   :      water</code></pre>
 <div class="cell-output-display">
 <div id="fig-pinball" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pinball-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/beyond_regression_and_classification_files/figure-html/fig-pinball-1.png" class="img-fluid figure-img" style="width:100.0%">
+<img src="../images/beyond_regression_and_classification_files/figure-html/fig-pinball-1.png" class="img-fluid figure-img" style="width:100.0%">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pinball-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;13.15：不同分位数下子弹球损失函数的取值。
@@ -1350,11 +1399,11 @@ max value   :      water</code></pre>
 </div>
 </div>
 </div>
-<p>但请注意：虽然许多基于经验风险最小化的机器学习模型使用子弹球损失来估计分位数，但某些模型类的工作方式可能有所不同。不过，由于模型底层的训练过程位于 <code>mlr3</code> 之外，我们更为关心的是如何对分位数回归模型进行重采样和评估。这与其他任务的做法完全相同。由于这里只对分位数回归做了简要概述，如果读者希望获得该主题的方法学入门介绍，我们推荐 <span class="citation" data-cites="yu_quantile_2003">Yu, Lu, and Stander (<a href="../references.html#ref-yu_quantile_2003" role="doc-biblioref">2003</a>)</span>；若希望获得更详尽的论述，则推荐 <span class="citation" data-cites="koenker_quantile_2005">Koenker (<a href="../references.html#ref-koenker_quantile_2005" role="doc-biblioref">2005</a>)</span>。</p>
+<p>但请注意：虽然许多基于经验风险最小化的机器学习模型使用子弹球损失来估计分位数，但某些模型类的工作方式可能有所不同。不过，由于模型底层的训练过程位于 <code>mlr3</code> 之外，我们更为关心的是如何对分位数回归模型进行重采样和评估。这与其他任务的做法完全相同。由于这里只对分位数回归做了简要概述，如果读者希望获得该主题的方法学入门介绍，我们推荐 <span class="citation" data-cites="yu_quantile_2003">Yu, Lu, and Stander (<a href="https://mlr3book.mlr-org.com/references.html#ref-yu_quantile_2003" role="doc-biblioref">2003</a>)</span>；若希望获得更详尽的论述，则推荐 <span class="citation" data-cites="koenker_quantile_2005">Koenker (<a href="https://mlr3book.mlr-org.com/references.html#ref-koenker_quantile_2005" role="doc-biblioref">2005</a>)</span>。</p>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>子弹球损失（pinball loss，也称 quantile loss）的定义为：L(y, f(x); τ) = τ·(y − f(x))（当 y ≥ f(x)），否则为 (1 − τ)·(f(x) − y)。当 τ = 0.5 时它恰好退化为 MAE/2，所以「子弹球」这个名字就来自「一颗球被抛向不同的方向、落点代价不同」的直观图像。需要注意两件事：其一，分位数回归**不需要**正态性假设，这正是它相对均值回归处理异方差数据的优势；其二，本节图 13.15 的坐标轴上没有标注具体的 τ 取值与损失数值，只是示意损失曲线随 τ 变化的形状，读者不必从中读出精确数值。另外，文中「令 τ = 0.1 意味着预测过高的代价是预测过低的九倍」这一说法，前提是把两侧误差按同一比例缩放（即比例 τ:(1−τ) = 0.1:0.9），原文未点明这一归一化约定，初学者容易误以为「代价」是绝对值之比。</p>
 </div>
-<section id="sec-data-generation" class="level3" data-number="13.6.1"><h3 data-number="13.6.1" class="anchored" data-anchor-id="sec-data-generation">
+<section id="sec-data-generation" class="level3" data-number="13.6.1"><h3 data-number="13.6.1" class="anchored" data-anchor-id="sec-data-generation" id="sec-data-generation">
 <span class="header-section-number">13.6.1</span> 合成数据集的生成</h3>
 <p>让我们构造一个简单的合成数据集来演示分位数回归是如何工作的。</p>
 <p>我们生成 10,000 个数据点，其中单变量特征 <code>x</code> 服从 1 到 15 之间的均匀分布，而目标 <code>y</code> 遵循 <code>x</code> 的某个非线性函数。为了让问题更有意思，我们在目标上加入了异方差高斯噪声，也就是说，方差会随 <code>x</code> 的增大而增大。</p>
@@ -1371,7 +1420,7 @@ max value   :      water</code></pre>
 <div class="cell">
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/beyond_regression_and_classification_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/beyond_regression_and_classification_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -1387,9 +1436,9 @@ max value   :      water</code></pre>
 <span></span>
 <span><span class="va">qs</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.25</span>, <span class="fl">0.5</span>, <span class="fl">0.75</span>, <span class="fl">0.95</span><span class="op">)</span></span></code></pre></div>
 </div>
-</section><section id="sec-quantile-regression-models" class="level3" data-number="13.6.2"><h3 data-number="13.6.2" class="anchored" data-anchor-id="sec-quantile-regression-models">
+</section><section id="sec-quantile-regression-models" class="level3" data-number="13.6.2"><h3 data-number="13.6.2" class="anchored" data-anchor-id="sec-quantile-regression-models" id="sec-quantile-regression-models">
 <span class="header-section-number">13.6.2</span> 用多个学习器做分位数回归</h3>
-<section id="sec-quantile-ranger" class="level4" data-number="13.6.2.1"><h4 data-number="13.6.2.1" class="anchored" data-anchor-id="sec-quantile-ranger">
+<section id="sec-quantile-ranger" class="level4" data-number="13.6.2.1"><h4 data-number="13.6.2.1" class="anchored" data-anchor-id="sec-quantile-ranger" id="sec-quantile-ranger">
 <span class="header-section-number">13.6.2.1</span> 随机回归森林</h4>
 <p>我们使用的第一个学习器是随机回归森林（<code>lrn("regr.ranger")</code>），它在 <a href="https://mlr3learners.mlr-org.com"><code>mlr3learners</code></a> 中实现，是一种基于树的集成方法，能够很好地处理复杂的交互作用和非线性关系。我们把这个学习器配置为预测所指定的各个分位数，并把中位数分位数标记为专用的 response。然后我们照常训练和预测。</p>
 <div class="cell">
@@ -1418,7 +1467,7 @@ max value   :      water</code></pre>
 <div class="cell">
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
-<figure class="figure"><p><img src="images/beyond_regression_and_classification_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/beyond_regression_and_classification_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 <figcaption>用 GAM 做分位数回归的结果。绿色为 90% 预测区间，蓝色为 50% 预测区间。黑线是基础函数。</figcaption></figure>
 </div>
 </div>
@@ -1428,7 +1477,7 @@ max value   :      water</code></pre>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>此处有一处原文硬伤：在 13.6.2.1 节中刚刚展示的是<strong>随机回归森林</strong>（<code>lrn("regr.ranger")</code>）的结果，但紧随其后的那幅图（unnamed-chunk-6-1.png）的图注却写着「用 GAM 做分位数回归的结果」——这显然是复制粘贴时沿用了后面 13.6.2.2 节 GAM 图的图注。译者按规范不改原文图注，也未替换图片，仅在此标注：<strong>该图实为随机森林的结果，不是 GAM 的结果</strong>；真正的 GAM 图在 13.6.2.2 节。文中「随机森林预测的分位数看起来过度锯齿化」这段分析正是针对这幅图的，因此对照阅读时不应误以为 GAM 也有此问题。</p>
 </div>
-</section><section id="sec-quantile-qgam" class="level4" data-number="13.6.2.2"><h4 data-number="13.6.2.2" class="anchored" data-anchor-id="sec-quantile-qgam">
+</section><section id="sec-quantile-qgam" class="level4" data-number="13.6.2.2"><h4 data-number="13.6.2.2" class="anchored" data-anchor-id="sec-quantile-qgam" id="sec-quantile-qgam">
 <span class="header-section-number">13.6.2.2</span> 借助 PipeOpLearnerQuantiles 的平滑加性模型</h4>
 <p>为了解决我们在随机回归森林上观察到的局限，接下来我们将分位数回归与平滑广义加性模型（GAM）结合，作为一种替代方法。这种方法能给出更平滑的估计，也可能提升分位数预测的稳健性。与基于树的方法不同，GAM 使用平滑样条而非离散的划分来构造其预测函数。这使它们非常适合处理连续且有结构的数据——在这里这与我们的模拟设定恰好相符，尽管在更贴近现实的场景中我们并不会预先知道这一点。</p>
 <p>我们从分位数 GAM 得到的预测区间与传统 GAM 中的置信区间不同：它并非量化估计函数本身的不确定性，而是让我们能够直接进行预测推断，从而构造出逐观测的预测区间。</p>
@@ -1447,13 +1496,13 @@ max value   :      water</code></pre>
 <div class="cell">
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
-<figure class="figure"><p><img src="images/beyond_regression_and_classification_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/beyond_regression_and_classification_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 <figcaption>用 GAM 做分位数回归的结果。绿色为 90% 预测区间，蓝色为 50% 预测区间。黑线是基础函数。</figcaption></figure>
 </div>
 </div>
 </div>
 <p>与随机回归森林相比，分位数 GAM 给出的估计更平滑，这正是加性模型应有的表现。预测的中位数紧密贴合真实函数，估计出的预测区间也很好地刻画了目标的异方差性。值得注意的是，各分位数的覆盖率更加稳定，没有出现随机森林方法中那种波动。</p>
-<p><code>mlr3verse</code> 中有多个学习器无法同时预测多个分位数。为此，我们还将展示如何使用来自 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 的 <code>po("learner_quantiles")</code>，它可以包装一个学习器，把功能扩展为一步处理多个分位数。<a href="../chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>和<a href="../chapter8/non-sequential_pipelines_and_tuning.html" class="quarto-xref"><span>第 8 章</span></a>已经介绍了 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a>。我们把这个 pipeop 与 <a href="https://mlr3extralearners.mlr-org.com/reference/mlr_learners_regr.qgam.html"><code>lrn("regr.qgam")</code></a> 一起使用，后者是一个分位数回归 GAM 学习器，只能针对单个分位数训练。</p>
+<p><code>mlr3verse</code> 中有多个学习器无法同时预测多个分位数。为此，我们还将展示如何使用来自 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 的 <code>po("learner_quantiles")</code>，它可以包装一个学习器，把功能扩展为一步处理多个分位数。<a href="https://mlr3book.mlr-org.com/chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>和<a href="https://mlr3book.mlr-org.com/chapter8/non-sequential_pipelines_and_tuning.html" class="quarto-xref"><span>第 8 章</span></a>已经介绍了 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a>。我们把这个 pipeop 与 <a href="https://mlr3extralearners.mlr-org.com/reference/mlr_learners_regr.qgam.html"><code>lrn("regr.qgam")</code></a> 一起使用，后者是一个分位数回归 GAM 学习器，只能针对单个分位数训练。</p>
 <div class="cell">
 <div class="sourceCode" id="cb99"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_qgam</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.qgam"</span><span class="op">)</span></span>
 <span><span class="va">lrn_qgam</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">form</span> <span class="op">=</span> <span class="va">y</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
@@ -1468,7 +1517,7 @@ max value   :      water</code></pre>
 <span></span>
 <span><span class="va">prds_qgam</span> <span class="op">=</span> <span class="va">graph_lrn_qgam</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">task</span>, row_ids <span class="op">=</span> <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span></code></pre></div>
 </div>
-</section><section id="sec-comparison" class="level4" data-number="13.6.2.3"><h4 data-number="13.6.2.3" class="anchored" data-anchor-id="sec-comparison">
+</section><section id="sec-comparison" class="level4" data-number="13.6.2.3"><h4 data-number="13.6.2.3" class="anchored" data-anchor-id="sec-comparison" id="sec-comparison">
 <span class="header-section-number">13.6.2.3</span> 方法比较</h4>
 <p>到目前为止，我们只看了在测试数据上预测结果的可视化。现在我们来评估并基准测试这两个模型。</p>
 <p>为了评估各模型在测试数据上预测分位数的效果如何，我们计算子弹球损失。一般来说，对给定的分位数 <code>alpha</code>，子弹球损失的绝对值越小表示准确性越高。由于极端分位数（例如 0.05 或 0.95）代表罕见事件、可用于估计的数据更少，我们通常预期它们的损失会高于中位数。</p>
@@ -1491,7 +1540,7 @@ max value   :      water</code></pre>
 </div>
 </div>
 <p>在这种情形下，更极端分位数的损失低于中位数的损失。用 GAM 建模得到的分位数比随机森林拟合得更好。这与我们此前得到的结果一致：GAM 产生的分位数估计比随机森林更平滑。</p>
-<p>为了进一步评估模型质量，我们用 10 折交叉验证对模型进行重采样和基准测试。重采样之后，结果就可以被聚合并打分。其做法与<a href="../chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>中确立的完全一致。</p>
+<p>为了进一步评估模型质量，我们用 10 折交叉验证对模型进行重采样和基准测试。重采样之后，结果就可以被聚合并打分。其做法与<a href="https://mlr3book.mlr-org.com/chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>中确立的完全一致。</p>
 <div class="cell">
 <div class="sourceCode" id="cb105"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">cv10</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
 <span><span class="va">cv10</span><span class="op">$</span><span class="fu">instantiate</span><span class="op">(</span><span class="va">task</span><span class="op">)</span></span>
@@ -1538,7 +1587,7 @@ max value   :      water</code></pre>
 <code>mqgam : 0.1698 0.5596 0.7282 0.5813 0.1838</code></p>
 <p>即在 q0.25、q0.5、q0.75、q0.95 上 <strong>mqgam 的损失反而更高</strong>，与前文结论方向完全相反。译者按规范不修改原文数据与结论，仅在此标注：<strong>正确理解应以代码可复现的结果为准</strong>——随机森林在中间四个分位数上并不劣于 GAM，原文段落「基于 GAM 的方法提供了更平滑的分位数估计和更好的覆盖」在本例数据上并不成立（或至少结论所依据的那次 benchmark 结果有误）。另一个易错点：本节多次强调「更极端的分位数损失应更高」，因为极端分位数的样本更少；但本例输出恰好相反（q0.05 与 q0.95 的损失都低于 q0.5），原因是本例方差随 x 单调递增（variance = 0.5·√x），极端分位数对应的区间在局部上反而更「好预测」，这也再次说明不能套用经验法则。</p>
 </div>
-</section></section></section><section id="conclusion" class="level2" data-number="13.7"><h2 data-number="13.7" class="anchored" data-anchor-id="conclusion">
+</section></section></section><section id="conclusion" class="level2" data-number="13.7"><h2 data-number="13.7" class="anchored" data-anchor-id="conclusion" id="conclusion">
 <span class="header-section-number">13.7</span> 小结</h2>
 <p>在本章中，我们探索了如何走出回归与分类的范畴，看看 <code>mlr3</code> 中的类如何被用来实现其他机器学习任务。代价敏感分类通过假定假阴性与假阳性相关的代价不相等，扩展了「常规」的分类设定。仅利用 <code>mlr3</code> 中的特性就可以运行代价敏感分类实验。<a href="https://mlr3proba.mlr-org.com"><code>mlr3proba</code></a> 中提供的生存分析，可以被看作结果可能被删失（censored）的回归问题——所谓删失，指的是在给定的时间范围内该结果可能永远不会被观测到。<code>mlr3proba</code> 中最后一个任务是密度估计，也就是那个用于估计单变量概率分布的无监督任务。使用 <a href="https://mlr3cluster.mlr-org.com"><code>mlr3cluster</code></a>，你可以对观测做聚类分析，即根据各变量上的相似性对观测进行分组。使用 <a href="https://mlr3spatial.mlr-org.com"><code>mlr3spatial</code></a> 和 <a href="https://mlr3spatiotempcv.mlr-org.com"><code>mlr3spatiotempcv</code></a> 可以进行空间分析，把坐标当作特征来做出预测并完成空间预测。最后，我们看到了如何利用 <code>"quantiles"</code> 这一预测类型来预测条件分位数并构造预测区间。<code>mlr3</code> 的接口具有很强的可扩展性，这意味着未来的机器学习任务可以（而且将会）被加入我们的体系，我们也会在本书未来的版本中把它们补充到本章里。</p>
 <div id="tbl-beyond-api" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -1597,7 +1646,7 @@ max value   :      water</code></pre>
 </div>
 </figure>
 </div>
-</section><section id="exercises" class="level2" data-number="13.8"><h2 data-number="13.8" class="anchored" data-anchor-id="exercises">
+</section><section id="exercises" class="level2" data-number="13.8"><h2 data-number="13.8" class="anchored" data-anchor-id="exercises" id="exercises">
 <span class="header-section-number">13.8</span> 练习</h2>
 <ol type="1">
 <li>在 <code>tsk("german_credit")</code> 上运行一次基准测试实验，使用 <code>lrn("classif.featureless")</code>、<code>lrn("classif.log_reg")</code> 和 <code>lrn("classif.ranger")</code>。通过把这些学习器包进 <code>po("learner_cv")</code>（采用两折交叉验证）再接一个 <code>po("tunethreshold")</code>，来调优所有学习器的预测阈值。使用 <code>msr("classif.costs", costs = costs)</code>，其中 <code>costs</code> 矩阵如下：真阳性为 <code>-10</code>，真阴性为 <code>-1</code>，假阳性为 <code>2</code>，假阴性为 <code>3</code>。在 <code>po("tunethreshold")</code> 中以及评估你的基准测试实验时都使用这个度量。</li>
@@ -1605,7 +1654,7 @@ max value   :      water</code></pre>
 <li>使用 <code>lrn("dens.hist")</code> 来估计 <code>mlr3proba</code> 包中「precip」任务的密度，并用 logloss 度量评估你的估计。作为进阶目标，去查阅 <code>distr6</code> 的文档，了解如何进一步分析你估计出的分布。</li>
 <li>在不带标签列的「wine」数据集上运行一次基准聚类实验。使用轮廓度量和 insample 重采样技术，比较 <code>k</code> 分别等于 <code>2</code>、<code>3</code> 和 <code>4</code> 的 k-means 学习器的性能。根据轮廓得分，你会选择哪个 <code>k</code> 值？</li>
 <li>在 <code>tsk("mtcars")</code> 上手动 <code>$train()</code> 一个来自 <a href="https://mlr3extralearners.mlr-org.com"><code>mlr3extralearners</code></a> 的 GBM 回归模型，用以预测目标变量的第 95 百分位。务必先划分数据，只用训练集拟合学习器。用测试集以子弹球损失评估你的学习器。</li>
-</ol></section><section id="citation" class="level2" data-number="13.9"><h2 data-number="13.9" class="anchored" data-anchor-id="citation">
+</ol></section><section id="citation" class="level2" data-number="13.9"><h2 data-number="13.9" class="anchored" data-anchor-id="citation" id="citation">
 <span class="header-section-number">13.9</span> 引用</h2>
 <p>请按如下格式引用本章：</p>
 <p>Sonabend R, Schratz P, Pulatov D, Zobolas J, Koers L. (2024). Beyond Regression and Classification. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/beyond_regression_and_classification.html.</p>
@@ -1677,5 +1726,6 @@ MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }
 <script type="text/javascript" id="MathJax-script" async
   src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
 </script>
+<script src="../search.js"></script>
 </body>
 </html>

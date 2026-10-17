@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《Applied Machine Learning Using mlr3 in R》中文版</title>
+<script>
+(function(){var s=localStorage.getItem("mlr3-theme");if(s===null)s="dark";document.documentElement.setAttribute("data-theme",s);})();
+</script>
+<style>
+:root{--bg:#1e2228;--fg:#d8dee4;--muted:#9aa4b0;--panel:#262c34;--panel2:#2e3540;--border:#3a4350;--accent:#4ea1ff;--accent2:#8f7ae6;--link:#6cb0ff}
+[data-theme="light"]{--bg:#f7f8fa;--fg:#24292f;--muted:#57606a;--panel:#ffffff;--panel2:#f0f2f5;--border:#d9dee3;--accent:#0969da;--accent2:#8250df;--link:#0969da}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;line-height:1.75}
+.container{max-width:860px;margin:0 auto;padding:30px 20px 80px}
+.topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;background:var(--panel);border-bottom:1px solid var(--border);padding:10px 20px}
+.brand{font-weight:600;color:var(--fg);text-decoration:none;display:flex;align-items:center;gap:8px}
+.brand .logo{color:var(--accent)}
+.theme-toggle{background:var(--panel2);border:1px solid var(--border);color:var(--fg);border-radius:6px;padding:4px 12px;font-size:13px;cursor:pointer}
+.theme-toggle:hover{border-color:var(--accent)}
+.hero{text-align:center;padding:40px 0 10px}
+.hero h1{font-size:30px;margin:0 0 10px}
+.hero .sub{color:var(--muted);font-size:15px}
+.hero .src{color:var(--muted);font-size:13px;margin-top:6px}
+.hero .src a{color:var(--link)}
+.parts{margin-top:36px}
+.part-title{color:var(--accent2);font-weight:600;font-size:15px;margin:26px 0 10px;letter-spacing:.05em}
+.chapter-list{list-style:none;margin:0;padding:0}
+.chapter-list li{border:1px solid var(--border);border-radius:8px;margin:8px 0;background:var(--panel);transition:border-color .15s}
+.chapter-list li:hover{border-color:var(--accent)}
+.chapter-list a{display:block;padding:11px 16px;color:var(--fg);text-decoration:none}
+.chapter-list .num{color:var(--accent);font-weight:600;margin-right:8px}
+.chapter-list .desc{color:var(--muted);font-size:13px}
+.footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--border);color:var(--muted);font-size:13px;text-align:center}
+</style>
+<script>
+function toggleTheme(){var c=document.documentElement.getAttribute("data-theme");var n=c==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);localStorage.setItem("mlr3-theme",n)}
+</script>
+</head>
+<body>
+<div class="topbar">
+<a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+<div class="right"><button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button></div>
+</div>
+<div class="container">
+<div class="hero">
+<h1>机器学习应用：基于 mlr3 的 R 实现</h1>
+<div class="sub">《Applied Machine Learning Using mlr3 in R》中文翻译版（非官方）</div>
+<div class="src">原文：<a href="https://mlr3book.mlr-org.com/">https://mlr3book.mlr-org.com/</a> · CRC Press 2024 · 为学习交流而译</div>
+</div>
+<div class="parts">
+<div class="part-title">前言</div><ul class="chapter-list"><li><a href="ch01-introduction-overview.html"><span class="num">1</span>第 1 章 绪论与概览</a></li></ul><div class="part-title">第一部分 基础</div><ul class="chapter-list"><li><a href="ch02-data-basic-modeling.html"><span class="num">2</span>第 2 章 数据与基础建模</a></li><li><a href="ch03-evaluation-benchmarking.html"><span class="num">3</span>第 3 章 评估与基准测试</a></li></ul><div class="part-title">第二部分 调优与特征选择</div><ul class="chapter-list"><li><a href="ch04-hyperparameter-optimization.html"><span class="num">4</span>第 4 章 超参数优化</a></li><li><a href="ch05-advanced-tuning-bbo.html"><span class="num">5</span>第 5 章 高级调优方法与黑箱优化</a></li><li><a href="ch06-feature-selection.html"><span class="num">6</span>第 6 章 特征选择</a></li></ul><div class="part-title">第三部分 管道与预处理</div><ul class="chapter-list"><li><a href="ch07-sequential-pipelines.html"><span class="num">7</span>第 7 章 顺序管道</a></li><li><a href="ch08-nonseq-pipelines-tuning.html"><span class="num">8</span>第 8 章 非顺序管道与调优</a></li><li><a href="ch09-preprocessing.html"><span class="num">9</span>第 9 章 预处理</a></li></ul><div class="part-title">第四部分 高级专题</div><ul class="chapter-list"><li><a href="ch10-advanced-technical.html"><span class="num">10</span>第 10 章 mlr3 高级技术方面</a></li><li><a href="ch11-large-scale-benchmarking.html"><span class="num">11</span>第 11 章 大规模基准测试</a></li><li><a href="ch12-model-interpretation.html"><span class="num">12</span>第 12 章 模型解释</a></li><li><a href="ch13-beyond-regression-classification.html"><span class="num">13</span>第 13 章 回归与分类之外</a></li><li><a href="ch14-algorithmic-fairness.html"><span class="num">14</span>第 14 章 算法公平性</a></li><li><a href="ch15-predsets-validation-inttune.html"><span class="num">15</span>第 15 章 预测集、验证与内部调优</a></li><li><a href="ch16-paradox-hyperparameter.html"><span class="num">16</span>第 16 章 使用 paradox 的高级超参数规范</a></li></ul><div class="part-title">附录</div><ul class="chapter-list"><li><a href="chref-references.html"><span class="num"></span>参考文献</a></li><li><a href="appsol-solutions.html"><span class="num"></span>附录 A 习题解答</a></li><li><a href="apptab-overview-tables.html"><span class="num"></span>附录 B 概览表</a></li><li><a href="apptask-tasks.html"><span class="num"></span>附录 C 任务列表</a></li><li><a href="apperr-errata.html"><span class="num"></span>附录 D 勘误</a></li><li><a href="appses-session-info.html"><span class="num"></span>附录 E 会话信息</a></li></ul>
+</div>
+<div class="footer">
+<div>《Applied Machine Learning Using mlr3 in R》中文译本 · 未取得官方授权，仅供学习交流</div>
+</div>
+</div>
+</body>
+</html>

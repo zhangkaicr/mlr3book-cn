@@ -4,10 +4,20 @@
 
 - **原文**：https://mlr3book.mlr-org.com/ （CRC Press, 2024；Bischl, Sonabend, Kotthoff & Lang 主编）
 - **在线阅读**：https://zhangkaicr.github.io/mlr3book-cn/
+- **全书搜索**：https://zhangkaicr.github.io/mlr3book-cn/search.html （任意页面按 `/` 聚焦搜索框）
 - **翻译原则**：
   - 逐章完整翻译，代码块、控制台输出、公式、图表原样保留；
   - 术语首次出现标注英文原名，便于对照原文；
   - 每章增设「背景与解释（译者注）」框，补充方法论背景与易错点，方便中文读者理解。
+
+## 阅读与检索
+
+- **全文搜索**：顶栏搜索框支持全书 16 章正文与附录的 323 个小节、1570 段内容（不含代码块，避免噪声）。
+  - 按 `/` 快速聚焦搜索框；`↑` `↓` 选择结果，`Enter` 跳转，`Esc` 清空；
+  - 多个关键词用空格分隔，按「同时包含」匹配，例如 `超参数 搜索`；
+  - 结果页链接可分享，如 `search.html?q=交叉验证`；
+  - 点击结果直接跳转到对应章节的对应小节。
+- **其它**：右上角可切换深色 / 浅色主题（记忆偏好）；每页底部有上一章 / 下一章导航。
 
 ## 章节
 
@@ -28,7 +38,9 @@
 
 ## 构建
 
-翻译片段存放在 `chapters/*.frag.html`，由 `_tools/build_book.py` 装配为完整页面。图片位于 `images/`。
+翻译片段存放在 `chapters/*.frag.html`，由 `_tools/build_book.py` 装配为完整页面，`_tools/build_search_index.py` 生成 `search_index.json` 供前端检索。图片位于 `images/`。
+
+站点为纯静态页面，无后端依赖；`search.js` 与 `search_index.json` 需与页面一同部署。
 
 ## 相关项目
 

@@ -59,6 +59,50 @@ body {
   border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
 }
 .theme-toggle:hover { border-color: var(--accent); }
+/* 搜索 */
+.search-box { position: relative; display: flex; align-items: center; }
+.search-box input {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 5px 10px 5px 28px; font-size: 13px; width: 190px;
+  font-family: inherit; outline: none;
+}
+.search-box input:focus { border-color: var(--accent); width: 240px; }
+.search-box .ico { position: absolute; left: 9px; color: var(--muted); font-size: 12px; pointer-events: none; }
+.search-panel {
+  display: none; position: absolute; top: calc(100% + 6px); right: 0; width: 460px;
+  max-width: 90vw; max-height: 66vh; overflow-y: auto; z-index: 200;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 12px 34px rgba(0,0,0,.42); padding: 6px;
+}
+.search-panel.open { display: block; }
+.search-panel .s-head {
+  padding: 8px 11px 7px; font-size: 12px; color: var(--muted);
+  border-bottom: 1px solid var(--border); margin-bottom: 5px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.search-panel .s-hint { font-size: 12px; color: var(--muted); padding: 18px 12px; text-align: center; }
+.s-item { display: block; padding: 8px 11px; border-radius: 7px; text-decoration: none; color: var(--fg); }
+.s-item:hover, .s-item.sel { background: var(--panel2); }
+.s-item .s-ch { font-size: 11px; color: var(--accent2); margin-bottom: 2px; }
+.s-item .s-sec { font-size: 12px; color: var(--accent); margin-bottom: 3px; }
+.s-item .s-txt { font-size: 13px; line-height: 1.6; color: var(--fg); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.s-item mark { background: rgba(255, 200, 0, .32); color: inherit; border-radius: 2px; padding: 0 1px; }
+[data-theme="light"] .s-item mark { background: rgba(255, 200, 0, .45); }
+/* 搜索结果页 */
+.search-page-box { margin: 26px 0 0; }
+.search-page-box input {
+  width: 100%; background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 8px; padding: 12px 15px; font-size: 15px; font-family: inherit; outline: none;
+}
+.search-page-box input:focus { border-color: var(--accent); }
+.s-meta { color: var(--muted); font-size: 13px; margin: 14px 0 8px; }
+.s-list { list-style: none; margin: 0; padding: 0; }
+.s-list .s-item { border: 1px solid var(--border); margin: 8px 0; }
+@media (max-width: 640px) {
+  .search-box input { width: 130px; }
+  .search-box input:focus { width: 170px; }
+  .search-panel { width: 84vw; }
+}
 /* 章头 */
 .header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
 .header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
@@ -170,9 +214,14 @@ function toggleTheme(){
 </head>
 <body>
 <div class="topbar">
-  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <a class="brand" href="../index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
   <div class="right">
-    <a class="home-link" href="index.html">目录</a>
+    <div class="search-box">
+      <span class="ico">&#128269;</span>
+      <input type="search" id="mlr3-search" placeholder="搜索全书…（按 /）" autocomplete="off" aria-label="全书搜索">
+      <div class="search-panel" id="mlr3-search-panel"></div>
+    </div>
+    <a class="home-link" href="../index.html">目录</a>
     <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
   </div>
 </div>
@@ -194,10 +243,10 @@ function toggleTheme(){
 <li>处理内存之外的数据，例如存储在数据库中的数据（<a href="#sec-backends" class="quarto-xref"><span>第 10.4 节</span></a>）；以及</li>
 <li>为 <code>mlr3</code> 添加新类（<a href="#sec-extending" class="quarto-xref"><span>第 10.5 节</span></a>）。</li>
 </ul>
-<section id="sec-parallelization" class="level2 page-columns page-full" data-number="10.1"><h2 data-number="10.1" class="anchored" data-anchor-id="sec-parallelization">
+<section id="sec-parallelization" class="level2 page-columns page-full" data-number="10.1"><h2 data-number="10.1" class="anchored" data-anchor-id="sec-parallelization" id="sec-parallelization">
 <span class="header-section-number">10.1</span> 并行化（Parallelization）</h2>
 <p>术语「并行化」指的是并行运行多个算法，即在多个 CPU 核心、CPU 或计算节点上同时执行它们。并非所有算法都能并行化，但当它们可以时，并行化能显著节省计算时间。</p>
-<p>一般而言，根据执行计算所用的硬件，有许多并行化的可能性。如果你只有带多个核心的单颗 CPU，那么<em>线程（threads）</em>或<em>进程（processes）</em>是利用本地机器所有核心的方式。另一方面，如果你有多台机器，它们可以通过<em>网络套接字（network sockets）</em>或<em>消息传递接口（Message Passing Interface）</em>等协议进行通信和交换信息。较大的计算站点依赖调度系统（scheduling systems）为多个用户编排计算，并且通常提供一个所有机器都能访问的共享网络文件系统。在计算集群上与调度系统交互的内容在第 <a href="../chapter11/large-scale_benchmarking.html#sec-hpc-exec" class="quarto-xref"><span>11.2 节</span></a>中借助 R 包 <a href="https://batchtools.mlr-org.com"><code>batchtools</code></a> 介绍。</p>
+<p>一般而言，根据执行计算所用的硬件，有许多并行化的可能性。如果你只有带多个核心的单颗 CPU，那么<em>线程（threads）</em>或<em>进程（processes）</em>是利用本地机器所有核心的方式。另一方面，如果你有多台机器，它们可以通过<em>网络套接字（network sockets）</em>或<em>消息传递接口（Message Passing Interface）</em>等协议进行通信和交换信息。较大的计算站点依赖调度系统（scheduling systems）为多个用户编排计算，并且通常提供一个所有机器都能访问的共享网络文件系统。在计算集群上与调度系统交互的内容在第 <a href="https://mlr3book.mlr-org.com/chapter11/large-scale_benchmarking.html#sec-hpc-exec" class="quarto-xref"><span>11.2 节</span></a>中借助 R 包 <a href="https://batchtools.mlr-org.com"><code>batchtools</code></a> 介绍。</p>
 <p>本节会用到一些与并行化相关的术语：</p>
 <ul>
 <li>并行化后端（parallelization backend）是指用于并行化的硬件，以及由某个 R 包提供的相应接口。许多并行化后端有不同的 API，因此我们使用 <a href="https://cran.r-project.org/package=future"><code>future</code></a> 包作为许多并行化后端的统一抽象层。从用户的角度来看，<code>mlr3</code> 直接与 <code>future</code> 对接，所以你只需在开始任何计算前配置好后端即可。另外，<code>mlr3</code> 也为 <a href="https://cran.r-project.org/package=mirai"><code>mirai</code></a> 包提供直接支持，它提供了一个每个任务开销更低、更轻量的后端（见<a href="#sec-parallel-mirai" class="quarto-xref"><span>第 10.1.6 节</span></a>）。</li>
@@ -213,7 +262,7 @@ function toggleTheme(){
 </ul>
 让这些例子（以及统计与机器学习中许多领域普遍如此）可以并行化的关键原则被称为数据并行（data parallelism），意思是同一个操作被并发地施加到输入数据的不同元素上。学习算法的并行化在第 <a href="#sec-parallel-learner" class="quarto-xref"><span>10.1.1 节</span></a>中介绍。</li>
 <li>重采样由多次独立的训练-测试划分重复组成，而基准测试（benchmarking）由多个独立的重采样组成（<a href="#sec-parallel-resample" class="quarto-xref"><span>第 10.1.2 节</span></a>）。</li>
-<li>调优（<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>）通常是迭代式的基准测试，它嵌入在一个顺序流程中，由该流程决定接下来要尝试哪些超参数配置。虽然许多调优算法在某种程度上本质上是顺序的，但也有些算法（例如随机搜索）可以并行地提出多个配置供独立评估，从而提供另一个并行化层次（<a href="#sec-nested-resampling-parallelization" class="quarto-xref"><span>第 10.1.4 节</span></a>）。</li>
+<li>调优（<a href="https://mlr3book.mlr-org.com/chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>）通常是迭代式的基准测试，它嵌入在一个顺序流程中，由该流程决定接下来要尝试哪些超参数配置。虽然许多调优算法在某种程度上本质上是顺序的，但也有些算法（例如随机搜索）可以并行地提出多个配置供独立评估，从而提供另一个并行化层次（<a href="#sec-nested-resampling-parallelization" class="quarto-xref"><span>第 10.1.4 节</span></a>）。</li>
 <li>单个学习器对多个观测的预测可以独立计算（<a href="#sec-parallel-predict" class="quarto-xref"><span>第 10.1.5 节</span></a>）。</li>
 </ol>
 <div class="no-row-height column-margin column-container"><span class="margin-aside">数据并行（Data Parallelism）</span></div><p>这些例子被称为「令人尴尬的并行」（embarrassingly parallel），因为它们非常容易并行化。如果我们能把问题表述成一个可以传给 map 类函数（如 <a href="https://www.rdocumentation.org/packages/base/topics/lapply"><code>lapply()</code></a>）的函数，那这就是一个令人尴尬的并行问题。然而，一个问题<em>能够</em>被并行化，并不意味着问题中的每个操作<em>都应该</em>被并行化。启动和终止工作进程以及工作进程之间可能的通信都是有代价的，这个代价体现为额外需要的运行时间，被称为并行化开销（parallelization overhead）。这种开销在不同并行化后端之间差异很大，必须与顺序执行的运行时间仔细权衡，才能判断并行化是否值得。如果顺序执行已经相当快，启用并行化可能只会引入额外的复杂度而几乎不节省运行时间，甚至可能拖慢执行。我们可以控制并行化的粒度（granularity）来降低并行化开销。例如，我们可以把一个 10000 次迭代的 <code>for</code>-循环在两个 CPU 核心上并行化的开销，通过把 10000 个任务的工作分块（chunking）成两个各执行 5000 次迭代的计算任务来降低，结果得到两个大任务而非 10000 个小任务。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">令人尴尬的并行（Embarrassingly Parallel）</span><span class="margin-aside">并行化开销（Parallelization Overhead）</span><span class="margin-aside">粒度（Granularity）</span></div></div>
@@ -254,13 +303,13 @@ function toggleTheme(){
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>并行化过程中可重现性往往令人担忧，因为可能需要特殊的伪随机数生成器（PRNG）<span class="citation" data-cites="future119">(<a href="../references.html#ref-future119" role="doc-biblioref">Bengtsson 2020</a>)</span>。然而，<a href="https://cran.r-project.org/package=future"><code>future</code></a> 确保所有工作进程都会收到相同的 PRNG 流，与工作进程数量无关 <span class="citation" data-cites="future119">(<a href="../references.html#ref-future119" role="doc-biblioref">Bengtsson 2020</a>)</span>。因此，只要你在脚本开头使用 <code>set.seed</code>（并选用你偏好的 PRNG），<code>mlr3</code> 实验就是可重现的。</p>
+<p>并行化过程中可重现性往往令人担忧，因为可能需要特殊的伪随机数生成器（PRNG）<span class="citation" data-cites="future119">(<a href="https://mlr3book.mlr-org.com/references.html#ref-future119" role="doc-biblioref">Bengtsson 2020</a>)</span>。然而，<a href="https://cran.r-project.org/package=future"><code>future</code></a> 确保所有工作进程都会收到相同的 PRNG 流，与工作进程数量无关 <span class="citation" data-cites="future119">(<a href="https://mlr3book.mlr-org.com/references.html#ref-future119" role="doc-biblioref">Bengtsson 2020</a>)</span>。因此，只要你在脚本开头使用 <code>set.seed</code>（并选用你偏好的 PRNG），<code>mlr3</code> 实验就是可重现的。</p>
 </div>
 </div>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>理解「线程、进程、节点」这三层并行模型有助于把握本节内容：线程（thread）是进程内的轻量级执行单元，共享内存、启动开销极小，通常由底层 C/C++ 编译代码使用（例如 ranger 的 <code>num.threads</code>）；进程（process）是独立的内存空间，启动与通信开销较大（例如 <code>future</code> 的 multisession 后端）；而计算节点则是通过网络通信的独立机器。「数据并行」是指同一函数应用于不同数据切片，对应 R 中的 <code>lapply()</code> 一族；「令人尴尬的并行」指任务之间完全独立、无需通信，这是机器学习实验中最理想也最常见的并行模式。最后要提醒：并行化并非免费午餐，开销包括启动/销毁工作进程、序列化传输对象、同步等待等；当单个任务本身就很快时，并行反而更慢——这正是作者用 10000 次 <code>sqrt()</code> 演示「分块」收益的原因。</p>
 </div>
-<section id="sec-parallel-learner" class="level3" data-number="10.1.1"><h3 data-number="10.1.1" class="anchored" data-anchor-id="sec-parallel-learner">
+<section id="sec-parallel-learner" class="level3" data-number="10.1.1"><h3 data-number="10.1.1" class="anchored" data-anchor-id="sec-parallel-learner" id="sec-parallel-learner">
 <span class="header-section-number">10.1.1</span> 学习器的并行化（Parallelization of Learners）</h3>
 <p>在最底层，外部代码可以在底层实现支持并行时进行并行化。例如，在拟合单棵决策树时，每次把数据分成两个不相交子集的分裂都需要在全部 <span class="math inline">\(p\)</span> 个特征上搜索最佳切分点。我们不必顺序遍历所有特征，而是可以把搜索拆分成 <span class="math inline">\(p\)</span> 个线程，每个线程在单个特征上搜索最佳切分点。这些线程随后可以根据可用的 CPU 核心来调度，因为线程之间无需通信。所有线程完成后，结果被收集并合并，然后线程终止。每个特征的最优切分点共 <span class="math inline">\(p\)</span> 个，通过顺序遍历这 <span class="math inline">\(p\)</span> 个结果，把它们聚合成所有特征上的单一最优切分点。</p>
 <div class="callout callout-style-default callout-tip callout-titled">
@@ -310,7 +359,7 @@ oob_error, selected_features, twoclass, and weights
 • Other settings: use_weights = 'use', predict_raw = 'FALSE'</code></pre>
 </div>
 </div>
-<p>如果我们不为 <code>n</code> 参数指定参数值，那么默认使用一个启发式方法，通过 <a href="https://www.rdocumentation.org/packages/parallelly/topics/availableCores"><code>availableCores()</code></a> 检测正确的核心数。这个启发式方法并不总是理想的（感兴趣的读者可以查阅「阿姆达尔定律（Amdahl's Law）」），而利用全部可用核心有时反而适得其反，会拖慢整体运行时间 <span class="citation" data-cites="avoiddetect">(<a href="../references.html#ref-avoiddetect" role="doc-biblioref">Bengtsson 2022</a>)</span>；此外，在以下情况下使用全部核心也不理想：</p>
+<p>如果我们不为 <code>n</code> 参数指定参数值，那么默认使用一个启发式方法，通过 <a href="https://www.rdocumentation.org/packages/parallelly/topics/availableCores"><code>availableCores()</code></a> 检测正确的核心数。这个启发式方法并不总是理想的（感兴趣的读者可以查阅「阿姆达尔定律（Amdahl's Law）」），而利用全部可用核心有时反而适得其反，会拖慢整体运行时间 <span class="citation" data-cites="avoiddetect">(<a href="https://mlr3book.mlr-org.com/references.html#ref-avoiddetect" role="doc-biblioref">Bengtsson 2022</a>)</span>；此外，在以下情况下使用全部核心也不理想：</p>
 <ul>
 <li>你想同时把系统用于其他用途。</li>
 <li>你处于一个多用户系统上，想为其他用户留出一些资源。</li>
@@ -342,7 +391,7 @@ oob_error, selected_features, twoclass, and weights
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>「线程」与「进程」在此的区别很关键：线程并行（如 ranger 的 <code>num.threads</code>、XGBoost 的 <code>nthread</code>）发生在 R 之外的编译代码里，R 解释器「感知不到」并行，因此如果同时又启用了 multisession 等进程级后端，就会出现过度订阅（oversubscription）——核心数被两边同时占用，甚至可能崩溃。所以 mlr3 的约定是：默认把线程数设为 1，由用户按需通过 <code>set_threads()</code> 打开。阿姆达尔定律说明加速比存在上限（<span class="math inline">\(1/((1-f)+f/N)\)</span>，其中 <code>f</code> 为可并行比例、<code>N</code> 为核心数），这也是「不是核越多越快」的理论根源；而 <code>availableCores()</code> 只报告硬件有多少核，无法知道当下有多少核被其他进程占用，因此作者建议在 <code>.Rprofile</code> 中手动设定一个保守的核数。</p>
 </div>
-</section><section id="sec-parallel-resample" class="level3" data-number="10.1.2"><h3 data-number="10.1.2" class="anchored" data-anchor-id="sec-parallel-resample">
+</section><section id="sec-parallel-resample" class="level3" data-number="10.1.2"><h3 data-number="10.1.2" class="anchored" data-anchor-id="sec-parallel-resample" id="sec-parallel-resample">
 <span class="header-section-number">10.1.2</span> 重采样与基准测试的并行化（Parallelization of Resamplings and Benchmarks）</h3>
 <p>除了并行学习器之外，大多数机器学习实验在重采样期间都可以轻松并行化。根据定义，重采样是对多个独立训练-测试划分的重复进行聚合而执行的。</p>
 <p><code>mlr3</code> 利用 <a href="https://cran.r-project.org/package=future"><code>future</code></a> 通过并行后端实现对重采样迭代的并行化，该后端可以由用户通过 <a href="https://www.rdocumentation.org/packages/future/topics/plan"><code>plan()</code></a> 函数配置。</p>
@@ -375,7 +424,7 @@ oob_error, selected_features, twoclass, and weights
 <div class="cell-output-display">
 <div id="fig-parallel-overview" class="quarto-float quarto-figure quarto-figure-center anchored" alt="流程图从一个写着 'Main' 的矩形框开始，有一个箭头指向写着 'resample()' 的菱形。菱形有三个箭头分别指向 'Worker 1-3'，每个箭头分别标注 'Fold 1-3'。每个工作进程框都指向同一个写着 'ResampleResult' 的菱形，每个箭头分别标注 'Prediction 1-3'。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-parallel-overview-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/Figures/mlr3book_figures-30.svg" class="img-fluid figure-img" style="width:100.0%" alt="流程图从一个写着 'Main' 的矩形框开始，有一个箭头指向写着 'resample()' 的菱形。菱形有三个箭头分别指向 'Worker 1-3'，每个箭头分别标注 'Fold 1-3'。每个工作进程框都指向同一个写着 'ResampleResult' 的菱形，每个箭头分别标注 'Prediction 1-3'。">
+<img src="../images/Figures/mlr3book_figures-30.svg" class="img-fluid figure-img" style="width:100.0%" alt="流程图从一个写着 'Main' 的矩形框开始，有一个箭头指向写着 'resample()' 的菱形。菱形有三个箭头分别指向 'Worker 1-3'，每个箭头分别标注 'Fold 1-3'。每个工作进程框都指向同一个写着 'ResampleResult' 的菱形，每个箭头分别标注 'Prediction 1-3'。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-parallel-overview-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;10.1：使用三折交叉验证对重采样的并行化。主进程调用 <code><a href="https://mlr3.mlr-org.com/reference/resample.html">resample()</a></code> 函数，它启动并行化过程，并把计算任务拆分成三部分用于三折交叉验证。各折被传给三个工作进程，每个工作进程在任务相应的子集上拟合模型，并对留出的观测做预测。预测（及训练好的模型）被传回主进程，由主进程把它们组合成一个 <code>ResampleResult</code>。
@@ -406,9 +455,9 @@ oob_error, selected_features, twoclass, and weights
 <span><span class="co"># 并行运行基准测试</span></span>
 <span><span class="va">bmr</span> <span class="op">=</span> <span class="fu">benchmark</span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span></code></pre></div>
 </div>
-<p>对于累计运行时间可能长达数周、数月甚至数年的更大规模基准测试实验，请参阅<a href="../chapter11/large-scale_benchmarking.html#sec-hpc-exec" class="quarto-xref"><span>第 11.2 节</span></a>。</p>
+<p>对于累计运行时间可能长达数周、数月甚至数年的更大规模基准测试实验，请参阅<a href="https://mlr3book.mlr-org.com/chapter11/large-scale_benchmarking.html#sec-hpc-exec" class="quarto-xref"><span>第 11.2 节</span></a>。</p>
 
-</section><section id="sec-parallel-tuning" class="level3" data-number="10.1.3"><h3 data-number="10.1.3" class="anchored" data-anchor-id="sec-parallel-tuning">
+</section><section id="sec-parallel-tuning" class="level3" data-number="10.1.3"><h3 data-number="10.1.3" class="anchored" data-anchor-id="sec-parallel-tuning" id="sec-parallel-tuning">
 <span class="header-section-number">10.1.3</span> 调优的并行化（Parallelization of Tuning）</h3>
 <p>调优通常是一个迭代式的流程，由一些本身令人尴尬地可并行的步骤组成。在每次迭代中，调优器（tuner）会提出一批超参数配置（批次大小可以为 <code>1</code>），这些配置随后可以被并行评估。每次迭代后，大多数调优器会根据已获得的性能值以某种方式自我调整。随机搜索与网格搜索是例外，因为它们不根据以往结果选择配置；相反，对这类调优器而言，所有评估都是独立的，原则上可以完全并行化。</p>
 <p>调优在 <code>mlr3</code> 中被实现为迭代式基准测试。<a href="https://mlr3tuning.mlr-org.com/reference/Tuner.html"><code>Tuner</code></a> 会提出一批学习器，每个学习器在其 <code>$param_set$values</code> 中有不同的配置，批次大小通常可以通过配置参数 <code>batch_size</code> 控制。这个批次会连同调优实例的重采样策略一起传给 <a href="https://mlr3.mlr-org.com/reference/benchmark.html"><code>benchmark()</code></a>。</p>
@@ -431,7 +480,7 @@ oob_error, selected_features, twoclass, and weights
 </div>
 </div>
 <p>在这个例子中，我们本可以把批次大小增大到 20，从而在恰好达到评估次数时停止，以最有效的方式利用可用资源；但这并不能推广到其他我们无法事先知道评估次数的终止条件。例如，如果我们用 <code>trm("perf_reached")</code> 且批次大小为 12，那么如果批次中第一个配置的性能优于给定阈值，剩余的 11 个配置仍会被不必要地评估。</p>
-</section><section id="sec-nested-resampling-parallelization" class="level3" data-number="10.1.4"><h3 data-number="10.1.4" class="anchored" data-anchor-id="sec-nested-resampling-parallelization">
+</section><section id="sec-nested-resampling-parallelization" class="level3" data-number="10.1.4"><h3 data-number="10.1.4" class="anchored" data-anchor-id="sec-nested-resampling-parallelization" id="sec-nested-resampling-parallelization">
 <span class="header-section-number">10.1.4</span> 嵌套重采样的并行化（Nested Resampling Parallelization）</h3>
 <p>嵌套重采样在概念上可以在三个不同层级并行化，每一层对应不同粒度的任务：</p>
 <ol type="1">
@@ -439,7 +488,7 @@ oob_error, selected_features, twoclass, and weights
 <li>并行评估某次调优迭代提出的超参数配置批次。此时一个任务例如就是对一个配置做交叉验证。</li>
 <li>调优中内层重采样的并行化。此时一个任务就是单个配置的一次训练-预测-评分步骤。</li>
 </ol>
-<p>这在下面的伪代码中得到演示，它是 <span class="citation" data-cites="hpo_practical">Bischl et al. (<a href="../references.html#ref-hpo_practical" role="doc-biblioref">2023</a>)</span> 中算法 3 的简化形式：</p>
+<p>这在下面的伪代码中得到演示，它是 <span class="citation" data-cites="hpo_practical">Bischl et al. (<a href="https://mlr3book.mlr-org.com/references.html#ref-hpo_practical" role="doc-biblioref">2023</a>)</span> 中算法 3 的简化形式：</p>
 <div class="cell">
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># 外层重采样，第 1 层：</span></span>
 <span><span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="va">n_outer_splits</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
@@ -469,7 +518,7 @@ oob_error, selected_features, twoclass, and weights
 <span><span class="op">}</span></span></code></pre></div>
 </div>
 <p>这个算法在 <code>mlr3</code> 中以略高效的方式实现。在第二层（超参数配置的评估）上，它利用了 <code><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark()</a></code> 的功能：为每个提出的超参数配置创建一个 <code>Learner</code> 对象，所有学习器在最内层 for 循环的一个基准测试实验中被重采样，从而有效地把第二层与第三层一起以更细的粒度执行（提出点数量乘以内层重采样迭代次数）。因此，在 <code>mlr3</code> 中并行化嵌套重采样时，用户只需在两个选项中选择：并行化外层重采样，或并行化内层基准测试。</p>
-<p>举例来说，让我们使用 <a href="https://mlr3tuning.mlr-org.com/reference/AutoTuner.html"><code>AutoTuner</code></a>（<a href="../chapter4/hyperparameter_optimization.html#sec-autotuner" class="quarto-xref"><span>第 4.2 节</span></a>）和仅两次迭代的随机搜索来调优分类树的 <code>minsplit</code> 参数。注意，这是一个教学示例，用于说明不同并行化层级之间的相互作用，而非现实的配置。我们对内层重采样使用留出法（holdout），并把 <code>batch_size</code> 设为 <code>2</code>，这会在内层基准测试实验中产生两次独立迭代。外层重采样使用五折交叉验证。为简单起见，我们还将忽略 <code>AutoTuner</code> 在调优之后执行的最终模型拟合。下面，我们不加并行化地顺序运行该示例：</p>
+<p>举例来说，让我们使用 <a href="https://mlr3tuning.mlr-org.com/reference/AutoTuner.html"><code>AutoTuner</code></a>（<a href="https://mlr3book.mlr-org.com/chapter4/hyperparameter_optimization.html#sec-autotuner" class="quarto-xref"><span>第 4.2 节</span></a>）和仅两次迭代的随机搜索来调优分类树的 <code>minsplit</code> 参数。注意，这是一个教学示例，用于说明不同并行化层级之间的相互作用，而非现实的配置。我们对内层重采样使用留出法（holdout），并把 <code>batch_size</code> 设为 <code>2</code>，这会在内层基准测试实验中产生两次独立迭代。外层重采样使用五折交叉验证。为简单起见，我们还将忽略 <code>AutoTuner</code> 在调优之后执行的最终模型拟合。下面，我们不加并行化地顺序运行该示例：</p>
 <div class="cell">
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3tuning.mlr-org.com">mlr3tuning</a></span><span class="op">)</span></span>
 <span><span class="co"># 重置为默认的顺序计划</span></span>
@@ -502,7 +551,7 @@ oob_error, selected_features, twoclass, and weights
 <div class="cell-output-display">
 <div id="fig-parallel-outer" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-parallel-outer-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/Figures/cpu_utilization_1.svg" class="img-fluid figure-img" style="width:100.0%">
+<img src="../images/Figures/cpu_utilization_1.svg" class="img-fluid figure-img" style="width:100.0%">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-parallel-outer-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;10.2：并行化外层五折 CV（内部为顺序的两折 CV）时四个 CPU 的利用率。任务标注为 [外层迭代]-[内层迭代]。
@@ -514,7 +563,7 @@ oob_error, selected_features, twoclass, and weights
 <div class="cell-output-display">
 <div id="fig-parallel-inner" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-parallel-inner-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/Figures/cpu_utilization_2.svg" class="img-fluid figure-img" style="width:100.0%">
+<img src="../images/Figures/cpu_utilization_2.svg" class="img-fluid figure-img" style="width:100.0%">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-parallel-inner-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;10.3：并行化内层基准测试（由两次留出评估组成，外部为顺序的五折 CV）时四个核心的利用率。任务标注为 [外层迭代]-[内层迭代]。
@@ -535,7 +584,7 @@ oob_error, selected_features, twoclass, and weights
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>嵌套重采样（外层 CV 估计性能、内层 CV 用于调优）的正确并行方式容易搞混。这里三个层级对应三种「任务粒度」：外层一折 = 一次完整调优；一个配置 = 一次内层 CV；内层一折 = 一次训练-预测-评分。mlr3 把调优实现为「迭代式 benchmark」，天然会把第二、三层合并：一个配置的全部内层迭代作为一个整体进入 <code>benchmark()</code>。实践中通常只需二选一：并行外层（每 worker 各自完整调优一次）适合调优本身较重的情形；并行内层（各 worker 并行评估不同配置）适合配置评估较重的情形。书中数字可这样核对：并行外层时，前 4 个外层折各需 8 秒（2 配置 × 4 秒），第 5 折再花 8 秒，共 16 秒；并行内层时，每折的 2 个配置并行占 2 核、耗时 4 秒，5 折顺序执行共 20 秒；两层都并行时每层各 2 worker，每折 4 秒、两折一组并行，总耗时 12 秒。</p>
 </div>
-</section><section id="sec-parallel-predict" class="level3" data-number="10.1.5"><h3 data-number="10.1.5" class="anchored" data-anchor-id="sec-parallel-predict">
+</section><section id="sec-parallel-predict" class="level3" data-number="10.1.5"><h3 data-number="10.1.5" class="anchored" data-anchor-id="sec-parallel-predict" id="sec-parallel-predict">
 <span class="header-section-number">10.1.5</span> 预测的并行化（Parallelization of Predictions）</h3>
 <p>最后，单个学习器的预测可以并行化，因为多个观测的预测是相互独立的。对大多数学习器而言，训练才是瓶颈，并行化预测并不值得，但也会有例外，例如当你的测试数据集非常大时。</p>
 <p>要并行预测，首先把测试数据分成多个组，然后用经由 <a href="https://www.rdocumentation.org/packages/future/topics/plan"><code>plan()</code></a> 配置的激活后端，把学习器的 predict 方法并行应用到每个组。在第二步中，得到的预测在内部被合并。为避免意外地并行预测，必须通过学习器的 <code>parallel_predict</code> 字段显式启用并行预测：</p>
@@ -552,7 +601,7 @@ oob_error, selected_features, twoclass, and weights
 <span><span class="co"># 预测</span></span>
 <span><span class="va">prediction</span> <span class="op">=</span> <span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_sonar</span><span class="op">)</span></span></code></pre></div>
 </div>
-</section><section id="sec-parallel-mirai" class="level3" data-number="10.1.6"><h3 data-number="10.1.6" class="anchored" data-anchor-id="sec-parallel-mirai">
+</section><section id="sec-parallel-mirai" class="level3" data-number="10.1.6"><h3 data-number="10.1.6" class="anchored" data-anchor-id="sec-parallel-mirai" id="sec-parallel-mirai">
 <span class="header-section-number">10.1.6</span> 使用 <code>mirai</code> 进行并行化（Parallelization with <code>mirai</code>）（+）</h3>
 <p><code>mirai</code> 包是一个替代的并行化后端，它启动被称为 daemon（守护进程）的持久 R 会话。与 <code>future</code> 包相比，<code>mirai</code> 每个任务的开销显著更低，这在训练许多快速拟合的模型时尤其有利。手动分块不再必要，因为 <code>mirai</code> 的分发器（dispatcher）会自动在可用 daemon 之间分配任务。</p>
 <p>要并行化计算，用 <a href="https://www.rdocumentation.org/packages/mirai/topics/daemons"><code>daemons()</code></a> 启动 daemon。计算档案（compute profile）必须设为 <code>"mlr3_parallelization"</code>。为让 <code>mirai</code> 的结果可重现，请在创建 daemon 时设置 <code>seed</code>。对于本地 daemon，你可以用 <code>output = TRUE</code> 把日志消息重定向到主会话。</p>
@@ -593,7 +642,7 @@ oob_error, selected_features, twoclass, and weights
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong><code>future</code> 与 <code>mirai</code> 是两种设计哲学的并行后端：<code>future</code> 以「全局抽象 + 惰性求值」出名，一次 <code>plan()</code> 后整个生态共享同一后端，代价是每个 future 需要额外的调度与序列化开销；<code>mirai</code> 则采用「常驻 daemon + 统一分发器」，daemon 启动一次后持续复用，任务直接投递，单任务开销远低于 <code>future</code>，尤其适合训练大量小模型（如调优中评估许多快速配置）的场景。注意 <code>mirai</code> 需要显式设置 <code>.compute = "mlr3_parallelization"</code> 档案，这样 mlr3 才会识别并使用它；<code>everywhere()</code> 让内层循环的每个 worker 再派生自己的 daemon，实现双层并行。两种后端都建议设置随机种子以保证可重现性（<code>future</code> 用 <code>set.seed</code>，<code>mirai</code> 用 <code>daemons(seed=)</code>）。</p>
 </div>
-</section></section><section id="sec-error-handling" class="level2 page-columns page-full" data-number="10.2"><h2 data-number="10.2" class="anchored" data-anchor-id="sec-error-handling">
+</section></section><section id="sec-error-handling" class="level2 page-columns page-full" data-number="10.2"><h2 data-number="10.2" class="anchored" data-anchor-id="sec-error-handling" id="sec-error-handling">
 <span class="header-section-number">10.2</span> 错误处理（Error Handling）</h2>
 <p>在大型实验中，模型拟合或预测失败并报错并不罕见。这是因为算法必须处理任意的数据，并非所有可能情况都能得到处理。虽然我们试图在执行前识别出明显的问题（例如对无法处理缺失值的学习器出现缺失值），但其他问题则更难检测。例如可能引起训练问题的数值困难（比如不收敛），或者预测步骤中出现分类变量的新水平。不同学习器在遇到这类问题时的表现差异很大：有些模型在训练步骤中会发出「拟合失败」的警告，但返回一个基线模型；其他模型则会停止执行。在预测期间，有些学习器会报错并拒绝为无法处理的观测预测响应，另一些则可能预测出 <code>NA</code>。在本节中，我们将讨论在我们不希望程序停止时（例如在基准测试实验期间）如何防止这些错误导致程序停止。</p>
 <p>为了演示（并用于内部测试）错误处理，<code>mlr3</code> 自带了 <code>lrn("classif.debug")</code> 和 <code>lrn("regr.debug")</code>：</p>
@@ -631,7 +680,7 @@ multiclass, twoclass, validation, and weights
 </div>
 </div>
 <p>现在我们可以来看看在 <code>mlr3</code> 实验期间如何处理错误。</p>
-<section id="sec-encapsulation" class="level3 page-columns page-full" data-number="10.2.1"><h3 data-number="10.2.1" class="anchored" data-anchor-id="sec-encapsulation">
+<section id="sec-encapsulation" class="level3 page-columns page-full" data-number="10.2.1"><h3 data-number="10.2.1" class="anchored" data-anchor-id="sec-encapsulation" id="sec-encapsulation">
 <span class="header-section-number">10.2.1</span> 封装（Encapsulation）</h3>
 <p>封装（encapsulation）确保被发出的条件（例如消息、警告和错误）被截获，并且训练或预测步骤中引发的所有条件都会被记录到学习器中，而不会中断程序流程。这意味着模型可以用于拟合和预测，任何条件都可以事后分析。然而，实验的结果将是一个缺失的模型和/或缺失的预测，具体取决于错误发生的位置。在第 <a href="#sec-fallback" class="quarto-xref"><span>10.2.2 节</span></a>中，我们将讨论用回退学习器（fallback learner）替换缺失模型和/或预测。</p>
 <p>每个 <a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 都有方法 <code>$encapsulate()</code> 来控制 train 或 predict 步骤如何被包装。第一种封装执行方式由 <a href="https://cran.r-project.org/package=evaluate"><code>evaluate</code></a> 包提供，它评估 R 表达式并捕获和跟踪条件（输出、消息、警告或错误），而不让它们终止进程（完整细节见 <a href="https://mlr3misc.mlr-org.com/reference/encapsulate.html"><code>encapsulate()</code></a> 的文档）：</p><div class="no-row-height column-margin column-container"><span class="margin-aside">$encapsulate()</span></div></div>
@@ -643,7 +692,7 @@ multiclass, twoclass, validation, and weights
 <span><span class="va">lrn_debug</span><span class="op">$</span><span class="fu">encapsulate</span><span class="op">(</span><span class="st">"evaluate"</span>, fallback <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.featureless"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">lrn_debug</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_penguins</span><span class="op">)</span></span></code></pre></div>
 </div>
-<p>注意，封装会捕获所有写入标准输出（stdout）和标准错误（stderr）流的输出，并把它们存储在学习器的日志中。然而，在某些计算设置中，调用进程需要对日志输出进行操作，例如<a href="../chapter11/large-scale_benchmarking.html" class="quarto-xref"><span>第 11 章</span></a>中的 <a href="https://batchtools.mlr-org.com"><code>batchtools</code></a> 包。在这种情况下，请改用封装方法 <code>"try"</code>，它会捕获被发出的条件，但不会抑制输出。</p>
+<p>注意，封装会捕获所有写入标准输出（stdout）和标准错误（stderr）流的输出，并把它们存储在学习器的日志中。然而，在某些计算设置中，调用进程需要对日志输出进行操作，例如<a href="https://mlr3book.mlr-org.com/chapter11/large-scale_benchmarking.html" class="quarto-xref"><span>第 11 章</span></a>中的 <a href="https://batchtools.mlr-org.com"><code>batchtools</code></a> 包。在这种情况下，请改用封装方法 <code>"try"</code>，它会捕获被发出的条件，但不会抑制输出。</p>
 <p>训练完学习器后，可以通过字段 <code>log</code>、<code>warnings</code> 和 <code>errors</code> 访问日志：</p>
 <div class="cell">
 <div class="sourceCode" id="cb35"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_debug</span><span class="op">$</span><span class="va">log</span></span></code></pre></div>
@@ -736,11 +785,11 @@ attr(,"class")
 → Class: Mlr3ErrorLearnerPredict</code></pre>
 </div>
 </div>
-<p>缺失的学习器和/或预测在诸如重采样、基准测试或调优等自动化流程中尤其成问题（<a href="../chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-encapsulation-fallback" class="quarto-xref"><span>第 5.1.1 节</span></a>），因为结果无法在各迭代间正确地聚合。在下一节中，我们将考察回退学习器，它负责插补缺失的模型和预测。</p>
+<p>缺失的学习器和/或预测在诸如重采样、基准测试或调优等自动化流程中尤其成问题（<a href="https://mlr3book.mlr-org.com/chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-encapsulation-fallback" class="quarto-xref"><span>第 5.1.1 节</span></a>），因为结果无法在各迭代间正确地聚合。在下一节中，我们将考察回退学习器，它负责插补缺失的模型和预测。</p>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>封装（encapsulation）的思想是把「触发错误」与「让错误中断整个实验」分离。R 本身就有条件（condition）机制——<code>message()</code>、<code>warning()</code>、<code>stop()</code> 分别发出消息、警告和错误，默认行为是错误会中断执行。<code>mlr3</code> 的三种封装方式各有用武之地：<code>"evaluate"</code> 在同一进程内捕获条件（最轻量，但无法隔离段错误，也无法中断卡死的 C 代码）；<code>"callr"</code> 把训练/预测放进独立 R 进程（能防段错误，也支持可靠超时，但每个任务要付一次进程启动成本）；<code>"try"</code> 则只捕获条件但保留输出流，供 <code>batchtools</code> 等外部调度器读取。特别提醒：模型「跑飞」（不收敛、死循环）靠超时（<code>$timeout</code>）兜底，而这一步最好配合 <code>callr</code>，因为纯 R 层面的 <code>evaluate</code> 无法抢占已卡在编译代码中的线程。</p>
 </div>
-</section><section id="sec-fallback" class="level3 page-columns page-full" data-number="10.2.2"><h3 data-number="10.2.2" class="anchored" data-anchor-id="sec-fallback">
+</section><section id="sec-fallback" class="level3 page-columns page-full" data-number="10.2.2"><h3 data-number="10.2.2" class="anchored" data-anchor-id="sec-fallback" id="sec-fallback">
 <span class="header-section-number">10.2.2</span> 回退学习器（Fallback Learners）</h3>
 <p>假设重采样期间在一次或多次迭代中训练模型时发生了错误，那么继续我们的实验有三种方法：</p>
 <ol type="1">
@@ -823,7 +872,7 @@ multiclass, twoclass, validation, and weights
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>「忽略失败迭代」为何统计上不成立是本节的重点：失败的迭代往往不是随机缺失（missing at random）的。例如，当预测集出现训练集未见过的新类别水平时，模型会系统性失败——此时被丢弃的恰是模型最「吃力」的那部分数据，只对成功的折聚合会系统性高估性能，属于典型的「选择性偏差」（selection bias）。用基线模型（featureless）兜底则把每次失败都纳入聚合，得到的是「该模型在最坏情况下至少能退化为基线」的保守而诚实的估计。实践中建议所有大型基准测试都统一配置封装 + 回退，并用 <code>aggregate(conditions = TRUE)</code> 顺带报告每折的警告与错误次数，方便事后定位不稳定来源。</p>
 </div>
-</section><section id="sec-condition-classes" class="level3" data-number="10.2.3"><h3 data-number="10.2.3" class="anchored" data-anchor-id="sec-condition-classes">
+</section><section id="sec-condition-classes" class="level3" data-number="10.2.3"><h3 data-number="10.2.3" class="anchored" data-anchor-id="sec-condition-classes" id="sec-condition-classes">
 <span class="header-section-number">10.2.3</span> 条件类（Condition Classes）</h3>
 <p><code>mlr3</code> 使用自定义条件类来对错误和警告进行分类。这些类决定封装和回退学习器的行为。</p>
 <p>以下是可用的错误类（完整细节见 <a href="https://mlr3misc.mlr-org.com/reference/mlr_conditions.html"><code>mlr_conditions</code></a>）：</p>
@@ -853,10 +902,10 @@ multiclass, twoclass, validation, and weights
 <span>  when <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">cond</span>, <span class="va">stage</span><span class="op">)</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/class.html">inherits</a></span><span class="op">(</span><span class="va">cond</span>, <span class="st">"Mlr3ErrorTimeout"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
-</section></section><section id="sec-logging" class="level2" data-number="10.3"><h2 data-number="10.3" class="anchored" data-anchor-id="sec-logging">
+</section></section><section id="sec-logging" class="level2" data-number="10.3"><h2 data-number="10.3" class="anchored" data-anchor-id="sec-logging" id="sec-logging">
 <span class="header-section-number">10.3</span> 日志（Logging）</h2>
 <p><a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 使用 <a href="https://cran.r-project.org/package=lgr"><code>lgr</code></a> 包来控制输出的详细程度，即决定运行 <code>mlr3</code> 操作时显示多少输出——从抑制所有非关键消息，到调试用的详细消息。在本节中，我们将介绍如何更改日志级别、重定向输出，以及最后更改日志反馈的时机。</p>
-<section id="sec-logger-hierarchy" class="level3" data-number="10.3.1"><h3 data-number="10.3.1" class="anchored" data-anchor-id="sec-logger-hierarchy">
+<section id="sec-logger-hierarchy" class="level3" data-number="10.3.1"><h3 data-number="10.3.1" class="anchored" data-anchor-id="sec-logger-hierarchy" id="sec-logger-hierarchy">
 <span class="header-section-number">10.3.1</span> 日志器层级（Logger Hierarchy）</h3>
 <p><code>mlr3</code> 生态系统使用层级日志系统。基础日志器名为 <code>"mlr3"</code>，是生态系统中所有日志器的父级。每个包在这个基础日志器下注册自己的子日志器：</p>
 <ul>
@@ -870,7 +919,7 @@ multiclass, twoclass, validation, and weights
 <code>"mlr3/mlr3pipelines"</code> – <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 的子日志器。</li>
 </ul>
 <p>在基础 <code>"mlr3"</code> 日志器上设置阈值，可以控制整个生态系统的日志级别。子日志器继承其父级的阈值，但也可以独立配置。这使得一次性静默所有日志，或选择性地为特定包启用日志变得很容易。</p>
-</section><section id="sec-log-levels" class="level3" data-number="10.3.2"><h3 data-number="10.3.2" class="anchored" data-anchor-id="sec-log-levels">
+</section><section id="sec-log-levels" class="level3" data-number="10.3.2"><h3 data-number="10.3.2" class="anchored" data-anchor-id="sec-log-levels" id="sec-log-levels">
 <span class="header-section-number">10.3.2</span> 更改日志级别（Changing Log Levels）</h3>
 <p><code>mlr3</code> 使用 <code>lgr</code> 的以下详细级别：</p>
 <ul>
@@ -895,7 +944,7 @@ multiclass, twoclass, validation, and weights
 <div class="sourceCode" id="cb66"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">lgr</span><span class="fu">::</span><span class="fu"><a href="https://s-fleck.github.io/lgr/reference/get_logger.html">get_logger</a></span><span class="op">(</span><span class="st">"mlr3/core"</span><span class="op">)</span><span class="op">$</span><span class="fu">set_threshold</span><span class="op">(</span><span class="st">"warn"</span><span class="op">)</span></span>
 <span><span class="fu">lgr</span><span class="fu">::</span><span class="fu"><a href="https://s-fleck.github.io/lgr/reference/get_logger.html">get_logger</a></span><span class="op">(</span><span class="st">"mlr3/bbotk"</span><span class="op">)</span><span class="op">$</span><span class="fu">set_threshold</span><span class="op">(</span><span class="st">"info"</span><span class="op">)</span></span></code></pre></div>
 </div>
-</section><section id="sec-log-output" class="level3" data-number="10.3.3"><h3 data-number="10.3.3" class="anchored" data-anchor-id="sec-log-output">
+</section><section id="sec-log-output" class="level3" data-number="10.3.3"><h3 data-number="10.3.3" class="anchored" data-anchor-id="sec-log-output" id="sec-log-output">
 <span class="header-section-number">10.3.3</span> 重定向日志输出（Redirecting Log Output）</h3>
 <p>默认情况下，<code>lgr</code> 的输出打印在控制台中，但你可以选择以各种格式把它重定向到文件，例如重定向到 JSON 文件：</p>
 <div class="cell">
@@ -921,13 +970,13 @@ multiclass, twoclass, validation, and weights
 <span><span class="va">logger</span><span class="op">$</span><span class="fu">remove_appender</span><span class="op">(</span><span class="st">"json"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <p>更全面的示例请参阅 <code>lgr</code> 中的 vignette。</p>
-</section><section id="sec-debug-mode" class="level3" data-number="10.3.4"><h3 data-number="10.3.4" class="anchored" data-anchor-id="sec-debug-mode">
+</section><section id="sec-debug-mode" class="level3" data-number="10.3.4"><h3 data-number="10.3.4" class="anchored" data-anchor-id="sec-debug-mode" id="sec-debug-mode">
 <span class="header-section-number">10.3.4</span> 调试模式（Debug Mode）</h3>
 <p>当使用并行化和/或封装时，日志可能被延迟、乱序，或在某些错误的情况下完全缺失。当需要即时访问日志消息时（例如调试时），可以选择禁用 <code>future</code> 和封装。要启用「调试模式」，设置 <code>options(mlr3.debug = TRUE)</code>，并确保学习器的 <code>$encapsulate</code> 槽被设为 <code>"none"</code>（默认值）或 <code>"evaluate"</code>。调试模式只应在调试期间启用，不应在生产环境中使用，因为它会禁用并行化并导致无法重现的意外 RNG 行为。</p>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong><code>lgr</code> 是 mlr3 生态的日志基础设施，其设计借鉴了 Java 的 log4j/SLF4J：logger 构成树状层级（父阈值默认被子级继承），appender 决定每条记录写到哪里（控制台、文件、JSON、数据库等），layout 决定输出格式。常用操作是：想安静就跑 <code>set_threshold("warn")</code>，想排查就 <code>set_threshold("debug")</code>，想审计就把 JSON appender 挂到文件。注意「debug 模式」与「debug 日志级别」是两回事——前者（<code>options(mlr3.debug = TRUE)</code>）强制串行执行并暴露原始错误栈，便于定位 bug，但因绕过了 <code>future</code> 的并行随机种子管理，会导致结果不可重现，所以只能在调试期临时开启。日志级别阈值是「>= 才输出」的排序：warn &lt; info &lt; debug，设 info 会同时显示 warn，设 warn 则只留警告。</p>
 </div>
-</section></section><section id="sec-backends" class="level2" data-number="10.4"><h2 data-number="10.4" class="anchored" data-anchor-id="sec-backends">
+</section></section><section id="sec-backends" class="level2" data-number="10.4"><h2 data-number="10.4" class="anchored" data-anchor-id="sec-backends" id="sec-backends">
 <span class="header-section-number">10.4</span> 数据后端（Data Backends）</h2>
 <p><code>Task</code> 对象将其数据存储在一个抽象的数据对象中，即<a href="https://mlr3.mlr-org.com/reference/DataBackend.html"><code>DataBackend</code></a>。数据后端提供统一的 API 来获取数据的子集或查询其信息，无论数据在系统中如何存储。默认后端通过 <a href="https://mlr3.mlr-org.com/reference/DataBackendDataTable.html"><code>DataBackendDataTable</code></a> 类使用 <a href="https://cran.r-project.org/package=data.table"><code>data.table</code></a>，作为一个非常快速高效的内存数据库。</p>
 <p>虽然将任务数据存储在内存中对模型拟合时的访问最为高效，但有两个主要的缺点：</p>
@@ -948,7 +997,7 @@ multiclass, twoclass, validation, and weights
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>默认情况下 mlr3 的任务数据存在内存中的 <code>data.table</code> 里，访问快但有两个隐患：一是只要任务存在，整个数据集就常驻内存（即使子采样只用 2%）；二是并行化时每个 worker 都要拷贝一份完整数据。mlr3db 把数据搬到 SQLite/DuckDB 或 Parquet 文件里，让「内存中的镜像」按需懒加载，学习器当前迭代需要多少就取多少，用完交给垃圾回收器释放。这样大数据也能跑在内存有限的环境里，代价是每次数据访问多一次查询开销，因此更适合「大而稀疏」的取数场景。注意：这种后端只「看到」你传入的数据，预先过滤掉的列和行它并不知晓。</p>
 </div>
-<section id="databases-with-databackenddplyr" class="level3" data-number="10.4.1"><h3 data-number="10.4.1" class="anchored" data-anchor-id="databases-with-databackenddplyr">
+<section id="databases-with-databackenddplyr" class="level3" data-number="10.4.1"><h3 data-number="10.4.1" class="anchored" data-anchor-id="databases-with-databackenddplyr" id="databases-with-databackenddplyr">
 <span class="header-section-number">10.4.1</span> 使用 DataBackendDplyr 连接数据库</h3>
 <p>为了演示 <a href="https://mlr3db.mlr-org.com/reference/DataBackendDplyr.html"><code>DataBackendDplyr</code></a>，我们使用来自 <a href="https://cran.r-project.org/package=nycflights13"><code>nycflights13</code></a> 包的（相当大的）纽约航班数据集，并将其移入一个 SQLite 数据库。虽然 <a href="https://mlr3db.mlr-org.com/reference/as_sqlite_backend.html"><code>as_sqlite_backend()</code></a> 提供了一个便捷函数来完成这一步，但我们这里手动构建数据库。</p>
 <div class="cell">
@@ -1029,7 +1078,7 @@ multiclass, twoclass, validation, and weights
 3 variables not shown: [air_time, distance, arr_delay]</code></pre>
 </div>
 </div>
-<p>注意，<code>DataBackendDplyr</code> 只能作用于我们提供的数据，因此它「不知道」我们已经过滤掉的行和列（这与<a href="../chapter2/data_and_basic_modeling.html#sec-tasks-mutators" class="quarto-xref"><span>第 2.1.3 节</span></a>中使用的 <code>$filter</code> 和 <code>$subset</code> 不同，那些只是移除行或列的角色，而不是移除行/列本身）。</p>
+<p>注意，<code>DataBackendDplyr</code> 只能作用于我们提供的数据，因此它「不知道」我们已经过滤掉的行和列（这与<a href="https://mlr3book.mlr-org.com/chapter2/data_and_basic_modeling.html#sec-tasks-mutators" class="quarto-xref"><span>第 2.1.3 节</span></a>中使用的 <code>$filter</code> 和 <code>$subset</code> 不同，那些只是移除行或列的角色，而不是移除行/列本身）。</p>
 <p>构建好后端后，我们现在可以使用标准的 <code>mlr3</code> API：</p>
 <div class="cell">
 <div class="sourceCode" id="cb79"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_flights</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/as_task_regr.html">as_task_regr</a></span><span class="op">(</span><span class="va">backend_flights</span>, id <span class="op">=</span> <span class="st">"flights_sqlite"</span>,</span>
@@ -1051,7 +1100,7 @@ multiclass, twoclass, validation, and weights
 <div class="sourceCode" id="cb82"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/rm.html">rm</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span>
 <span><span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbDisconnect.html">dbDisconnect</a></span><span class="op">(</span><span class="va">con</span><span class="op">)</span></span></code></pre></div>
 </div>
-</section><section id="parquet-files-with-databackendduckdb" class="level3" data-number="10.4.2"><h3 data-number="10.4.2" class="anchored" data-anchor-id="parquet-files-with-databackendduckdb">
+</section><section id="parquet-files-with-databackendduckdb" class="level3" data-number="10.4.2"><h3 data-number="10.4.2" class="anchored" data-anchor-id="parquet-files-with-databackendduckdb" id="parquet-files-with-databackendduckdb">
 <span class="header-section-number">10.4.2</span> 使用 DataBackendDuckDB 处理 Parquet 文件</h3>
 <p>DuckDB 数据库为 SQLite 提供了一种现代替代方案，专门针对 ML 的需求而设计。Parquet 是一种流行的面向列的数据存储格式，支持高效压缩，使其远优于 CSV 等其他流行的数据交换格式。</p>
 <p>将 <code>data.frame</code> 转换为 DuckDB，可以将要转换的 <code>data.frame</code> 和存储数据的 <code>path</code> 传递给 <a href="https://mlr3db.mlr-org.com/reference/as_duckdb_backend.html"><code>as_duckdb_backend()</code></a>。例如，下面我们首先查询 <code>mlr3db</code> 附带的一个示例数据集的 Parquet 文件位置，然后将生成的 <a href="https://mlr3db.mlr-org.com/reference/DataBackendDuckDB.html"><code>DataBackendDuckDB</code></a> 对象转换为一个分类任务，全程无需将数据集加载到内存中：</p>
@@ -1088,9 +1137,9 @@ This is removed when the R session ends.
 </div>
 </div>
 <p>访问数据内部会触发一个查询，所需的数据子集会被取回并存储在一个内存 <code>data.frame</code> 中。取回的数据处理完毕后，垃圾回收器可以释放占用的内存。该后端也可以操作包含多个 parquet 文件的文件夹。</p>
-</section></section><section id="sec-extending" class="level2" data-number="10.5"><h2 data-number="10.5" class="anchored" data-anchor-id="sec-extending">
+</section></section><section id="sec-extending" class="level2" data-number="10.5"><h2 data-number="10.5" class="anchored" data-anchor-id="sec-extending" id="sec-extending">
 <span class="header-section-number">10.5</span> 扩展 mlr3 并定义一个新的 <code>Measure</code></h2>
-<p>读到这里，你已经快要成为一名 <code>mlr3</code> 专家了，甚至可能想向我们的世界中添加更多类。虽然许多类都可以扩展，但它们都有相似的设计接口，因此，我们只演示如何创建自定义的 <a href="https://mlr3.mlr-org.com/reference/Measure.html"><code>Measure</code></a>。如果你对实现新的学习器、<code>PipeOp</code> 或调优器感兴趣，那么请查看相应包中的 vignette：<a href="https://mlr3extralearners.mlr-org.com"><code>mlr3extralearners</code></a>、<a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 或 <a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a>。如果你正在考虑创建一个添加全新任务类型的包，欢迎通过 GitHub、电子邮件或 Mattermost 与我们联系寻求支持。本节假定你已对 <code>R6</code> 有良好了解，请参阅<a href="../chapter1/introduction_and_overview.html#sec-r6" class="quarto-xref"><span>第 1.5.1 节</span></a>获得简要介绍及更多资源的参考。</p>
+<p>读到这里，你已经快要成为一名 <code>mlr3</code> 专家了，甚至可能想向我们的世界中添加更多类。虽然许多类都可以扩展，但它们都有相似的设计接口，因此，我们只演示如何创建自定义的 <a href="https://mlr3.mlr-org.com/reference/Measure.html"><code>Measure</code></a>。如果你对实现新的学习器、<code>PipeOp</code> 或调优器感兴趣，那么请查看相应包中的 vignette：<a href="https://mlr3extralearners.mlr-org.com"><code>mlr3extralearners</code></a>、<a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 或 <a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a>。如果你正在考虑创建一个添加全新任务类型的包，欢迎通过 GitHub、电子邮件或 Mattermost 与我们联系寻求支持。本节假定你已对 <code>R6</code> 有良好了解，请参阅<a href="https://mlr3book.mlr-org.com/chapter1/introduction_and_overview.html#sec-r6" class="quarto-xref"><span>第 1.5.1 节</span></a>获得简要介绍及更多资源的参考。</p>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong><code>Measure</code> 是 mlr3 中评估预测质量的统一抽象：它以 R6 类的形式封装了评分函数及其元数据（ID、取值范围、优化方向、需要的预测类型等），从而使「分数」可以被量尺、重采样、调优和基准测试统一使用。R6 是 R 的引用类（reference class）实现，类的「方法」写在 <code>public</code>/<code>private</code> 列表中，<code>super$initialize()</code> 调用父类构造器。定义新度量最核心的两件事：一是在 <code>$initialize()</code> 里说清楚元数据（id、packages、properties、predict_type、range、minimize）；二是实现私有的 <code>.score()</code> 方法完成实际计算。写完类之后，既可以 <code>MeasureRegrThresholdAcc$new()</code> 直接实例化，也可以注册进 <code>mlr_measures</code> 字典，之后就能用 <code>msr()</code> 糖函数按字符串 id 取用。</p>
 </div>
@@ -1173,10 +1222,10 @@ This is removed when the R session ends.
 </li>
 </ol>
 <p>我们总是乐于交流并欢迎新的贡献者，如果你在扩展 <code>mlr3</code> 方面需要帮助，请与我们联系。</p>
-</section><section id="conclusion" class="level2" data-number="10.6"><h2 data-number="10.6" class="anchored" data-anchor-id="conclusion">
+</section><section id="conclusion" class="level2" data-number="10.6"><h2 data-number="10.6" class="anchored" data-anchor-id="conclusion" id="conclusion">
 <span class="header-section-number">10.6</span> 结论（Conclusion）</h2>
 <p>本章涵盖了几个高级主题，包括并行化、错误处理、日志、处理数据库以及扩展 <code>mlr3</code> 世界。对于简单的用例，你可能不需要详细了解每个主题，但是，我们建议至少熟悉错误处理和回退学习器，因为这些对于防止即使是简单的实验被打断也是必不可少的。如果你正在处理大型实验或数据集，那么理解并行化、日志和数据库也将是必不可少的。</p>
-<p>我们没有深入地涵盖这些主题，因此如果你想更多地了解这些领域，我们推荐以下资源。如果你有兴趣了解更多关于 R 中并行化的知识，我们推荐 <span class="citation" data-cites="Schmidberger2009">Schmidberger et al. (<a href="../references.html#ref-Schmidberger2009" role="doc-biblioref">2009</a>)</span> 和 <span class="citation" data-cites="Eddelbuettel2020">Eddelbuettel (<a href="../references.html#ref-Eddelbuettel2020" role="doc-biblioref">2020</a>)</span>。想了解更多关于日志的信息，请阅读 <code>lgr</code> 中的 vignette，它们涵盖了从记录日志到 JSON 文件再到检索记录对象以进行调试的所有内容。有关 R 中可用 DBMS 的概述，请参见 <a href="https://cran.r-project.org/view=Databases">https://cran.r-project.org/view=Databases</a> 上的数据库 CRAN 任务视图，特别是 <code>dbplyr</code> 包中关于 mlr3 中现成可用的 DBMS 的 vignette。</p>
+<p>我们没有深入地涵盖这些主题，因此如果你想更多地了解这些领域，我们推荐以下资源。如果你有兴趣了解更多关于 R 中并行化的知识，我们推荐 <span class="citation" data-cites="Schmidberger2009">Schmidberger et al. (<a href="https://mlr3book.mlr-org.com/references.html#ref-Schmidberger2009" role="doc-biblioref">2009</a>)</span> 和 <span class="citation" data-cites="Eddelbuettel2020">Eddelbuettel (<a href="https://mlr3book.mlr-org.com/references.html#ref-Eddelbuettel2020" role="doc-biblioref">2020</a>)</span>。想了解更多关于日志的信息，请阅读 <code>lgr</code> 中的 vignette，它们涵盖了从记录日志到 JSON 文件再到检索记录对象以进行调试的所有内容。有关 R 中可用 DBMS 的概述，请参见 <a href="https://cran.r-project.org/view=Databases">https://cran.r-project.org/view=Databases</a> 上的数据库 CRAN 任务视图，特别是 <code>dbplyr</code> 包中关于 mlr3 中现成可用的 DBMS 的 vignette。</p>
 <div id="tbl-technical-api" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-technical-api-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 表&nbsp;10.1：本章涵盖的重要类与函数，及其底层类（如适用）、类构造器或函数，以及重要的类字段和方法（如适用）。
@@ -1231,7 +1280,7 @@ This is removed when the R session ends.
 </figure>
 </div>
 
-</section><section id="exercises" class="level2" data-number="10.7"><h2 data-number="10.7" class="anchored" data-anchor-id="exercises">
+</section><section id="exercises" class="level2" data-number="10.7"><h2 data-number="10.7" class="anchored" data-anchor-id="exercises" id="exercises">
 <span class="header-section-number">10.7</span> 练习（Exercises）</h2>
 <ol type="1">
 <li>考虑下面的例子：你使用 multisession 后端在四个 worker 上重采样一个学习器（debug 学习器，在训练期间休眠三秒）：</li>
@@ -1256,7 +1305,7 @@ This is removed when the R session ends.
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>练习 3 是本章最值得动手的一题：<code>error_train</code> 是 <code>classif.debug</code> 的「注入错误率」，用来人为制造训练失败。把它当作连续超参数放进调优范围，再用分类树做回退学习器，就能直观看到：当调优采样到会让训练报错的参数组合时，mlr3 会静默切换到回退模型，实验不中断。检查 archive 时可以用 <code>rbindlist(archive$data)[, .(error_train, classif.rpart)]</code> 之类的方式对照参数与错误标记；把区间缩窄到 0.3–0.7 后「错误大多消失」正是回退与错误封装机制起作用的证据——这也是生产环境里「健壮实验」的标准做法。</p>
 </div>
-</section><section id="citation" class="level2" data-number="10.8"><h2 data-number="10.8" class="anchored" data-anchor-id="citation">
+</section><section id="citation" class="level2" data-number="10.8"><h2 data-number="10.8" class="anchored" data-anchor-id="citation" id="citation">
 <span class="header-section-number">10.8</span> 引用（Citation）</h2>
 <p>请按如下方式引用本章：</p>
 <p>Lang M, Fischer S, Sonabend R. (2024). Advanced Technical Aspects of mlr3. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/advanced_technical_aspects_of_mlr3.html.</p>
@@ -1287,5 +1336,6 @@ MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }
 <script type="text/javascript" id="MathJax-script" async
   src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
 </script>
+<script src="../search.js"></script>
 </body>
 </html>

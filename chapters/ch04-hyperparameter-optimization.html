@@ -59,6 +59,50 @@ body {
   border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
 }
 .theme-toggle:hover { border-color: var(--accent); }
+/* 搜索 */
+.search-box { position: relative; display: flex; align-items: center; }
+.search-box input {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 5px 10px 5px 28px; font-size: 13px; width: 190px;
+  font-family: inherit; outline: none;
+}
+.search-box input:focus { border-color: var(--accent); width: 240px; }
+.search-box .ico { position: absolute; left: 9px; color: var(--muted); font-size: 12px; pointer-events: none; }
+.search-panel {
+  display: none; position: absolute; top: calc(100% + 6px); right: 0; width: 460px;
+  max-width: 90vw; max-height: 66vh; overflow-y: auto; z-index: 200;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 12px 34px rgba(0,0,0,.42); padding: 6px;
+}
+.search-panel.open { display: block; }
+.search-panel .s-head {
+  padding: 8px 11px 7px; font-size: 12px; color: var(--muted);
+  border-bottom: 1px solid var(--border); margin-bottom: 5px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.search-panel .s-hint { font-size: 12px; color: var(--muted); padding: 18px 12px; text-align: center; }
+.s-item { display: block; padding: 8px 11px; border-radius: 7px; text-decoration: none; color: var(--fg); }
+.s-item:hover, .s-item.sel { background: var(--panel2); }
+.s-item .s-ch { font-size: 11px; color: var(--accent2); margin-bottom: 2px; }
+.s-item .s-sec { font-size: 12px; color: var(--accent); margin-bottom: 3px; }
+.s-item .s-txt { font-size: 13px; line-height: 1.6; color: var(--fg); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.s-item mark { background: rgba(255, 200, 0, .32); color: inherit; border-radius: 2px; padding: 0 1px; }
+[data-theme="light"] .s-item mark { background: rgba(255, 200, 0, .45); }
+/* 搜索结果页 */
+.search-page-box { margin: 26px 0 0; }
+.search-page-box input {
+  width: 100%; background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 8px; padding: 12px 15px; font-size: 15px; font-family: inherit; outline: none;
+}
+.search-page-box input:focus { border-color: var(--accent); }
+.s-meta { color: var(--muted); font-size: 13px; margin: 14px 0 8px; }
+.s-list { list-style: none; margin: 0; padding: 0; }
+.s-list .s-item { border: 1px solid var(--border); margin: 8px 0; }
+@media (max-width: 640px) {
+  .search-box input { width: 130px; }
+  .search-box input:focus { width: 170px; }
+  .search-panel { width: 84vw; }
+}
 /* 章头 */
 .header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
 .header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
@@ -170,9 +214,14 @@ function toggleTheme(){
 </head>
 <body>
 <div class="topbar">
-  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <a class="brand" href="../index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
   <div class="right">
-    <a class="home-link" href="index.html">目录</a>
+    <div class="search-box">
+      <span class="ico">&#128269;</span>
+      <input type="search" id="mlr3-search" placeholder="搜索全书…（按 /）" autocomplete="off" aria-label="全书搜索">
+      <div class="search-panel" id="mlr3-search-panel"></div>
+    </div>
+    <a class="home-link" href="../index.html">目录</a>
     <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
   </div>
 </div>
@@ -187,13 +236,13 @@ function toggleTheme(){
 <p><strong>Lennart Schneider</strong> <br><em>慕尼黑大学（Ludwig-Maximilians-Universität München），以及慕尼黑机器学习中心（Munich Center for Machine Learning, MCML）</em></p>
 <p><strong>Sebastian Fischer</strong> <br><em>慕尼黑大学（Ludwig-Maximilians-Universität München），以及慕尼黑机器学习中心（Munich Center for Machine Learning, MCML）</em> <br><br></p>
 <p>机器学习算法通常都包含参数（parameters）和超参数（hyperparameters）。参数是模型的系数、权重或其他信息，由学习算法根据训练数据确定。与之相对，超参数由用户配置，决定模型将如何拟合其参数，即模型是如何被构建的。例如：随机森林中的树的数量、支持向量机中的惩罚设置、或神经网络中的学习率。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">超参数（Hyperparameters）</span></div></div>
-<p>超参数优化（hyperparameter optimization, HPO），又称模型调优（model tuning），其目标是为给定任务找到机器学习算法的最优超参数配置。与模型无关的 HPO 没有封闭形式的数学表示（也没有解析梯度信息）。相反，我们采用一种黑箱优化（black box optimization）的方法：先为机器学习算法选择一个或多个超参数的值进行配置，然后（用重采样方法）对配置后的算法进行评估并度量其性能，这个过程用多个配置反复进行，最后选出性能最好的配置（<a href="#fig-optimization-loop-basic" class="quarto-xref">图&nbsp;<span>4.1</span></a>）。HPO 与模型评估（<a href="../chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>）密切相关，因为其目标正是寻找一个能使泛化性能最优的超参数配置。宽泛地说，我们可以把寻找最优模型配置的方式，想象成从基准测试实验中选择模型：只不过这里的每个"模型"变成同一个算法配以不同的超参数配置。例如，我们可以对三个不同的 <code>cost</code> 值的支持向量机（SVM）做基准测试。然而，人工试错既费时、主观且常有偏差，又易出错，计算效率也低。因此，在过去几十年中，人们开发了许多成熟的超参数优化方法（或称"调优器 tuner"，见<a href="#sec-tuner" class="quarto-xref"><span>4.1.4 节</span></a>）以实现稳健高效的 HPO。除了随机搜索（random search）和网格搜索（grid search）这类简单方法之外，大多数超参数优化方法都采用迭代技术，随时间不断提出新配置，通常表现出自适应行为，被引导向可能最优的超参数配置。关于 HPO 的更一般介绍和更多理论背景，我们推荐 <span class="citation" data-cites="hpo_practical">Bischl 等（<a href="../references.html#ref-hpo_practical" role="doc-biblioref">2023</a>）</span>和 <span class="citation" data-cites="hpo_automl">Feurer 与 Hutter（<a href="../references.html#ref-hpo_automl" role="doc-biblioref">2019</a>）</span>。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">超参数优化（Hyperparameter Optimization）</span></div></div>
+<p>超参数优化（hyperparameter optimization, HPO），又称模型调优（model tuning），其目标是为给定任务找到机器学习算法的最优超参数配置。与模型无关的 HPO 没有封闭形式的数学表示（也没有解析梯度信息）。相反，我们采用一种黑箱优化（black box optimization）的方法：先为机器学习算法选择一个或多个超参数的值进行配置，然后（用重采样方法）对配置后的算法进行评估并度量其性能，这个过程用多个配置反复进行，最后选出性能最好的配置（<a href="#fig-optimization-loop-basic" class="quarto-xref">图&nbsp;<span>4.1</span></a>）。HPO 与模型评估（<a href="https://mlr3book.mlr-org.com/chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>）密切相关，因为其目标正是寻找一个能使泛化性能最优的超参数配置。宽泛地说，我们可以把寻找最优模型配置的方式，想象成从基准测试实验中选择模型：只不过这里的每个"模型"变成同一个算法配以不同的超参数配置。例如，我们可以对三个不同的 <code>cost</code> 值的支持向量机（SVM）做基准测试。然而，人工试错既费时、主观且常有偏差，又易出错，计算效率也低。因此，在过去几十年中，人们开发了许多成熟的超参数优化方法（或称"调优器 tuner"，见<a href="#sec-tuner" class="quarto-xref"><span>4.1.4 节</span></a>）以实现稳健高效的 HPO。除了随机搜索（random search）和网格搜索（grid search）这类简单方法之外，大多数超参数优化方法都采用迭代技术，随时间不断提出新配置，通常表现出自适应行为，被引导向可能最优的超参数配置。关于 HPO 的更一般介绍和更多理论背景，我们推荐 <span class="citation" data-cites="hpo_practical">Bischl 等（<a href="https://mlr3book.mlr-org.com/references.html#ref-hpo_practical" role="doc-biblioref">2023</a>）</span>和 <span class="citation" data-cites="hpo_automl">Feurer 与 Hutter（<a href="https://mlr3book.mlr-org.com/references.html#ref-hpo_automl" role="doc-biblioref">2019</a>）</span>。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">超参数优化（Hyperparameter Optimization）</span></div></div>
 <p>请注意：<code>mlr3</code> 绝不会在用户未显式要求的情况下自动执行任何超参数优化。</p>
 <div class="cell">
 <div class="cell-output-display">
 <div id="fig-optimization-loop-basic" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Diagram showing 13 boxes representing model-agnostic HPO.  On the top are two boxes, one that says  &quot;Search Space&quot; (dark blue) and the other &quot;Tuner&quot; (green), these are connected by a line to &quot;Propose Hyperparameter Configurations&quot; (purple). That box has an arrow pointing towards another box &quot;Evaluate by Resampling&quot; (purple), which has a line to a blue-green box &quot;Objective&quot;, which has four blue boxes connected toit  &quot;Task&quot;, &quot;Learner&quot;, &quot;Resampling&quot;, and &quot;Measure&quot;. &quot;Evaluate by Resampling&quot; also has one line to the right connected to &quot;Archive&quot; (blue-green) which has an arrow to &quot;Terminator&quot; (blue) and &quot;Update Tuner&quot; (purple). &quot;Terminator&quot; has an arrow to &quot;Optimal Hyperparameter Configuration&quot; (purple) and &quot;Update Tuner&quot; has an arrow back to &quot;Propose Hyperparameter Configurations&quot;.">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-optimization-loop-basic-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/Figures/mlr3book_figures-9.svg" class="img-fluid figure-img" style="width:80.0%" alt="Diagram showing 13 boxes representing model-agnostic HPO.  On the top are two boxes, one that says  &quot;Search Space&quot; (dark blue) and the other &quot;Tuner&quot; (green), these are connected by a line to &quot;Propose Hyperparameter Configurations&quot; (purple). That box has an arrow pointing towards another box &quot;Evaluate by Resampling&quot; (purple), which has a line to a blue-green box &quot;Objective&quot;, which has four blue boxes connected toit  &quot;Task&quot;, &quot;Learner&quot;, &quot;Resampling&quot;, and &quot;Measure&quot;. &quot;Evaluate by Resampling&quot; also has one line to the right connected to &quot;Archive&quot; (blue-green) which has an arrow to &quot;Terminator&quot; (blue) and &quot;Update Tuner&quot; (purple). &quot;Terminator&quot; has an arrow to &quot;Optimal Hyperparameter Configuration&quot; (purple) and &quot;Update Tuner&quot; has an arrow back to &quot;Propose Hyperparameter Configurations&quot;.">
+<img src="../images/Figures/mlr3book_figures-9.svg" class="img-fluid figure-img" style="width:80.0%" alt="Diagram showing 13 boxes representing model-agnostic HPO.  On the top are two boxes, one that says  &quot;Search Space&quot; (dark blue) and the other &quot;Tuner&quot; (green), these are connected by a line to &quot;Propose Hyperparameter Configurations&quot; (purple). That box has an arrow pointing towards another box &quot;Evaluate by Resampling&quot; (purple), which has a line to a blue-green box &quot;Objective&quot;, which has four blue boxes connected toit  &quot;Task&quot;, &quot;Learner&quot;, &quot;Resampling&quot;, and &quot;Measure&quot;. &quot;Evaluate by Resampling&quot; also has one line to the right connected to &quot;Archive&quot; (blue-green) which has an arrow to &quot;Terminator&quot; (blue) and &quot;Update Tuner&quot; (purple). &quot;Terminator&quot; has an arrow to &quot;Optimal Hyperparameter Configuration&quot; (purple) and &quot;Update Tuner&quot; has an arrow back to &quot;Propose Hyperparameter Configurations&quot;.">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-optimization-loop-basic-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;4.1: mlr3tuning 中超参数优化循环的表示。蓝色——超参数优化循环。紫色——由用户提供的调优实例对象。蓝绿色——调优实例内部创建的对象。绿色——优化算法。
@@ -204,7 +253,7 @@ function toggleTheme(){
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>先厘清一组容易混淆的概念。模型的<strong>参数</strong>（如线性回归的系数、神经网络的权重）是在训练过程中由数据自动"学习"出来的；而<strong>超参数</strong>（如随机森林的树数、SVM 的惩罚系数 <code>cost</code>）是在训练开始前由人设定的，它们控制参数学习的方式。HPO 要解决的就是"如何自动地、高效地找到好的超参数配置"这一问题。由于"配置→性能"这种映射通常没有解析表达式、也无法求梯度（例如改变树的数量并不会给出一条平滑可微的性能曲线），所以只能把它当作黑箱：输入一个配置，返回一个（带随机扰动的）性能值，然后借助各类优化算法去探索。图 4.1 中的循环就是这一思路的具象化。</p>
 </div>
-<section id="sec-model-tuning" class="level2 page-columns page-full" data-number="4.1"><h2 data-number="4.1" class="anchored" data-anchor-id="sec-model-tuning">
+<section id="sec-model-tuning" class="level2 page-columns page-full" data-number="4.1"><h2 data-number="4.1" class="anchored" data-anchor-id="sec-model-tuning" id="sec-model-tuning">
 <span class="header-section-number">4.1</span> 模型调优</h2>
 <p><a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a> 是 <code>mlr3</code> 生态系统的超参数优化包。该包的核心是两个 R6 类：</p>
 <ul>
@@ -214,7 +263,7 @@ function toggleTheme(){
 <a href="https://mlr3tuning.mlr-org.com/reference/TunerBatch.html"><code>TunerBatch</code></a>：用于配置和运行优化算法。</li>
 </ul>
 <p>在本节中，我们将介绍这些类以及其他辅助函数与类。本节将全程以在 <code>tsk("sonar")</code> 上调优来自 <a href="https://cran.r-project.org/package=e1071"><code>e1071</code></a> 的 SVM 分类器作为贯穿始终的示例。</p>
-<section id="sec-learner-search-space" class="level3 page-columns page-full" data-number="4.1.1"><h3 data-number="4.1.1" class="anchored" data-anchor-id="sec-learner-search-space">
+<section id="sec-learner-search-space" class="level3 page-columns page-full" data-number="4.1.1"><h3 data-number="4.1.1" class="anchored" data-anchor-id="sec-learner-search-space" id="sec-learner-search-space">
 <span class="header-section-number">4.1.1</span> 学习器与搜索空间（Learner and Search Space）</h3>
 <p>调优过程始于决定要调优哪些超参数，以及在这些超参数的什么范围内进行调优。因此第一步是选择一个学习器，并用 <code>$param_set</code> 查看其可供调优的超参数：</p>
 <div class="cell">
@@ -250,7 +299,7 @@ function toggleTheme(){
 <p>在少数情况下，参数集合中可能包含不应调优的超参数。这些通常是"技术性"（或称"控制性"）参数。<em>提供</em>关于模型如何拟合的信息，但并不控制训练过程本身，例如 <code>lrn("classif.ranger")</code> 中的 <code>verbose</code> 超参数控制训练期间向用户显示多少信息。</p>
 </div>
 </div>
-<p>对于数值型的超参数（其他类型稍后讨论），必须指定要调优的范围。方法是：先构造一个学习器，再用 <a href="https://paradox.mlr-org.com/reference/to_tune.html"><code>to_tune()</code></a> 为想要调优的参数设置下界与上界。该函数让我们能够将某个超参数<em>标记</em>为需要在指定范围内调优。关于 <a href="https://paradox.mlr-org.com/reference/to_tune.html"><code>to_tune()</code></a> 函数的更多信息参见<a href="../chapter16/advanced_hyperparameter_specification_using_paradox.html#sec-paradox-creation-tuning-paramset-from-learner" class="quarto-xref"><span>16.5.1 节</span></a>。</p>
+<p>对于数值型的超参数（其他类型稍后讨论），必须指定要调优的范围。方法是：先构造一个学习器，再用 <a href="https://paradox.mlr-org.com/reference/to_tune.html"><code>to_tune()</code></a> 为想要调优的参数设置下界与上界。该函数让我们能够将某个超参数<em>标记</em>为需要在指定范围内调优。关于 <a href="https://paradox.mlr-org.com/reference/to_tune.html"><code>to_tune()</code></a> 函数的更多信息参见<a href="https://mlr3book.mlr-org.com/chapter16/advanced_hyperparameter_specification_using_paradox.html#sec-paradox-creation-tuning-paramset-from-learner" class="quarto-xref"><span>16.5.1 节</span></a>。</p>
 <div class="cell">
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">learner</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.svm"</span>,</span>
 <span>  type  <span class="op">=</span> <span class="st">"C-classification"</span>,</span>
@@ -278,7 +327,7 @@ kernel=radial, type=C-classification
 <p><strong>背景与解释（译者注）：</strong>在定义搜索空间时有一个常见的思考起点：<strong>哪些超参数值得调？</strong>一般来说，应优先调优对模型复杂度影响大的超参数（如树的深度、SVM 的 <code>cost</code>、正则化强度），因为这些参数直接控制偏差-方差权衡（bias-variance trade-off）。与之相对，像 <code>verbose</code> 这类"技术性"参数只影响运行细节、不影响泛化性能，不应放入搜索空间。还需注意数值超参数的取值范围设计：范围过窄会漏掉好配置，范围过宽则浪费计算资源。对于 <code>cost</code>、学习率这类跨越多个数量级的参数，直接在线性尺度上均匀采样通常很低效，应使用对数尺度（见 4.1.5 节）。</p>
 </div>
 <p>现在我们已经决定了要调优哪些超参数，接下来指定调优过程的停止条件。</p>
-</section><section id="sec-terminator" class="level3 page-columns page-full" data-number="4.1.2"><h3 data-number="4.1.2" class="anchored" data-anchor-id="sec-terminator">
+</section><section id="sec-terminator" class="level3 page-columns page-full" data-number="4.1.2"><h3 data-number="4.1.2" class="anchored" data-anchor-id="sec-terminator" id="sec-terminator">
 <span class="header-section-number">4.1.2</span> 终止器（Terminator）</h3>
 <p><code>mlr3tuning</code> 提供了许多指定算法何时终止的方法（<a href="#tbl-terms" class="quarto-xref">表&nbsp;<span>4.1</span></a>），这些方法以 <a href="https://bbotk.mlr-org.com/reference/Terminator.html"><code>Terminator</code></a> 类的形式实现。终止器存储在 <a href="https://bbotk.mlr-org.com/reference/mlr_terminators.html"><code>mlr_terminators</code></a> 字典中，并通过糖函数 <a href="https://bbotk.mlr-org.com/reference/trm.html"><code>trm()</code></a> 构造。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>Terminator</code></span><span class="margin-aside"><code><a href="https://bbotk.mlr-org.com/reference/trm.html">trm()</a></code></span></div></div>
 <div id="tbl-terms" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -329,12 +378,12 @@ kernel=radial, type=C-classification
 </figure>
 </div>
 <p>最常用的终止器是最佳时间（<code>trm("run_time")</code>）或给定评估次数（<code>trm("evals")</code>）后停止调优的终止器。选择运行时长通常基于实际考虑与直觉。在使用计算集群时，时间限制可能很重要，因为集群通常要求为一个计算任务指定最大运行时间。<code>trm("perf_reached")</code> 在达到指定性能水平时停止调优，如果某一性能已足以满足模型的实务用途，这会很有帮助；但如果该水平设得过于乐观，调优可能永远无法终止。<code>trm("stagnation")</code> 在没有取得超过 <code>threshold</code> 阈值的进展并持续了设定的 <code>iterations</code> 轮数时停止。阈值的选择可能很困难，因为对于复杂的搜索空间，即使仍有（可能很显著的）改进空间，优化也可能过早停止。<code>trm("none")</code> 用于那些自身控制终止的调优器，因此这个终止器不做任何事。最后，任何终止器都可以通过 <code>trm("combo")</code> 自由组合，可以指定 HPO 是在任意（<code>any = TRUE</code>）一个终止器触发时结束，还是在全部（<code>any = FALSE</code>）终止器触发时结束。</p>
-</section><section id="sec-tuning-instance" class="level3" data-number="4.1.3"><h3 data-number="4.1.3" class="anchored" data-anchor-id="sec-tuning-instance">
+</section><section id="sec-tuning-instance" class="level3" data-number="4.1.3"><h3 data-number="4.1.3" class="anchored" data-anchor-id="sec-tuning-instance" id="sec-tuning-instance">
 <span class="header-section-number">4.1.3</span> 用 <code>ti</code> 创建调优实例（Tuning Instance with <code>ti</code>）
 </h3>
-<p>调优实例收集优化模型所需的、与调优算法无关的信息，即关于调优过程的全部信息，唯独不包括调优算法本身。这些信息包括：要调优的任务、待调优的学习器、用于分析比较超参数优化配置的重采样方法与度量，以及用于判断"度量已优化得足够充分"的终止器。这隐含地定义了一个待优化的"黑箱"目标函数，它将超参数配置映射到（随机的）性能值上。这一概念将在<a href="../chapter5/advanced_tuning_methods_and_black_box_optimization.html" class="quarto-xref"><span>第 5 章</span></a>中再次讨论。</p>
+<p>调优实例收集优化模型所需的、与调优算法无关的信息，即关于调优过程的全部信息，唯独不包括调优算法本身。这些信息包括：要调优的任务、待调优的学习器、用于分析比较超参数优化配置的重采样方法与度量，以及用于判断"度量已优化得足够充分"的终止器。这隐含地定义了一个待优化的"黑箱"目标函数，它将超参数配置映射到（随机的）性能值上。这一概念将在<a href="https://mlr3book.mlr-org.com/chapter5/advanced_tuning_methods_and_black_box_optimization.html" class="quarto-xref"><span>第 5 章</span></a>中再次讨论。</p>
 <p>可以显式地用 <a href="https://mlr3tuning.mlr-org.com/reference/ti.html"><code>ti()</code></a> 函数构造调优实例，也可以用 <a href="https://mlr3tuning.mlr-org.com/reference/tune.html"><code>tune()</code></a> 函数调优学习器，后者会隐式地创建一个调优实例，如<a href="#sec-autotuner" class="quarto-xref"><span>4.2 节</span></a>所示。我们首先介绍 <code><a href="https://mlr3tuning.mlr-org.com/reference/ti.html">ti()</a></code> 方式，因为它允许更精细地控制调优，也便于更细致地讨论 <code>mlr3tuning</code> 的设计与使用。</p>
-<p>继续我们的示例，我们将通过 <code><a href="https://mlr3tuning.mlr-org.com/reference/ti.html">ti()</a></code> 函数构建一个单目标调优问题（即只对一个度量调优），从而创建一个 <a href="https://mlr3tuning.mlr-org.com/reference/TuningInstanceBatchSingleCrit.html"><code>TuningInstanceBatchSingleCrit</code></a>；多目标调优将在<a href="../chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-multi-metrics-tuning" class="quarto-xref"><span>5.2 节</span></a>中讨论。</p>
+<p>继续我们的示例，我们将通过 <code><a href="https://mlr3tuning.mlr-org.com/reference/ti.html">ti()</a></code> 函数构建一个单目标调优问题（即只对一个度量调优），从而创建一个 <a href="https://mlr3tuning.mlr-org.com/reference/TuningInstanceBatchSingleCrit.html"><code>TuningInstanceBatchSingleCrit</code></a>；多目标调优将在<a href="https://mlr3book.mlr-org.com/chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-multi-metrics-tuning" class="quarto-xref"><span>5.2 节</span></a>中讨论。</p>
 <p>在本例中，我们将使用三折交叉验证并优化分类误差度量。请注意，在下一节中我们继续示例时使用的网格搜索调优器，因此下面选择 <code>trm("none")</code>，因为我们希望遍历整个网格而不过早停止。</p>
 <div class="cell">
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_sonar</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"sonar"</span><span class="op">)</span></span>
@@ -367,7 +416,7 @@ kernel=radial, type=C-classification
 • Terminator: &lt;TerminatorNone&gt;</code></pre>
 </div>
 </div>
-</section><section id="sec-tuner" class="level3 page-columns page-full" data-number="4.1.4"><h3 data-number="4.1.4" class="anchored" data-anchor-id="sec-tuner">
+</section><section id="sec-tuner" class="level3 page-columns page-full" data-number="4.1.4"><h3 data-number="4.1.4" class="anchored" data-anchor-id="sec-tuner" id="sec-tuner">
 <span class="header-section-number">4.1.4</span> 调优器（Tuner）</h3>
 <p>调优问题的所有部件都已就绪，现在我们可以决定<em>如何</em>调优模型。<code>mlr3tuning</code> 中有多个<a href="https://mlr3tuning.mlr-org.com/reference/Tuner.html"><code>Tuner</code></a> 类，实现了不同的 HPO（更一般地说，黑箱优化）算法（<a href="#tbl-tuners" class="quarto-xref">表&nbsp;<span>4.2</span></a>）。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>Tuner</code></span></div></div>
 <div id="tbl-tuners" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -426,19 +475,19 @@ kernel=radial, type=C-classification
 </div>
 </figure>
 </div>
-<section id="search-strategies" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="search-strategies">搜索策略（Search strategies）</h4>
-<p>网格搜索和随机搜索 <span class="citation" data-cites="bergstra2012">(<a href="../references.html#ref-bergstra2012" role="doc-biblioref">Bergstra and Bengio 2012</a>)</span> 是最基础的算法，通常在最初实验中最先被选用。网格搜索的思想是穷举评估给定的超参数取值的每一种组合。类别型超参数通常在其所有可能取值上评估。数值型和整数型超参数的取值则依据给定的分辨率（resolution，即每个超参数要尝试的不同取值个数）在其盒子约束（上界与下界）内等距排列。随机搜索则是为每个超参数独立地从预先指定的分布（通常是均匀分布）中随机取值。这两种方法都是非自适应的，意味着每个新提出的配置都不会参考此前配置的性能。由于简单，网格搜索和随机搜索都能处理混合搜索空间（即超参数可以是数值型、整数型或类别型），以及层次化搜索空间（<a href="#sec-defining-search-spaces" class="quarto-xref"><span>4.4 节</span></a>）。</p>
-</section><section id="adaptive-algorithms" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="adaptive-algorithms">自适应算法（Adaptive algorithms）</h4>
+<section id="search-strategies" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="search-strategies" id="search-strategies">搜索策略（Search strategies）</h4>
+<p>网格搜索和随机搜索 <span class="citation" data-cites="bergstra2012">(<a href="https://mlr3book.mlr-org.com/references.html#ref-bergstra2012" role="doc-biblioref">Bergstra and Bengio 2012</a>)</span> 是最基础的算法，通常在最初实验中最先被选用。网格搜索的思想是穷举评估给定的超参数取值的每一种组合。类别型超参数通常在其所有可能取值上评估。数值型和整数型超参数的取值则依据给定的分辨率（resolution，即每个超参数要尝试的不同取值个数）在其盒子约束（上界与下界）内等距排列。随机搜索则是为每个超参数独立地从预先指定的分布（通常是均匀分布）中随机取值。这两种方法都是非自适应的，意味着每个新提出的配置都不会参考此前配置的性能。由于简单，网格搜索和随机搜索都能处理混合搜索空间（即超参数可以是数值型、整数型或类别型），以及层次化搜索空间（<a href="#sec-defining-search-spaces" class="quarto-xref"><span>4.4 节</span></a>）。</p>
+</section><section id="adaptive-algorithms" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="adaptive-algorithms" id="adaptive-algorithms">自适应算法（Adaptive algorithms）</h4>
 <p>自适应算法从先前评估过的配置中学习，以快速找到好的配置，<a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 中的例子包括：贝叶斯优化（又称基于模型的优化）、协方差矩阵自适应进化策略（Covariance Matrix Adaptation Evolution Strategy, CMA-ES）、迭代竞速（Iterated Racing）和 Hyperband。</p>
-<p>贝叶斯优化 <span class="citation" data-cites="Snoek2012">(例如，<a href="../references.html#ref-Snoek2012" role="doc-biblioref">Snoek, Larochelle, and Adams 2012</a>)</span> 描述了一族迭代优化算法，它们使用代理模型（surrogate model）来逼近待优化的未知函数——在 HPO 中即"超参数配置 → 泛化性能估计值"的映射。如果选择了合适的代理模型，例如随机森林，贝叶斯优化可以相当灵活，甚至能处理混合与层次化搜索空间。贝叶斯优化的完整细节见<a href="../chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-bayesian-optimization" class="quarto-xref"><span>5.4 节</span></a>。</p>
-<p>CMA-ES <span class="citation" data-cites="hansen2011">(<a href="../references.html#ref-hansen2011" role="doc-biblioref">Hansen and Auger 2011</a>)</span> 是一种进化策略，它在候选点上维持一个概率分布，该分布由均值向量与协方差矩阵表示。通过对该分布采样生成一组新的候选点，每个候选点的入选概率与其性能成正比。协方差矩阵随时间更新，以反映性能的景观（performance landscape）。<code>mlr3</code> 还通过 <a href="https://cran.r-project.org/package=miesmuschel"><code>miesmuschel</code></a> 包提供更多的进化策略，但本书不涉及这些。</p>
-<p>竞速（racing）算法通过迭代地丢弃表现不佳的配置（由统计检验判定）来工作。迭代竞速 <span class="citation" data-cites="lopez2016">(<a href="../references.html#ref-lopez2016" role="doc-biblioref">López-Ibáñez et al. 2016</a>)</span> 首先"竞速"一个从参数化密度中随机采样的初始配置种群，然后用竞速中存活下来的配置随机更新下一轮竞速的密度，使其聚焦到搜索空间中更有希望的区域，如此反复。</p>
-<p>多保真度（multi-fidelity）HPO 是一种自适应方法，它利用计算廉价、保真度较低的评估（即质量较差的预测，例如由训练轮数很少的神经网络产生的预测）的预测能力来提高整体优化效率。这一思想被用于 Hyperband <span class="citation" data-cites="li_2018">(<a href="../references.html#ref-li_2018" role="doc-biblioref">Li et al. 2018</a>)</span>——一种流行的多保真度超参数优化算法，它动态地将越来越多的资源分配给有希望的配置，并终止表现不佳的配置。Hyperband 的完整细节见<a href="../chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-hyperband" class="quarto-xref"><span>5.3 节</span></a>。</p>
-<p>针对数值搜索空间的其他已实现算法包括广义模拟退火 <span class="citation" data-cites="xiang2013 tsallis1996">(<a href="../references.html#ref-xiang2013" role="doc-biblioref">Xiang et al. 2013</a>; <a href="../references.html#ref-tsallis1996" role="doc-biblioref">Tsallis and Stariolo 1996</a>)</span> 和各种非线性优化算法。</p>
-</section><section id="choosing-strategies" class="level4 unnumbered unlisted page-columns page-full"><h4 class="unnumbered unlisted anchored" data-anchor-id="choosing-strategies">选择策略（Choosing strategies）</h4>
+<p>贝叶斯优化 <span class="citation" data-cites="Snoek2012">(例如，<a href="https://mlr3book.mlr-org.com/references.html#ref-Snoek2012" role="doc-biblioref">Snoek, Larochelle, and Adams 2012</a>)</span> 描述了一族迭代优化算法，它们使用代理模型（surrogate model）来逼近待优化的未知函数——在 HPO 中即"超参数配置 → 泛化性能估计值"的映射。如果选择了合适的代理模型，例如随机森林，贝叶斯优化可以相当灵活，甚至能处理混合与层次化搜索空间。贝叶斯优化的完整细节见<a href="https://mlr3book.mlr-org.com/chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-bayesian-optimization" class="quarto-xref"><span>5.4 节</span></a>。</p>
+<p>CMA-ES <span class="citation" data-cites="hansen2011">(<a href="https://mlr3book.mlr-org.com/references.html#ref-hansen2011" role="doc-biblioref">Hansen and Auger 2011</a>)</span> 是一种进化策略，它在候选点上维持一个概率分布，该分布由均值向量与协方差矩阵表示。通过对该分布采样生成一组新的候选点，每个候选点的入选概率与其性能成正比。协方差矩阵随时间更新，以反映性能的景观（performance landscape）。<code>mlr3</code> 还通过 <a href="https://cran.r-project.org/package=miesmuschel"><code>miesmuschel</code></a> 包提供更多的进化策略，但本书不涉及这些。</p>
+<p>竞速（racing）算法通过迭代地丢弃表现不佳的配置（由统计检验判定）来工作。迭代竞速 <span class="citation" data-cites="lopez2016">(<a href="https://mlr3book.mlr-org.com/references.html#ref-lopez2016" role="doc-biblioref">López-Ibáñez et al. 2016</a>)</span> 首先"竞速"一个从参数化密度中随机采样的初始配置种群，然后用竞速中存活下来的配置随机更新下一轮竞速的密度，使其聚焦到搜索空间中更有希望的区域，如此反复。</p>
+<p>多保真度（multi-fidelity）HPO 是一种自适应方法，它利用计算廉价、保真度较低的评估（即质量较差的预测，例如由训练轮数很少的神经网络产生的预测）的预测能力来提高整体优化效率。这一思想被用于 Hyperband <span class="citation" data-cites="li_2018">(<a href="https://mlr3book.mlr-org.com/references.html#ref-li_2018" role="doc-biblioref">Li et al. 2018</a>)</span>——一种流行的多保真度超参数优化算法，它动态地将越来越多的资源分配给有希望的配置，并终止表现不佳的配置。Hyperband 的完整细节见<a href="https://mlr3book.mlr-org.com/chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-hyperband" class="quarto-xref"><span>5.3 节</span></a>。</p>
+<p>针对数值搜索空间的其他已实现算法包括广义模拟退火 <span class="citation" data-cites="xiang2013 tsallis1996">(<a href="https://mlr3book.mlr-org.com/references.html#ref-xiang2013" role="doc-biblioref">Xiang et al. 2013</a>; <a href="https://mlr3book.mlr-org.com/references.html#ref-tsallis1996" role="doc-biblioref">Tsallis and Stariolo 1996</a>)</span> 和各种非线性优化算法。</p>
+</section><section id="choosing-strategies" class="level4 unnumbered unlisted page-columns page-full"><h4 class="unnumbered unlisted anchored" data-anchor-id="choosing-strategies" id="choosing-strategies">选择策略（Choosing strategies）</h4>
 <p>作为经验法则，如果搜索空间很小或结构不复杂，网格搜索或许能在合理时间内穷举评估整个搜索空间。然而，由于维数灾难（curse of dimensionality）——网格规模会随着待调参数数量的增加而迅速"爆炸"——以及网格搜索对数值搜索空间的覆盖不足，通常并不推荐用它。从构造上讲，网格搜索不可能为每个超参数评估大量不同的取值，而当有些超参数对性能影响很小时、另一些影响很大时，这是次优的。在这种情形下，随机搜索往往是更好的选择，因为与网格搜索相比，它在每个超参数上会尝试更多不同的取值。</p>
 <p>对于更高维度的搜索空间或结构更复杂的搜索空间，进化策略或贝叶斯优化这类更受引导的优化算法往往表现更好，更有可能取得最佳性能。在进化策略与贝叶斯优化之间做选择时，函数评估的成本非常关键。如果超参数配置可以被快速评估，进化策略通常表现良好。另一方面，如果模型评估耗时且优化预算有限，贝叶斯优化通常更受青睐，因为它与其他算法相比样本效率较高，即找到好配置所需的函数评估较少。因此，通常推荐用贝叶斯优化进行 HPO。虽然贝叶斯优化的优化开销相对较大（例如每一轮迭代中都需要训练代理模型并优化采集函数），但在诸如 ML 模型重采样这类函数评估相对昂贵的背景下，这种开销的影响较小。</p>
-<p>最后，在超参数优化问题涉及有意义的保真度参数（例如训练轮数、树的数量、提升轮数）且需要高效地使用优化预算的情况下，Hyperband 这类多保真度超参数优化算法值得考虑。关于不同调优器的更多细节与实际建议，我们推荐参考 <span class="citation" data-cites="hpo_practical">Bischl et al. (<a href="../references.html#ref-hpo_practical" role="doc-biblioref">2023</a>)</span>。</p>
+<p>最后，在超参数优化问题涉及有意义的保真度参数（例如训练轮数、树的数量、提升轮数）且需要高效地使用优化预算的情况下，Hyperband 这类多保真度超参数优化算法值得考虑。关于不同调优器的更多细节与实际建议，我们推荐参考 <span class="citation" data-cites="hpo_practical">Bischl et al. (<a href="https://mlr3book.mlr-org.com/references.html#ref-hpo_practical" role="doc-biblioref">2023</a>)</span>。</p>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -449,7 +498,7 @@ kernel=radial, type=C-classification
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><code>Tuner</code> 的 <code>$param_classes</code> 和 <code>$properties</code> 字段分别提供如下信息：该调优器能处理哪些类的超参数，以及该调优器具备哪些属性（例如超参数依赖，见<a href="#sec-defining-search-spaces" class="quarto-xref"><span>4.4 节</span></a>；或多准则优化，见<a href="../chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-multi-metrics-tuning" class="quarto-xref"><span>5.2 节</span></a>）：</p>
+<p><code>Tuner</code> 的 <code>$param_classes</code> 和 <code>$properties</code> 字段分别提供如下信息：该调优器能处理哪些类的超参数，以及该调优器具备哪些属性（例如超参数依赖，见<a href="#sec-defining-search-spaces" class="quarto-xref"><span>4.4 节</span></a>；或多准则优化，见<a href="https://mlr3book.mlr-org.com/chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-multi-metrics-tuning" class="quarto-xref"><span>5.2 节</span></a>）：</p>
 <div class="cell">
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">tnr</span><span class="op">(</span><span class="st">"random_search"</span><span class="op">)</span><span class="op">$</span><span class="va">param_classes</span></span></code></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -465,7 +514,7 @@ kernel=radial, type=C-classification
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>为什么随机搜索常常优于网格搜索？Bergstra 和 Bengio（2012）有一句经典论断：在许多实际问题中，超参数对性能的影响往往是"少数几个起决定性作用，其余作用甚微"。网格搜索给所有参数分配相同的格子数，导致关键维度上被尝试的取值很少；而随机搜索让每个维度都能在不同取值上"展开"，因此覆盖到关键维度的更多不同值，找到好配置的概率更高。这也是"维数灾难"的又一体现：网格搜索的评估次数随参数数量指数增长，而随机搜索的评估次数与维度基本无关。因此，在不确定哪些超参数重要时，随机搜索通常是比网格搜索更稳妥的起点。</p>
 </div>
-<p>对于我们的 SVM 示例，出于运行时间的考虑，我们这里使用分辨率为 5 的网格搜索（在实践中应优先更大的分辨率）。分辨率是每个超参数要尝试的不同取值个数，这意味着在本例中调优器将构建一个 5 × 5 的网格，即在指定上下界之间等距取点的 25 个配置。调优器将以（随机顺序）尝试所有这些配置，直到所有配置都被评估完，或终止器（<a href="#sec-terminator" class="quarto-xref"><span>4.1.2 节</span></a>）发出预算耗尽的信号。对于网格与随机搜索调优器，<code>batch_size</code> 参数控制启用并行化时同时评估多少个配置（见<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-parallel-tuning" class="quarto-xref"><span>10.1.3 节</span></a>），同时也决定在终止器检查终止条件是否达到之前，应评估多少个配置。</p>
+<p>对于我们的 SVM 示例，出于运行时间的考虑，我们这里使用分辨率为 5 的网格搜索（在实践中应优先更大的分辨率）。分辨率是每个超参数要尝试的不同取值个数，这意味着在本例中调优器将构建一个 5 × 5 的网格，即在指定上下界之间等距取点的 25 个配置。调优器将以（随机顺序）尝试所有这些配置，直到所有配置都被评估完，或终止器（<a href="#sec-terminator" class="quarto-xref"><span>4.1.2 节</span></a>）发出预算耗尽的信号。对于网格与随机搜索调优器，<code>batch_size</code> 参数控制启用并行化时同时评估多少个配置（见<a href="https://mlr3book.mlr-org.com/chapter10/advanced_technical_aspects_of_mlr3.html#sec-parallel-tuning" class="quarto-xref"><span>10.1.3 节</span></a>），同时也决定在终止器检查终止条件是否达到之前，应评估多少个配置。</p>
 <div class="cell">
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tuner</span> <span class="op">=</span> <span class="fu">tnr</span><span class="op">(</span><span class="st">"grid_search"</span>, resolution <span class="op">=</span> <span class="fl">5</span>, batch_size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
 <span><span class="va">tuner</span></span></code></pre></div>
@@ -489,8 +538,8 @@ kernel=radial, type=C-classification
 3: param_resolutions ParamUty    NA    NA     Inf &lt;NoDefault[0]&gt; [NULL]</code></pre>
 </div>
 </div>
-<p>虽然更改调优器的控制参数可以改善最佳性能，但我们要注意：默认设置大概率已能满足大多数需求。虽然不可能覆盖所有应用场景，但 <code>mlr3tuning</code> 的默认值被设计为在大多数情形下都能良好工作。不过，有些控制参数（如 <code>batch_size</code>）常与并行化设置相互影响（在<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-parallel-tuning" class="quarto-xref"><span>10.1.3 节</span></a>中有进一步描述），可能需要相应调整。</p>
-</section><section id="triggering-the-tuning-process" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="triggering-the-tuning-process">触发调优过程（Triggering the tuning process）</h4>
+<p>虽然更改调优器的控制参数可以改善最佳性能，但我们要注意：默认设置大概率已能满足大多数需求。虽然不可能覆盖所有应用场景，但 <code>mlr3tuning</code> 的默认值被设计为在大多数情形下都能良好工作。不过，有些控制参数（如 <code>batch_size</code>）常与并行化设置相互影响（在<a href="https://mlr3book.mlr-org.com/chapter10/advanced_technical_aspects_of_mlr3.html#sec-parallel-tuning" class="quarto-xref"><span>10.1.3 节</span></a>中有进一步描述），可能需要相应调整。</p>
+</section><section id="triggering-the-tuning-process" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="triggering-the-tuning-process" id="triggering-the-tuning-process">触发调优过程（Triggering the tuning process）</h4>
 <p>所有组件都已介绍完毕，现在我们可以启动调优过程。做法很简单：把已构造的 <a href="https://mlr3tuning.mlr-org.com/reference/TuningInstanceBatchSingleCrit.html"><code>TuningInstanceBatchSingleCrit</code></a> 传给已初始化的 <a href="https://mlr3tuning.mlr-org.com/reference/TunerBatch.html"><code>TunerBatch</code></a> 的 <code>$optimize()</code> 方法，这将触发超参数优化循环（<a href="#fig-optimization-loop-basic" class="quarto-xref">图&nbsp;<span>4.1</span></a>）。</p>
 <div class="cell">
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tuner</span><span class="op">$</span><span class="fu">optimize</span><span class="op">(</span><span class="va">instance</span><span class="op">)</span></span></code></pre></div>
@@ -531,7 +580,7 @@ kernel=radial, type=C-classification
 <p>调优时一个常见错误是：把调优所在重采样集上估计出的性能（<code>instance$result$classif.ce</code>）作为模型性能的无偏估计来报告，而忽略了它的乐观偏差。正确的方法是在更多未见过的数据上测试模型，这可以通过嵌套重采样（nested resampling）高效完成，我们将在<a href="#sec-resample-overfitting" class="quarto-xref"><span>4.3.2 节</span></a>中讨论。</p>
 </div>
 </div>
-</section></section><section id="sec-logarithmic-transformations" class="level3" data-number="4.1.5"><h3 data-number="4.1.5" class="anchored" data-anchor-id="sec-logarithmic-transformations">
+</section></section><section id="sec-logarithmic-transformations" class="level3" data-number="4.1.5"><h3 data-number="4.1.5" class="anchored" data-anchor-id="sec-logarithmic-transformations" id="sec-logarithmic-transformations">
 <span class="header-section-number">4.1.5</span> 对数变换（Logarithmic Transformations）</h3>
 <p>对于许多上界很大的非负超参数，在对数尺度上调优比在线性尺度上调优更高效。举例来说，考虑在区间 <span class="math inline">\([\log(1e-5), \log(1e5)]\)</span> 内均匀采样，然后再对结果取指数。<a href="#fig-logscale" class="quarto-xref">图&nbsp;<span>4.2</span></a> 中的直方图展示了：我们最初在一个较窄的区间（<span class="math inline">\([-11.5, 11.5]\)</span>）内采样，但取指数后，结果中大多数点相对较小，而少数点却非常大。</p>
 <div class="cell">
@@ -544,7 +593,7 @@ kernel=radial, type=C-classification
 <div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-logscale" style="flex-basis: 50.0%;justify-content: flex-start;">
 <div id="fig-logscale-1" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Left plot shows the values on the linear scale sampled by the tuner between [-11.5,11.5] with roughly equal length bars. Right plot shows values between [1e-5, 1e5] with the vast majority close to 0 and very few at other points.">
 <figure class="quarto-float quarto-subfloat-fig figure"><div aria-describedby="fig-logscale-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/hyperparameter_optimization_files/figure-html/fig-logscale-1.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-logscale" alt="Left plot shows the values on the linear scale sampled by the tuner between [-11.5,11.5] with roughly equal length bars. Right plot shows values between [1e-5, 1e5] with the vast majority close to 0 and very few at other points.">
+<img src="../images/hyperparameter_optimization_files/figure-html/fig-logscale-1.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-logscale" alt="Left plot shows the values on the linear scale sampled by the tuner between [-11.5,11.5] with roughly equal length bars. Right plot shows values between [1e-5, 1e5] with the vast majority close to 0 and very few at other points.">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-logscale-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (a) 调优器采样的线性尺度。
@@ -554,7 +603,7 @@ kernel=radial, type=C-classification
 <div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-logscale" style="flex-basis: 50.0%;justify-content: flex-start;">
 <div id="fig-logscale-2" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Left plot shows the values on the linear scale sampled by the tuner between [-11.5,11.5] with roughly equal length bars. Right plot shows values between [1e-5, 1e5] with the vast majority close to 0 and very few at other points.">
 <figure class="quarto-float quarto-subfloat-fig figure"><div aria-describedby="fig-logscale-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/hyperparameter_optimization_files/figure-html/fig-logscale-2.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-logscale" alt="Left plot shows the values on the linear scale sampled by the tuner between [-11.5,11.5] with roughly equal length bars. Right plot shows values between [1e-5, 1e5] with the vast majority close to 0 and very few at other points.">
+<img src="../images/hyperparameter_optimization_files/figure-html/fig-logscale-2.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-logscale" alt="Left plot shows the values on the linear scale sampled by the tuner between [-11.5,11.5] with roughly equal length bars. Right plot shows values between [1e-5, 1e5] with the vast majority close to 0 and very few at other points.">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-logscale-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (b) 学习器看到的对数尺度。
@@ -607,7 +656,7 @@ kernel=radial, type=C-classification
 </div>
 </div>
 <p>在<a href="#sec-defining-search-spaces" class="quarto-xref"><span>4.4 节</span></a>中我们将会看到如何为任意超参数或超参数组合实现更复杂的自定义变换。现在我们来研究如何把一切付诸实践，以便能真正使用调优后的模型（以及经过变换的超参数）。</p>
-</section><section id="sec-analyzing-result" class="level3" data-number="4.1.6"><h3 data-number="4.1.6" class="anchored" data-anchor-id="sec-analyzing-result">
+</section><section id="sec-analyzing-result" class="level3" data-number="4.1.6"><h3 data-number="4.1.6" class="anchored" data-anchor-id="sec-analyzing-result" id="sec-analyzing-result">
 <span class="header-section-number">4.1.6</span> 分析与使用结果（Analyzing and Using the Result）</h3>
 <p>无论你使用 <a href="https://mlr3tuning.mlr-org.com/reference/ti.html"><code>ti()</code></a> 还是 <a href="https://mlr3tuning.mlr-org.com/reference/tune.html"><code>tune()</code></a>，无论是否包含变换，所创建的对象与输出的结构都是一样的，实例的存档（archive）列出了所有被评估的超参数配置：</p>
 <div class="cell">
@@ -651,7 +700,7 @@ kernel=radial, type=C-classification
 <div class="cell-output-display">
 <div id="fig-surface" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Heatmap showing model performance during HPO. y-axis is 'gamma' parameter between (-10,10) and x-axis is 'cost' parameter between (-10,10). The heatmap shows squares covering all points on the plot and circular points indicating configurations tried in our optimization. The top-left quadrant is all yellow indicating poor performance when gamma is high and cost is low. The bottom-right is dark blue indicating good performance when cost is high and gamma is low.">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-surface-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/hyperparameter_optimization_files/figure-html/fig-surface-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Heatmap showing model performance during HPO. y-axis is 'gamma' parameter between (-10,10) and x-axis is 'cost' parameter between (-10,10). The heatmap shows squares covering all points on the plot and circular points indicating configurations tried in our optimization. The top-left quadrant is all yellow indicating poor performance when gamma is high and cost is low. The bottom-right is dark blue indicating good performance when cost is high and gamma is low.">
+<img src="../images/hyperparameter_optimization_files/figure-html/fig-surface-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Heatmap showing model performance during HPO. y-axis is 'gamma' parameter between (-10,10) and x-axis is 'cost' parameter between (-10,10). The heatmap shows squares covering all points on the plot and circular points indicating configurations tried in our optimization. The top-left quadrant is all yellow indicating poor performance when gamma is high and cost is low. The bottom-right is dark blue indicating good performance when cost is high and gamma is low.">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-surface-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;4.3: 不同 <code>cost</code> 与 <code>gamma</code> 配置下的模型性能。亮黄色区域表示模型表现较差，深蓝色表示表现较好。可以看到，较高的 <code>cost</code> 值与较低的 <code>gamma</code> 值取得了最佳性能。请注意，<strong>不应当</strong>直接依据热力图推断未见过的新值的性能，因为它只是基于代理模型（<code>regr.ranger</code>）的插值。不过，我们仍能看出超参数之间的大致交互关系。
@@ -659,7 +708,7 @@ kernel=radial, type=C-classification
 </div>
 </div>
 </div>
-<section id="training-an-optimized-model" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="training-an-optimized-model">训练优化后的模型（Training an optimized model）</h4>
+<section id="training-an-optimized-model" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="training-an-optimized-model" id="training-an-optimized-model">训练优化后的模型（Training an optimized model）</h4>
 <p>一旦我们通过调优为学习器找到了好的超参数，就可以用它们在整个数据上训练最终模型。为此，只需构造一个底层算法相同的新学习器，并把学习器的超参数设置为最优配置：</p>
 <div class="cell">
 <div class="sourceCode" id="cb31"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_svm_tuned</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.svm"</span><span class="op">)</span></span>
@@ -684,7 +733,7 @@ Parameters:
 Number of Support Vectors:  93</code></pre>
 </div>
 </div>
-</section></section></section><section id="sec-autotuner" class="level2 page-columns page-full" data-number="4.2"><h2 data-number="4.2" class="anchored" data-anchor-id="sec-autotuner">
+</section></section></section><section id="sec-autotuner" class="level2 page-columns page-full" data-number="4.2"><h2 data-number="4.2" class="anchored" data-anchor-id="sec-autotuner" id="sec-autotuner">
 <span class="header-section-number">4.2</span> 用 <code>tune</code> 和 <code>auto_tuner</code> 便捷调优（Convenient Tuning with <code>tune</code> and <code>auto_tuner</code>）
 </h2>
 <p>在上一节中，我们研究了如何用 <a href="https://mlr3tuning.mlr-org.com/reference/ti.html"><code>ti()</code></a> 创建调优实例、将其传给调优器、再调用 <code>$optimize()</code> 启动调优过程，从而手工组装 HPO 的各个组件。<code>mlr3tuning</code> 提供了两个辅助方法来进一步简化这一流程。</p>
@@ -744,7 +793,7 @@ Number of Support Vectors:  93</code></pre>
 <div class="cell-output-display">
 <div id="fig-auto-tuner" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Flow diagram. Top box &quot;Input: Training Data, Learner, Performance Metric, Resampling Strategy, Search Space&quot;. This has an arrow to &quot;Auto-Tuner&quot; which is a box containing &quot;Tuning&quot;, which has three arrows pointing at each other in a circle representing the tuning process, and &quot;Final Model Fit: Fit Learner with Optimal Hyperparameters on Dtrain&quot;. &quot;Auto-Tuner&quot; then points to &quot;Return: Model, Optimal Hyperparameters&quot;.">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-auto-tuner-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/Figures/mlr3book_figures-12.svg" class="img-fluid figure-img" style="width:60.0%" alt="Flow diagram. Top box &quot;Input: Training Data, Learner, Performance Metric, Resampling Strategy, Search Space&quot;. This has an arrow to &quot;Auto-Tuner&quot; which is a box containing &quot;Tuning&quot;, which has three arrows pointing at each other in a circle representing the tuning process, and &quot;Final Model Fit: Fit Learner with Optimal Hyperparameters on Dtrain&quot;. &quot;Auto-Tuner&quot; then points to &quot;Return: Model, Optimal Hyperparameters&quot;.">
+<img src="../images/Figures/mlr3book_figures-12.svg" class="img-fluid figure-img" style="width:60.0%" alt="Flow diagram. Top box &quot;Input: Training Data, Learner, Performance Metric, Resampling Strategy, Search Space&quot;. This has an arrow to &quot;Auto-Tuner&quot; which is a box containing &quot;Tuning&quot;, which has three arrows pointing at each other in a circle representing the tuning process, and &quot;Final Model Fit: Fit Learner with Optimal Hyperparameters on Dtrain&quot;. &quot;Auto-Tuner&quot; then points to &quot;Return: Model, Optimal Hyperparameters&quot;.">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-auto-tuner-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;4.4: 自动调优器（Auto-Tuner）的示意图。
@@ -774,15 +823,15 @@ Number of Support Vectors:  93</code></pre>
 <p><strong>背景与解释（译者注）：</strong><code>auto_tuner()</code> 的模型是学习器（Learner）的一个重要延伸：它把"调优"这一步封装成普通的 <code>$train()</code>，于是可以像使用任何其他学习器一样，把它放进 <code>resample()</code>、<code>benchmark()</code> 甚至流水线（pipelines）中。这大大简化了代码组织，但也带来一个责任：一旦把 AutoTuner 用于重采样，你就进入了<strong>嵌套重采样</strong>（第 4.3 节）的语境——外层重采样的每个训练折内部都会执行一次完整的调优过程。这种封装让"无泄漏评估"变得容易实现，代价是计算量成倍增加。</p>
 </div>
 <p>我们还可以把 <code>AutoTuner</code> 传给 <a href="https://mlr3.mlr-org.com/reference/resample.html"><code>resample()</code></a> 和 <a href="https://mlr3.mlr-org.com/reference/benchmark.html"><code>benchmark()</code></a>，这将产生嵌套重采样（nested resampling），我们接下来讨论它。</p>
-</section><section id="sec-nested-resampling" class="level2 page-columns page-full" data-number="4.3"><h2 data-number="4.3" class="anchored" data-anchor-id="sec-nested-resampling">
+</section><section id="sec-nested-resampling" class="level2 page-columns page-full" data-number="4.3"><h2 data-number="4.3" class="anchored" data-anchor-id="sec-nested-resampling" id="sec-nested-resampling">
 <span class="header-section-number">4.3</span> 嵌套重采样（Nested Resampling）</h2>
-<p>HPO 需要额外的重采样层，以减少估计模型性能时的偏差。如果用同一份数据既确定最优配置、又评估由此得到的模型，那么实际的性能估计会是有偏的 <span class="citation" data-cites="Simon2007">(<a href="../references.html#ref-Simon2007" role="doc-biblioref">Simon 2007</a>)</span>。这与 James 等（<a href="../references.html#ref-james_introduction_2014" role="doc-biblioref">2014</a>）所描述的训练误差乐观性（optimism of the training error）相似——当把训练误差当作样本外性能的估计时就会发生这种情况。</p>
-<p>嵌套重采样通过在现有重采样之外再增加一层重采样，将模型优化与调优后模型的性能估计分离开来：也就是说，模型性能以"通常的方式"用某种重采样方法来估计，而调优则是对这些（重采样得到的）数据再做一次重采样来进行的（<a href="#fig-nested-resampling" class="quarto-xref">图&nbsp;<span>4.5</span></a>）。关于嵌套重采样的更多细节与形式化介绍，读者可参阅 <span class="citation" data-cites="hpo_practical">Bischl et al. (<a href="../references.html#ref-hpo_practical" role="doc-biblioref">2023</a>)</span> 与 <span class="citation" data-cites="Simon2007">Simon (<a href="../references.html#ref-Simon2007" role="doc-biblioref">2007</a>)</span>。</p>
+<p>HPO 需要额外的重采样层，以减少估计模型性能时的偏差。如果用同一份数据既确定最优配置、又评估由此得到的模型，那么实际的性能估计会是有偏的 <span class="citation" data-cites="Simon2007">(<a href="https://mlr3book.mlr-org.com/references.html#ref-Simon2007" role="doc-biblioref">Simon 2007</a>)</span>。这与 James 等（<a href="https://mlr3book.mlr-org.com/references.html#ref-james_introduction_2014" role="doc-biblioref">2014</a>）所描述的训练误差乐观性（optimism of the training error）相似——当把训练误差当作样本外性能的估计时就会发生这种情况。</p>
+<p>嵌套重采样通过在现有重采样之外再增加一层重采样，将模型优化与调优后模型的性能估计分离开来：也就是说，模型性能以"通常的方式"用某种重采样方法来估计，而调优则是对这些（重采样得到的）数据再做一次重采样来进行的（<a href="#fig-nested-resampling" class="quarto-xref">图&nbsp;<span>4.5</span></a>）。关于嵌套重采样的更多细节与形式化介绍，读者可参阅 <span class="citation" data-cites="hpo_practical">Bischl et al. (<a href="https://mlr3book.mlr-org.com/references.html#ref-hpo_practical" role="doc-biblioref">2023</a>)</span> 与 <span class="citation" data-cites="Simon2007">Simon (<a href="https://mlr3book.mlr-org.com/references.html#ref-Simon2007" role="doc-biblioref">2007</a>)</span>。</p>
 <div class="cell">
 <div class="cell-output-display">
 <div id="fig-nested-resampling" class="quarto-float quarto-figure quarto-figure-center anchored" alt="The image shows three rows of large blocks representing three-fold CV for the outer resampling. Below the blocks are four further rows of small blocks representing four-fold CV for the inner resampling. Text annotations highlight how tuned parameters from the inner resampling are passed to the outer resampling.">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-nested-resampling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/Figures/mlr3book_figures-11.svg" class="img-fluid figure-img" style="width:80.0%" alt="The image shows three rows of large blocks representing three-fold CV for the outer resampling. Below the blocks are four further rows of small blocks representing four-fold CV for the inner resampling. Text annotations highlight how tuned parameters from the inner resampling are passed to the outer resampling.">
+<img src="../images/Figures/mlr3book_figures-11.svg" class="img-fluid figure-img" style="width:80.0%" alt="The image shows three rows of large blocks representing three-fold CV for the outer resampling. Below the blocks are four further rows of small blocks representing four-fold CV for the inner resampling. Text annotations highlight how tuned parameters from the inner resampling are passed to the outer resampling.">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-nested-resampling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;4.5: 嵌套重采样示意图。大块表示用于模型评估的外层三折 CV，小块表示用于 HPO 的内层四折 CV。浅蓝色块是训练集，深蓝色块是测试集。
@@ -814,11 +863,11 @@ Number of Support Vectors:  93</code></pre>
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>嵌套重采样计算开销很大：三个外层折、四个内层折，配合分辨率为 5、用于调优两个参数的网格搜索，结果是 <span class="math inline">\(3*4*5^2 = 300\)</span> 次模型训练/测试迭代。如果你的资源允许，我们建议在调优时利用并行化（<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-parallelization" class="quarto-xref"><span>10.1 节</span></a>）。</p>
+<p>嵌套重采样计算开销很大：三个外层折、四个内层折，配合分辨率为 5、用于调优两个参数的网格搜索，结果是 <span class="math inline">\(3*4*5^2 = 300\)</span> 次模型训练/测试迭代。如果你的资源允许，我们建议在调优时利用并行化（<a href="https://mlr3book.mlr-org.com/chapter10/advanced_technical_aspects_of_mlr3.html#sec-parallelization" class="quarto-xref"><span>10.1 节</span></a>）。</p>
 </div>
 </div>
 <p>一个常见误解是把嵌套重采样当作选择最优模型配置的方法。嵌套重采样是用来比较模型、并估计调优后模型泛化性能的方法；但是，它给出的性能建立在多个不同配置之上（每个外层折一个），而不是建立在<em>单一</em>配置之上（<a href="#sec-resample-overfitting" class="quarto-xref"><span>4.3.2 节</span></a>）。如果你关心的是找出最优配置，那么应使用 <a href="https://mlr3tuning.mlr-org.com/reference/tune.html"><code>tune()</code></a>/<a href="https://mlr3tuning.mlr-org.com/reference/ti.html"><code>ti()</code></a> 或 <a href="https://mlr3tuning.mlr-org.com/reference/auto_tuner.html"><code>auto_tuner()</code></a> 并在完整数据集上调用 <code>$train()</code>。</p>
-<section id="nested-resampling-with-an-autotuner" class="level3" data-number="4.3.1"><h3 data-number="4.3.1" class="anchored" data-anchor-id="nested-resampling-with-an-autotuner">
+<section id="nested-resampling-with-an-autotuner" class="level3" data-number="4.3.1"><h3 data-number="4.3.1" class="anchored" data-anchor-id="nested-resampling-with-an-autotuner" id="nested-resampling-with-an-autotuner">
 <span class="header-section-number">4.3.1</span> 用 <code>AutoTuner</code> 实现嵌套重采样（Nested Resampling with an <code>AutoTuner</code>）
 </h3>
 <p>虽然嵌套重采样的理论看起来有些复杂，但在 <code>mlr3tuning</code> 中它完全是自动化的：只需把 <code>AutoTuner</code> 传给 <a href="https://mlr3.mlr-org.com/reference/resample.html"><code>resample()</code></a> 或 <a href="https://mlr3.mlr-org.com/reference/benchmark.html"><code>benchmark()</code></a>。继续我们此前的示例：我们将用自动调优器，在外层重采样使用三折 CV、内层重采样使用四折 CV，对一个支持向量分类器做重采样。</p>
@@ -843,7 +892,7 @@ Number of Support Vectors:  93</code></pre>
 2 variables not shown: [warnings, errors]</code></pre>
 </div>
 </div>
-<p>请注意，我们设置了 <code>store_models = TRUE</code>，使得（在外层训练数据上拟合的）<code>AutoTuner</code> 模型被保存下来，这也便于我们研究内层调优实例。虽然这里内层与外层重采样策略用的都是 k 折 CV，但你可以使用不同的重采样策略（<a href="../chapter3/evaluation_and_benchmarking.html#sec-resampling" class="quarto-xref"><span>3.2 节</span></a>），也可以使用不同的并行化方法（<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-nested-resampling-parallelization" class="quarto-xref"><span>10.1.4 节</span></a>）。</p>
+<p>请注意，我们设置了 <code>store_models = TRUE</code>，使得（在外层训练数据上拟合的）<code>AutoTuner</code> 模型被保存下来，这也便于我们研究内层调优实例。虽然这里内层与外层重采样策略用的都是 k 折 CV，但你可以使用不同的重采样策略（<a href="https://mlr3book.mlr-org.com/chapter3/evaluation_and_benchmarking.html#sec-resampling" class="quarto-xref"><span>3.2 节</span></a>），也可以使用不同的并行化方法（<a href="https://mlr3book.mlr-org.com/chapter10/advanced_technical_aspects_of_mlr3.html#sec-nested-resampling-parallelization" class="quarto-xref"><span>10.1.4 节</span></a>）。</p>
 <p>调优后模型的估计性能，即所有外层重采样迭代的汇总性能，是对未来模型性能偏差更小的估计。</p>
 <div class="cell">
 <div class="sourceCode" id="cb44"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
@@ -852,7 +901,7 @@ Number of Support Vectors:  93</code></pre>
     0.2017 </code></pre>
 </div>
 </div>
-<p>除了<a href="../chapter3/evaluation_and_benchmarking.html#sec-resampling" class="quarto-xref"><span>3.2 节</span></a>中描述的方法之外，<a href="https://mlr3tuning.mlr-org.com/reference/extract_inner_tuning_results.html"><code>extract_inner_tuning_results()</code></a> 和 <a href="https://mlr3tuning.mlr-org.com/reference/extract_inner_tuning_archives.html"><code>extract_inner_tuning_archives()</code></a> 分别返回（跨越所有外层折的）最优配置和完整的调优存档。</p>
+<p>除了<a href="https://mlr3book.mlr-org.com/chapter3/evaluation_and_benchmarking.html#sec-resampling" class="quarto-xref"><span>3.2 节</span></a>中描述的方法之外，<a href="https://mlr3tuning.mlr-org.com/reference/extract_inner_tuning_results.html"><code>extract_inner_tuning_results()</code></a> 和 <a href="https://mlr3tuning.mlr-org.com/reference/extract_inner_tuning_archives.html"><code>extract_inner_tuning_archives()</code></a> 分别返回（跨越所有外层折的）最优配置和完整的调优存档。</p>
 <div class="cell">
 <div class="sourceCode" id="cb46"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">extract_inner_tuning_results</span><span class="op">(</span><span class="va">rr</span><span class="op">)</span><span class="op">[</span>,</span>
 <span>  <span class="fu">.</span><span class="op">(</span><span class="va">iteration</span>, <span class="va">cost</span>, <span class="va">gamma</span>, <span class="va">classif.ce</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
@@ -871,7 +920,7 @@ Number of Support Vectors:  93</code></pre>
 3:         1    0   5.756     0.4483</code></pre>
 </div>
 </div>
-</section><section id="sec-resample-overfitting" class="level3 page-columns page-full" data-number="4.3.2"><h3 data-number="4.3.2" class="anchored" data-anchor-id="sec-resample-overfitting">
+</section><section id="sec-resample-overfitting" class="level3 page-columns page-full" data-number="4.3.2"><h3 data-number="4.3.2" class="anchored" data-anchor-id="sec-resample-overfitting" id="sec-resample-overfitting">
 <span class="header-section-number">4.3.2</span> 估计性能的正确（与错误）方式（The Right (and Wrong) Way to Estimate Performance）</h3>
 <div class="callout callout-style-simple callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -960,10 +1009,10 @@ Number of Support Vectors:  93</code></pre>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>本例是理解嵌套重采样必要性最好的例子。注意三个数字的解读要小心：<code>true_generalization = 0.09</code> 是在 100 万个新样本上得到的"真"泛化误差（在模拟实验中可控）；<code>without_nested_resampling = 0.09</code> 巧合地与它持平，这常见于样本很小、随机波动大的情形——但<em>更常见</em>的是它显著低于真实泛化误差；<code>with_nested_resampling = 0.14</code> 反而"看起来更大"。请勿误读为"嵌套重采样更差"：嵌套重采样的估计是<strong>保守而可信</strong>的，它把 700 次随机搜索中"运气最好"的那个配置在留出折上的表现如实暴露出来（元过拟合），而"不嵌套"的值恰好是被随机波动掩盖了偏差。模拟实验的精妙在于：每次重复运行，这两个相对大小都可能变化，但从期望上看，不嵌套的估计是乐观有偏的。</p>
 </div>
-</section></section><section id="sec-defining-search-spaces" class="level2" data-number="4.4"><h2 data-number="4.4" class="anchored" data-anchor-id="sec-defining-search-spaces">
+</section></section><section id="sec-defining-search-spaces" class="level2" data-number="4.4"><h2 data-number="4.4" class="anchored" data-anchor-id="sec-defining-search-spaces" id="sec-defining-search-spaces">
 <span class="header-section-number">4.4</span> 更高级的搜索空间（More Advanced Search Spaces）</h2>
 <p>到目前为止，我们只考虑了局限于少数数值型超参数的简单搜索空间。在本节中，我们将首先看看如何用 <a href="https://paradox.mlr-org.com/reference/to_tune.html"><code>to_tune()</code></a> 调优不同的标量参数类型，然后用 <a href="https://paradox.mlr-org.com/reference/ParamSet.html"><code>ParamSet</code></a> 定义自己的搜索空间，以创建更高级的搜索空间——其中可能包括对向量、变换的调优，以及处理参数依赖。最后，我们将讨论如何访问文献中标准化的搜索空间数据库。</p>
-<section id="scalar-parameter-tuning" class="level3" data-number="4.4.1"><h3 data-number="4.4.1" class="anchored" data-anchor-id="scalar-parameter-tuning">
+<section id="scalar-parameter-tuning" class="level3" data-number="4.4.1"><h3 data-number="4.4.1" class="anchored" data-anchor-id="scalar-parameter-tuning" id="scalar-parameter-tuning">
 <span class="header-section-number">4.4.1</span> 标量参数调优（Scalar Parameter Tuning）</h3>
 <p><a href="https://paradox.mlr-org.com/reference/to_tune.html"><code>to_tune()</code></a> 函数可用于调优任何类型的参数，无论标量还是向量。为更好地理解这个函数，我们来考察它背后发生的事。当 <code>to_tune()</code> 被用于学习器时，它隐含地只为调优搜索空间创建一个 <a href="https://paradox.mlr-org.com/reference/ParamSet.html"><code>ParamSet</code></a>：</p>
 <div class="cell">
@@ -982,7 +1031,7 @@ Number of Support Vectors:  93</code></pre>
 2: gamma ParamDbl   0.1 1e+00     Inf &lt;NoDefault[0]&gt; [NULL]</code></pre>
 </div>
 </div>
-<p>回顾 <a href="../chapter2/data_and_basic_modeling.html#sec-param-set" class="quarto-xref"><span>2.2.3 节</span></a>，<code>class</code> 字段对应 <a href="https://paradox.mlr-org.com"><code>paradox</code></a> 中定义的超参数类型。在本例中，可以看到 <code>gamma</code> 超参数的类是 <code>ParamDbl</code>，其 <code>lower = 0.1</code>、<code>upper = 1</code>；这个参数是 <code>to_tune()</code> 在我们传入两个数值时自动创建的。如果我们想调优非数值型的超参数，仍然可以使用 <code>to_tune()</code>，它会推断出应该在结果参数集合中构建的正确类型。例如，假设我们想调优 SVM 中的数值型 <code>cost</code>、因子型 <code>kernel</code> 和逻辑型 <code>scale</code> 超参数：</p>
+<p>回顾 <a href="https://mlr3book.mlr-org.com/chapter2/data_and_basic_modeling.html#sec-param-set" class="quarto-xref"><span>2.2.3 节</span></a>，<code>class</code> 字段对应 <a href="https://paradox.mlr-org.com"><code>paradox</code></a> 中定义的超参数类型。在本例中，可以看到 <code>gamma</code> 超参数的类是 <code>ParamDbl</code>，其 <code>lower = 0.1</code>、<code>upper = 1</code>；这个参数是 <code>to_tune()</code> 在我们传入两个数值时自动创建的。如果我们想调优非数值型的超参数，仍然可以使用 <code>to_tune()</code>，它会推断出应该在结果参数集合中构建的正确类型。例如，假设我们想调优 SVM 中的数值型 <code>cost</code>、因子型 <code>kernel</code> 和逻辑型 <code>scale</code> 超参数：</p>
 <div class="cell">
 <div class="sourceCode" id="cb58"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">learner</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.svm"</span>,</span>
 <span>  cost  <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="fl">1e-1</span>, <span class="fl">1e5</span><span class="op">)</span>,</span>
@@ -1017,10 +1066,10 @@ Number of Support Vectors:  93</code></pre>
 <p>把整数当作因子来调优会造成"无序"的超参数。因此，利用顺序信息的算法在顺序被忽略时会表现更差。对这些算法而言，更合理的做法是定义一个 <code>ParamDbl</code> 或 <code>ParamInt</code>（<a href="#sec-tune-ps" class="quarto-xref"><span>4.4.2 节</span></a>）并配以自定义变换（<a href="#sec-tune-trafo" class="quarto-xref"><span>4.4.3 节</span></a>）。</p>
 </div>
 </div>
-</section><section id="sec-tune-ps" class="level3" data-number="4.4.2"><h3 data-number="4.4.2" class="anchored" data-anchor-id="sec-tune-ps">
+</section><section id="sec-tune-ps" class="level3" data-number="4.4.2"><h3 data-number="4.4.2" class="anchored" data-anchor-id="sec-tune-ps" id="sec-tune-ps">
 <span class="header-section-number">4.4.2</span> 用 <code>ps</code> 定义搜索空间（Defining Search Spaces with <code>ps</code>）
 </h3>
-<p>正如我们所见，<a href="https://paradox.mlr-org.com/reference/to_tune.html"><code>to_tune()</code></a> 是一个辅助函数，它创建一个参数集合，供调优过程中的 <a href="https://mlr3tuning.mlr-org.com/reference/tune.html"><code>tune()</code></a>、<a href="https://mlr3tuning.mlr-org.com/reference/ti.html"><code>ti()</code></a> 或 <a href="https://mlr3tuning.mlr-org.com/reference/auto_tuner.html"><code>auto_tuner()</code></a> 使用。不过，有些使用场景下你需要用 <a href="https://paradox.mlr-org.com/reference/ps.html"><code>ps()</code></a> 手动创建参数集合。该函数接受 <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>Domain</code></a> 类的命名参数，这些参数可用 <a href="../chapter16/advanced_hyperparameter_specification_using_paradox.html#tbl-paradox-define" class="quarto-xref">表&nbsp;<span>16.1</span></a> 中的糖函数创建。</p>
+<p>正如我们所见，<a href="https://paradox.mlr-org.com/reference/to_tune.html"><code>to_tune()</code></a> 是一个辅助函数，它创建一个参数集合，供调优过程中的 <a href="https://mlr3tuning.mlr-org.com/reference/tune.html"><code>tune()</code></a>、<a href="https://mlr3tuning.mlr-org.com/reference/ti.html"><code>ti()</code></a> 或 <a href="https://mlr3tuning.mlr-org.com/reference/auto_tuner.html"><code>auto_tuner()</code></a> 使用。不过，有些使用场景下你需要用 <a href="https://paradox.mlr-org.com/reference/ps.html"><code>ps()</code></a> 手动创建参数集合。该函数接受 <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>Domain</code></a> 类的命名参数，这些参数可用 <a href="https://mlr3book.mlr-org.com/chapter16/advanced_hyperparameter_specification_using_paradox.html#tbl-paradox-define" class="quarto-xref">表&nbsp;<span>16.1</span></a> 中的糖函数创建。</p>
 <div id="tbl-paradox-define" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-paradox-define-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 表&nbsp;4.3: <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>Domain</code></a> 构造器及其产生的 <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>Domain</code></a>。
@@ -1062,7 +1111,7 @@ Number of Support Vectors:  93</code></pre>
 </div>
 </figure>
 </div>
-<p>有关使用 <code>paradox</code> 包的更高级超参数规范的更多信息，将在<a href="../chapter16/advanced_hyperparameter_specification_using_paradox.html" class="quarto-xref"><span>第 16 章</span></a>中给出。</p>
+<p>有关使用 <code>paradox</code> 包的更高级超参数规范的更多信息，将在<a href="https://mlr3book.mlr-org.com/chapter16/advanced_hyperparameter_specification_using_paradox.html" class="quarto-xref"><span>第 16 章</span></a>中给出。</p>
 <p>作为简单示例，我们来看如何再次创建一个调优 <code>cost</code> 与 <code>gamma</code> 的搜索空间：</p>
 <div class="cell">
 <div class="sourceCode" id="cb61"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">search_space</span> <span class="op">=</span> <span class="fu">ps</span><span class="op">(</span></span>
@@ -1113,7 +1162,7 @@ FALSE </code></pre>
 </div>
 </div>
 </div>
-</section><section id="sec-tune-trafo" class="level3" data-number="4.4.3"><h3 data-number="4.4.3" class="anchored" data-anchor-id="sec-tune-trafo">
+</section><section id="sec-tune-trafo" class="level3" data-number="4.4.3"><h3 data-number="4.4.3" class="anchored" data-anchor-id="sec-tune-trafo" id="sec-tune-trafo">
 <span class="header-section-number">4.4.3</span> 变换与向量调优（Transformations and Tuning Over Vectors）</h3>
 <div class="callout callout-style-simple callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -1202,7 +1251,7 @@ $kernel
 [1] "polynomial"</code></pre>
 </div>
 </div>
-<section id="vector-transformations" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="vector-transformations">向量变换（Vector transformations）</h4>
+<section id="vector-transformations" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="vector-transformations" id="vector-transformations">向量变换（Vector transformations）</h4>
 <p>任何函数都可以传给 <code>trafo</code> 和 <code>.extra_trafo</code>，这使得调优 <code>ParamUty</code> 类的"无类型"参数成为可能，这类参数可以是向量、函数或任何非原子类。举例来说，考虑 SVM 的 <code>class.weights</code> 参数：它接受一个命名向量，为每个目标类别给定一个类权重值。要调优这个参数，我们可以调优一个标量，然后把它变换成向量。下面的代码会对 <code>0.1</code> 到 <code>0.9</code> 之间的一个值 <code>x</code> 采样，然后把结果变换为（<code>x</code>, <code>1 - x</code>），再传给 <code>Learner</code>。</p>
 <div class="cell">
 <div class="sourceCode" id="cb81"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">search_space</span> <span class="op">=</span> <span class="fu">ps</span><span class="op">(</span></span>
@@ -1246,7 +1295,7 @@ $kernel
 Trafo is set.</code></pre>
 </div>
 </div>
-</section></section><section id="sec-optimization-depends" class="level3" data-number="4.4.4"><h3 data-number="4.4.4" class="anchored" data-anchor-id="sec-optimization-depends">
+</section></section><section id="sec-optimization-depends" class="level3" data-number="4.4.4"><h3 data-number="4.4.4" class="anchored" data-anchor-id="sec-optimization-depends" id="sec-optimization-depends">
 <span class="header-section-number">4.4.4</span> 超参数依赖（Hyperparameter Dependencies）</h3>
 <div class="callout callout-style-simple callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -1293,7 +1342,7 @@ Trafo is set.</code></pre>
 </div>
 </div>
 <p>请注意，学习器的参数集合中本身已经定义了依赖关系。使用 <a href="https://paradox.mlr-org.com/reference/to_tune.html"><code>to_tune()</code></a> 令牌时，这些依赖会被自动保留在搜索空间中，无需再手动指定。</p>
-</section><section id="sec-tuning-spaces" class="level3" data-number="4.4.5"><h3 data-number="4.4.5" class="anchored" data-anchor-id="sec-tuning-spaces">
+</section><section id="sec-tuning-spaces" class="level3" data-number="4.4.5"><h3 data-number="4.4.5" class="anchored" data-anchor-id="sec-tuning-spaces" id="sec-tuning-spaces">
 <span class="header-section-number">4.4.5</span> 用 <code>mlr3tuningspaces</code> 获取推荐搜索空间（Recommended Search Spaces with <code>mlr3tuningspaces</code>）
 </h3>
 <div class="callout callout-style-simple callout-note callout-titled">
@@ -1320,7 +1369,7 @@ Trafo is set.</code></pre>
 3:         classif.glmnet.rbv1       Classification GLM with RandomBot</code></pre>
 </div>
 </div>
-<p>调优空间按照 <code>{learner-id}.{tuning-space-id}</code> 的模式命名。<code>default</code> 调优空间发表在 <span class="citation" data-cites="hpo_practical">Bischl et al. (<a href="../references.html#ref-hpo_practical" role="doc-biblioref">2023</a>)</span> 中；其他调优空间则来自随机机器人（random bot）实验 <code>rbv1</code> 和 <code>rbv2</code>，分别发表在 <span class="citation" data-cites="kuehn_2018">Kuehn et al. (<a href="../references.html#ref-kuehn_2018" role="doc-biblioref">2018</a>)</span> 和 <span class="citation" data-cites="binder2020">Binder, Pfisterer, and Bischl (<a href="../references.html#ref-binder2020" role="doc-biblioref">2020</a>)</span> 中。糖函数 <a href="https://mlr3tuningspaces.mlr-org.com/reference/lts.html"><code>lts()</code></a>（学习器调优空间，learner tuning space）用于检索一个 <a href="https://mlr3tuningspaces.mlr-org.com/reference/TuningSpace.html"><code>TuningSpace</code></a>。</p>
+<p>调优空间按照 <code>{learner-id}.{tuning-space-id}</code> 的模式命名。<code>default</code> 调优空间发表在 <span class="citation" data-cites="hpo_practical">Bischl et al. (<a href="https://mlr3book.mlr-org.com/references.html#ref-hpo_practical" role="doc-biblioref">2023</a>)</span> 中；其他调优空间则来自随机机器人（random bot）实验 <code>rbv1</code> 和 <code>rbv2</code>，分别发表在 <span class="citation" data-cites="kuehn_2018">Kuehn et al. (<a href="https://mlr3book.mlr-org.com/references.html#ref-kuehn_2018" role="doc-biblioref">2018</a>)</span> 和 <span class="citation" data-cites="binder2020">Binder, Pfisterer, and Bischl (<a href="https://mlr3book.mlr-org.com/references.html#ref-binder2020" role="doc-biblioref">2020</a>)</span> 中。糖函数 <a href="https://mlr3tuningspaces.mlr-org.com/reference/lts.html"><code>lts()</code></a>（学习器调优空间，learner tuning space）用于检索一个 <a href="https://mlr3tuningspaces.mlr-org.com/reference/TuningSpace.html"><code>TuningSpace</code></a>。</p>
 <div class="cell">
 <div class="sourceCode" id="cb93"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lts_rpart</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3tuningspaces.mlr-org.com/reference/lts.html">lts</a></span><span class="op">(</span><span class="st">"classif.rpart.default"</span><span class="op">)</span></span>
 <span><span class="va">lts_rpart</span></span></code></pre></div>
@@ -1382,8 +1431,8 @@ range [1e-04, 0.1] (log scale)</code></pre>
 1 variable not shown: [value]</code></pre>
 </div>
 </div>
-<p>请注意我们使用了 <code>$set_values()</code> 的 <code>.values</code> 参数，它允许我们安全地把一个列表传给 <code>ParamSet</code>，而不会意外覆盖任何其他超参数的值（<a href="../chapter2/data_and_basic_modeling.html#sec-param-set" class="quarto-xref"><span>2.2.3 节</span></a>）。</p>
-<p>我们还可以通过把学习器传给 <a href="https://mlr3tuningspaces.mlr-org.com/reference/lts.html"><code>lts()</code></a>，应用 <span class="citation" data-cites="hpo_practical">Bischl et al. (<a href="../references.html#ref-hpo_practical" role="doc-biblioref">2023</a>)</span> 中的默认搜索空间：</p>
+<p>请注意我们使用了 <code>$set_values()</code> 的 <code>.values</code> 参数，它允许我们安全地把一个列表传给 <code>ParamSet</code>，而不会意外覆盖任何其他超参数的值（<a href="https://mlr3book.mlr-org.com/chapter2/data_and_basic_modeling.html#sec-param-set" class="quarto-xref"><span>2.2.3 节</span></a>）。</p>
+<p>我们还可以通过把学习器传给 <a href="https://mlr3tuningspaces.mlr-org.com/reference/lts.html"><code>lts()</code></a>，应用 <span class="citation" data-cites="hpo_practical">Bischl et al. (<a href="https://mlr3book.mlr-org.com/references.html#ref-hpo_practical" role="doc-biblioref">2023</a>)</span> 中的默认搜索空间：</p>
 <div class="cell">
 <div class="sourceCode" id="cb100"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://mlr3tuningspaces.mlr-org.com/reference/lts.html">lts</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.rpart"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -1417,7 +1466,7 @@ twoclass, and weights
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>对一个新手而言，为每个算法从零设计搜索空间既费时又容易出错。<code>mlr3tuningspaces</code> 的价值在于：<code>default</code> 搜索空间来自 Bischl 等（2023）对大规模基准实验的总结，<code>rbv1</code>/<code>rbv2</code> 则源自 OpenML 上的自动算法配置实验。使用它们相当于站在前人经验之上——至少能把"哪些参数该调、范围大致多少"这一经常令人困惑的问题，替换成一个经过实验验证的起点。当然，这些空间是"通用"的，不代表在你的数据上最优；在计算预算允许时，仍可按领域知识微调范围。注意 <code>lts()</code> 返回的对象既可作 <code>search_space</code> 传给 <code>ti()</code>/<code>auto_tuner()</code>，也可直接以令牌形式加载进学习器，两种用法都保持 <code>to_tune()</code> 的语义，与第 2 章参数集合的机制完全一致。</p>
 </div>
-</section></section><section id="conclusion" class="level2" data-number="4.5"><h2 data-number="4.5" class="anchored" data-anchor-id="conclusion">
+</section></section><section id="conclusion" class="level2" data-number="4.5"><h2 data-number="4.5" class="anchored" data-anchor-id="conclusion" id="conclusion">
 <span class="header-section-number">4.5</span> 结论（Conclusion）</h2>
 <p>在本章中，我们学习了如何使用调优实例优化模型，了解了各种调优器与终止器、搜索空间与变换，如何利用便捷方法在更大规模实验中更快速实现，以及嵌套重采样的重要性。</p>
 <div id="tbl-api-optimization" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -1489,7 +1538,7 @@ twoclass, and weights
 </div>
 </figure>
 </div>
-</section><section id="exercises" class="level2" data-number="4.6"><h2 data-number="4.6" class="anchored" data-anchor-id="exercises">
+</section><section id="exercises" class="level2" data-number="4.6"><h2 data-number="4.6" class="anchored" data-anchor-id="exercises" id="exercises">
 <span class="header-section-number">4.6</span> 练习（Exercises）</h2>
 <ol type="1">
 <li>在 <code>tsk("mtcars")</code> 上调优 <code>lrn("regr.ranger")</code> 的 <code>mtry</code>、<code>sample.fraction</code> 和 <code>num.trees</code> 超参数。使用一个 50 次评估的简单随机搜索。用三折 CV 和均方根误差进行评估。通过简单的边际图（marginal plot，一个超参数对应一个交叉验证 MSE 的图）可视化每个超参数对性能的影响。</li>
@@ -1503,7 +1552,7 @@ twoclass, and weights
 <li>把前几步迭代 <code>random_search_stages</code> 次，最终返回你评估过的最佳配置。作为进阶目标，可研究 <code>mlr3tuning</code> 的内部源码，把你的函数改造成一个继承自 <code>TunerBatch</code> 类的 R6 类——在你选择的学习器上测试它。</li>
 </ol>
 </li>
-</ol></section><section id="citation" class="level2" data-number="4.7"><h2 data-number="4.7" class="anchored" data-anchor-id="citation">
+</ol></section><section id="citation" class="level2" data-number="4.7"><h2 data-number="4.7" class="anchored" data-anchor-id="citation" id="citation">
 <span class="header-section-number">4.7</span> 引用（Citation）</h2>
 <p>如需引用本章，请使用：</p>
 <p>Becker M, Schneider L, Fischer S. (2024). Hyperparameter Optimization. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/hyperparameter_optimization.html.</p>
@@ -1577,5 +1626,6 @@ MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }
 <script type="text/javascript" id="MathJax-script" async
   src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
 </script>
+<script src="../search.js"></script>
 </body>
 </html>

@@ -59,6 +59,50 @@ body {
   border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
 }
 .theme-toggle:hover { border-color: var(--accent); }
+/* 搜索 */
+.search-box { position: relative; display: flex; align-items: center; }
+.search-box input {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 5px 10px 5px 28px; font-size: 13px; width: 190px;
+  font-family: inherit; outline: none;
+}
+.search-box input:focus { border-color: var(--accent); width: 240px; }
+.search-box .ico { position: absolute; left: 9px; color: var(--muted); font-size: 12px; pointer-events: none; }
+.search-panel {
+  display: none; position: absolute; top: calc(100% + 6px); right: 0; width: 460px;
+  max-width: 90vw; max-height: 66vh; overflow-y: auto; z-index: 200;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 12px 34px rgba(0,0,0,.42); padding: 6px;
+}
+.search-panel.open { display: block; }
+.search-panel .s-head {
+  padding: 8px 11px 7px; font-size: 12px; color: var(--muted);
+  border-bottom: 1px solid var(--border); margin-bottom: 5px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.search-panel .s-hint { font-size: 12px; color: var(--muted); padding: 18px 12px; text-align: center; }
+.s-item { display: block; padding: 8px 11px; border-radius: 7px; text-decoration: none; color: var(--fg); }
+.s-item:hover, .s-item.sel { background: var(--panel2); }
+.s-item .s-ch { font-size: 11px; color: var(--accent2); margin-bottom: 2px; }
+.s-item .s-sec { font-size: 12px; color: var(--accent); margin-bottom: 3px; }
+.s-item .s-txt { font-size: 13px; line-height: 1.6; color: var(--fg); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.s-item mark { background: rgba(255, 200, 0, .32); color: inherit; border-radius: 2px; padding: 0 1px; }
+[data-theme="light"] .s-item mark { background: rgba(255, 200, 0, .45); }
+/* 搜索结果页 */
+.search-page-box { margin: 26px 0 0; }
+.search-page-box input {
+  width: 100%; background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 8px; padding: 12px 15px; font-size: 15px; font-family: inherit; outline: none;
+}
+.search-page-box input:focus { border-color: var(--accent); }
+.s-meta { color: var(--muted); font-size: 13px; margin: 14px 0 8px; }
+.s-list { list-style: none; margin: 0; padding: 0; }
+.s-list .s-item { border: 1px solid var(--border); margin: 8px 0; }
+@media (max-width: 640px) {
+  .search-box input { width: 130px; }
+  .search-box input:focus { width: 170px; }
+  .search-panel { width: 84vw; }
+}
 /* 章头 */
 .header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
 .header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
@@ -170,9 +214,14 @@ function toggleTheme(){
 </head>
 <body>
 <div class="topbar">
-  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <a class="brand" href="../index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
   <div class="right">
-    <a class="home-link" href="index.html">目录</a>
+    <div class="search-box">
+      <span class="ico">&#128269;</span>
+      <input type="search" id="mlr3-search" placeholder="搜索全书…（按 /）" autocomplete="off" aria-label="全书搜索">
+      <div class="search-panel" id="mlr3-search-panel"></div>
+    </div>
+    <a class="home-link" href="../index.html">目录</a>
     <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
   </div>
 </div>
@@ -184,15 +233,15 @@ function toggleTheme(){
   </div>
   <main>
 <p><strong>Janek Thomas</strong> <br><em>慕尼黑路德维希-马克西米利安大学（Ludwig-Maximilians-Universität München），慕尼黑机器学习中心（Munich Center for Machine Learning, MCML）以及 Essential Data Science Training GmbH</em> <br><br></p>
-<p><a href="../chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>和<a href="../chapter8/non-sequential_pipelines_and_tuning.html" class="quarto-xref"><span>第 8 章</span></a>对 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 做了技术性介绍，本章将演示如何使用这些流水线来解决为机器学习预处理数据时的常见问题，包括因子编码（factor encoding）、缺失值插补（imputation of missing values）、特征与目标变换（feature and target transformations）以及函数型特征提取（functional feature extraction）。特征选择（feature selection）是一种重要的预处理方法，在第 <a href="../chapter6/feature_selection.html" class="quarto-xref"><span>6 章</span></a>中介绍。</p>
+<p><a href="https://mlr3book.mlr-org.com/chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>和<a href="https://mlr3book.mlr-org.com/chapter8/non-sequential_pipelines_and_tuning.html" class="quarto-xref"><span>第 8 章</span></a>对 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 做了技术性介绍，本章将演示如何使用这些流水线来解决为机器学习预处理数据时的常见问题，包括因子编码（factor encoding）、缺失值插补（imputation of missing values）、特征与目标变换（feature and target transformations）以及函数型特征提取（functional feature extraction）。特征选择（feature selection）是一种重要的预处理方法，在第 <a href="https://mlr3book.mlr-org.com/chapter6/feature_selection.html" class="quarto-xref"><span>6 章</span></a>中介绍。</p>
 <p>在本书中，预处理（preprocessing）指在用数据拟合模型之前对<em>数据</em>所做的一切，而后处理（postprocessing）则指在模型拟合完成后对<em>预测结果</em>所做的一切。</p>
 <p>数据清洗（data cleaning）是预处理的重要组成部分，涉及去除数据中的错误、噪声和冗余；我们在此只非常简要地提及数据清洗，因为它通常是在 <code>mlr3</code> 之外对原始数据集进行的。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">数据清洗（Data Cleaning）</span></div></div>
 <p>预处理的另一个方面是特征工程（feature engineering），它涵盖在数据送入机器学习模型之前对数据进行的其他所有变换，包括从可能非结构化的数据（如书面文本、序列或图像）中创建特征。特征工程的目标是让数据能够被给定的学习器处理，和/或进一步提升预测性能。需要指出的是，特征工程对较简单的算法帮助最大，而高度复杂的模型通常从中获益较少，并且几乎不需要数据准备即可训练。可以通过特征工程解决的数据常见难题包括：偏态分布的特征、高基数（high-cardinality）分类特征、缺失观测、高维特征以及分类任务中的类别不平衡。深度学习在自动化特征工程方面已展现出有前景的结果，然而其有效性取决于所处理数据的复杂性和性质，以及所针对的具体问题。通常它在自然语言处理和计算机视觉问题上表现良好，而对于标准表格数据，基于树的集成方法（如随机森林或梯度提升）往往仍然更优（且更易处理）。不过，表格型深度学习方法目前正在迅速追赶。因此，人工特征工程往往仍然必要，但借助 <code>mlr3pipelines</code> 可以尽可能简化这一过程。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">特征工程（Feature Engineering）</span></div></div>
-<p>在本章中，我们将使用 Ames 房价数据的一个改编版本 <span class="citation" data-cites="de2011ames">(<a href="../references.html#ref-de2011ames" role="doc-biblioref">De Cock 2011</a>)</span>。我们对数据做了少许改动，并引入了一些额外的（人为）问题，以便在单个数据集上尽可能全面地展示预处理的各种方面。修改后的版本随 <a href="https://mlr3data.mlr-org.com"><code>mlr3data</code></a> 一起发布，从原始数据重建该版本的代码可在 <a href="https://github.com/mlr-org/mlr3data/">https://github.com/mlr-org/mlr3data/</a> 的 <code>data-raw</code> 目录中找到。这个原始数据集是作为 Boston Housing 数据的替代品收集的，常用于展示机器学习中的特征工程。原始版与处理版数据均可直接从 <a href="https://cran.r-project.org/package=AmesHousing"><code>AmesHousing</code></a> 包中加载。该数据集包含 2006 至 2010 年间售出的位于爱荷华州埃姆斯（Ames, Iowa）的 2,930 套住宅物业（行）。它包含 81 个特征，涉及房产的各个方面、地块的大小与形状以及房产状况与质量的信息。预测目标是以美元计的售价，因此这是一个回归任务。</p>
+<p>在本章中，我们将使用 Ames 房价数据的一个改编版本 <span class="citation" data-cites="de2011ames">(<a href="https://mlr3book.mlr-org.com/references.html#ref-de2011ames" role="doc-biblioref">De Cock 2011</a>)</span>。我们对数据做了少许改动，并引入了一些额外的（人为）问题，以便在单个数据集上尽可能全面地展示预处理的各种方面。修改后的版本随 <a href="https://mlr3data.mlr-org.com"><code>mlr3data</code></a> 一起发布，从原始数据重建该版本的代码可在 <a href="https://github.com/mlr-org/mlr3data/">https://github.com/mlr-org/mlr3data/</a> 的 <code>data-raw</code> 目录中找到。这个原始数据集是作为 Boston Housing 数据的替代品收集的，常用于展示机器学习中的特征工程。原始版与处理版数据均可直接从 <a href="https://cran.r-project.org/package=AmesHousing"><code>AmesHousing</code></a> 包中加载。该数据集包含 2006 至 2010 年间售出的位于爱荷华州埃姆斯（Ames, Iowa）的 2,930 套住宅物业（行）。它包含 81 个特征，涉及房产的各个方面、地块的大小与形状以及房产状况与质量的信息。预测目标是以美元计的售价，因此这是一个回归任务。</p>
 <div class="cell">
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ames</span> <span class="op">=</span> <span class="fu">mlr3data</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/mlr3data/man/ames_housing.html">ames_housing</a></span></span></code></pre></div>
 </div>
-<section id="data-cleaning" class="level2" data-number="9.1"><h2 data-number="9.1" class="anchored" data-anchor-id="data-cleaning">
+<section id="data-cleaning" class="level2" data-number="9.1"><h2 data-number="9.1" class="anchored" data-anchor-id="data-cleaning" id="data-cleaning">
 <span class="header-section-number">9.1</span> 数据清洗（Data Cleaning）</h2>
 <p>第一步，我们探索数据并寻找诸如常量特征或重复特征之类的简单问题。使用 <a href="https://cran.r-project.org/package=DataExplorer"><code>DataExplorer</code></a> 或 <a href="https://cran.r-project.org/package=skimr"><code>skimr</code></a> 这类包可以非常高效地完成这项工作，它们能创建大量信息丰富的图形。</p>
 <p>下面我们总结数据清洗中最主要的发现，但仅作粗略考察：</p>
@@ -252,9 +301,9 @@ function toggleTheme(){
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>本节介绍的数据清洗属于传统意义上的「脏数据」处理。在实际项目中，这类问题（常量列、重复列、ID 列、编码不规范等）通常应在进入 <code>mlr3</code> 之前就处理好。作者在此安排一个非常简单的基线模型（<code>regr.featureless</code>），其作用是在后续对比中给出「不看任何特征也能达到的误差水平」——一个模型若连基线都打不过，通常说明预处理或模型选择存在问题。后文所有实验都围绕这个基线展开对比，读者应把每次 <code>bmr$aggregate()</code> 输出中的第一行当作参照物。</p>
 </div>
-</section><section id="factor-encoding" class="level2 page-columns page-full" data-number="9.2"><h2 data-number="9.2" class="anchored" data-anchor-id="factor-encoding">
+</section><section id="factor-encoding" class="level2 page-columns page-full" data-number="9.2"><h2 data-number="9.2" class="anchored" data-anchor-id="factor-encoding" id="factor-encoding">
 <span class="header-section-number">9.2</span> 因子编码（Factor Encoding）</h2>
-<p>许多机器学习算法实现（如 XGBoost <span class="citation" data-cites="chen2016xgboost">(<a href="../references.html#ref-chen2016xgboost" role="doc-biblioref">Chen and Guestrin 2016</a>)</span>）无法处理分类数据，因此必须将分类特征编码为数值变量。</p>
+<p>许多机器学习算法实现（如 XGBoost <span class="citation" data-cites="chen2016xgboost">(<a href="https://mlr3book.mlr-org.com/references.html#ref-chen2016xgboost" role="doc-biblioref">Chen and Guestrin 2016</a>)</span>）无法处理分类数据，因此必须将分类特征编码为数值变量。</p>
 <div class="cell">
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_xgb</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"regr.xgboost"</span>, nrounds <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span><span class="va">lrn_xgb</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_ames</span><span class="op">)</span></span></code></pre></div>
@@ -280,7 +329,7 @@ function toggleTheme(){
 </div>
 </div>
 <p>低基数特征可以通过独热编码（one-hot encoding）来处理。独热编码是把分类特征转换为二进制表示的过程，其中每个可能的类别都表示为单独的二进制特征。理论上，只需创建比水平数少一个的二进制特征即可，因为把所有二进制特征都设为 0 也是一种合法表示。这通常被称为哑变量或处理编码（dummy or treatment encoding），当学习器是广义线性模型（GLM）或可加模型（GAM）时必须使用这种编码。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">独热编码（One-hot Encoding）</span></div></div>
-<p>有些学习器支持处理分类特征，但若它们内部应用的编码仅适合低基数特征（如独热编码），遇到高基数特征时仍可能崩溃。影响编码（impact encoding）<span class="citation" data-cites="MicciBarreca2001">(<a href="../references.html#ref-MicciBarreca2001" role="doc-biblioref">Micci-Barreca 2001</a>)</span> 是处理高基数特征的好方法。影响编码把分类特征转换为数值。其思想是利用目标特征，在分类特征与一个能反映该特征预测目标重要性的数值之间建立映射。影响编码包含以下步骤：</p><div class="no-row-height column-margin column-container"><span class="margin-aside">影响编码（Impact Encoding）</span></div></div>
+<p>有些学习器支持处理分类特征，但若它们内部应用的编码仅适合低基数特征（如独热编码），遇到高基数特征时仍可能崩溃。影响编码（impact encoding）<span class="citation" data-cites="MicciBarreca2001">(<a href="https://mlr3book.mlr-org.com/references.html#ref-MicciBarreca2001" role="doc-biblioref">Micci-Barreca 2001</a>)</span> 是处理高基数特征的好方法。影响编码把分类特征转换为数值。其思想是利用目标特征，在分类特征与一个能反映该特征预测目标重要性的数值之间建立映射。影响编码包含以下步骤：</p><div class="no-row-height column-margin column-container"><span class="margin-aside">影响编码（Impact Encoding）</span></div></div>
 <ol type="1">
 <li>按分类特征对目标变量分组。</li>
 <li>计算每组目标变量的均值。</li>
@@ -288,8 +337,8 @@ function toggleTheme(){
 <li>计算每个组的得分（impact score），即该组目标变量的均值与目标变量全局均值之差。</li>
 <li>用影响得分替换分类特征。</li>
 </ol>
-<p>影响编码在保留分类特征信息的同时，也创造了一个能反映其在预测目标时重要性的数值表示。与独热编码相比，其主要优势是无论分类特征有多少水平，都只创建一个数值特征，因此尤其适用于高基数特征。由于影响得分的计算用到了目标的信息，编码过程必须嵌入交叉验证中，以避免训练数据与测试数据之间的信息泄漏（<a href="../chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>）。</p>
-<p>除了编码特征之外，针对分类特征的其他基本预处理步骤还包括：移除常量特征（只有一个水平的特征，可能已在数据清洗阶段被移除），以及合并（collapse）出现频率很低的水平。这类问题可能作为重采样的产物而出现，因为重采样会进一步缩小数据集规模。对这些特征进行分层（stratification）是缓解该问题的另一种方式（<a href="../chapter3/evaluation_and_benchmarking.html#sec-strat-group" class="quarto-xref"><span>第 3.2.6 节</span></a>）。</p>
+<p>影响编码在保留分类特征信息的同时，也创造了一个能反映其在预测目标时重要性的数值表示。与独热编码相比，其主要优势是无论分类特征有多少水平，都只创建一个数值特征，因此尤其适用于高基数特征。由于影响得分的计算用到了目标的信息，编码过程必须嵌入交叉验证中，以避免训练数据与测试数据之间的信息泄漏（<a href="https://mlr3book.mlr-org.com/chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>）。</p>
+<p>除了编码特征之外，针对分类特征的其他基本预处理步骤还包括：移除常量特征（只有一个水平的特征，可能已在数据清洗阶段被移除），以及合并（collapse）出现频率很低的水平。这类问题可能作为重采样的产物而出现，因为重采样会进一步缩小数据集规模。对这些特征进行分层（stratification）是缓解该问题的另一种方式（<a href="https://mlr3book.mlr-org.com/chapter3/evaluation_and_benchmarking.html#sec-strat-group" class="quarto-xref"><span>第 3.2.6 节</span></a>）。</p>
 <p>在下面的代码中，我们用 <code>po("removeconstants")</code> 移除只有一个水平的特征，用 <code>po("collapsefactors")</code> 合并数据中出现频率低于 1% 的水平，用 <code>po("encodeimpact")</code> 对高基数特征进行影响编码，用 <code>po("encode", method = "one-hot")</code> 对低基数特征做独热编码，最后用 <code>po("encode", method = "treatment")</code> 对二值特征做处理编码。</p>
 <div class="cell">
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">factor_pipeline</span> <span class="op">=</span></span>
@@ -323,11 +372,11 @@ function toggleTheme(){
 3: XGB_enc_onehot    16446</code></pre>
 </div>
 </div>
-<p>在这个小实验中，我们看到扩展的因子编码流水线与较简单的独热编码策略流水线之间只有很小的差异。如果你有兴趣了解更多不同的编码策略，包括对比它们的基准测试研究，我们推荐 <span class="citation" data-cites="pargent2022regularized">Pargent et al. (<a href="../references.html#ref-pargent2022regularized" role="doc-biblioref">2022</a>)</span>。</p>
+<p>在这个小实验中，我们看到扩展的因子编码流水线与较简单的独热编码策略流水线之间只有很小的差异。如果你有兴趣了解更多不同的编码策略，包括对比它们的基准测试研究，我们推荐 <span class="citation" data-cites="pargent2022regularized">Pargent et al. (<a href="https://mlr3book.mlr-org.com/references.html#ref-pargent2022regularized" role="doc-biblioref">2022</a>)</span>。</p>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>这里介绍了三种常见的分类变量编码方式，它们各自适用的场景不同。独热编码会把一个 k 水平分类特征展开成 k 个（或 k−1 个）0/1 列，特征维度随水平数线性增长，因此对高基数特征不友好（既浪费存储，也容易让树模型与正则化模型过拟合）。处理编码（treatment encoding）本质上是独热编码的「去第一类」变体，配合 GLM/GAM 时能避免完全共线性。影响编码（也称目标编码 target encoding）用目标均值压缩分类信息，维度恒为 1，但对目标的信息依赖要求它必须在交叉验证折内拟合，否则会引入严重的训练-测试泄漏。读者在实际中还需注意：mlr3 里 `po("encode")` 与 `po("encodeimpact")` 各自处理的是不同层次的分类特征，用选择器（selector）与 <code>affect_columns</code> 精确指定作用范围是避免意外改变无关列的关键。</p>
 </div>
-</section><section id="sec-preprocessing-missing" class="level2 page-columns page-full" data-number="9.3"><h2 data-number="9.3" class="anchored" data-anchor-id="sec-preprocessing-missing">
+</section><section id="sec-preprocessing-missing" class="level2 page-columns page-full" data-number="9.3"><h2 data-number="9.3" class="anchored" data-anchor-id="sec-preprocessing-missing" id="sec-preprocessing-missing">
 <span class="header-section-number">9.3</span> 缺失值（Missing Values）</h2>
 <p>真实世界数据中的一个常见问题是特征中的缺失值。在 Ames 数据集中，有几个变量至少有一个缺失数据点：</p>
 <div class="cell">
@@ -339,12 +388,12 @@ function toggleTheme(){
 </div>
 </div>
 <p>许多学习器无法自动处理缺失值（例如 <code>lrn("regr.ranger")</code> 和 <code>lrn("regr.lm")</code>），另一些学习器可能能够处理缺失值，但使用的可能是并不理想的简单方法（例如直接丢弃含缺失数据的行）。</p>
-<p>最简单的数据插补（data imputation）方法是用特征的均值（<code>po("imputemean")</code>）(<a href="#fig-imputation" class="quarto-xref">图&nbsp;<span>9.1</span></a>)、中位数（<code>po("imputemedian")</code>）或众数（<code>po("imputemode")</code>）替换缺失值。另一种做法是从特征的经验分布中抽样插补，例如直方图（<code>po("imputehist")</code>）。除了猜测缺失特征可能是什么之外，还可以用一个新水平替换缺失值，例如命名为 <code>.MISSING</code>（<code>po("imputeoor")</code>）。对于数值特征，<span class="citation" data-cites="ding2010investigation">Ding and Simonoff (<a href="../references.html#ref-ding2010investigation" role="doc-biblioref">2010</a>)</span> 表明，对于二分类和基于树的模型，将缺失值编码为超出范围（out-of-range，OOR）的值（例如一个高于最大观测值的常量）是一种合理的做法。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">数据插补（Data Imputation）</span></div></div>
+<p>最简单的数据插补（data imputation）方法是用特征的均值（<code>po("imputemean")</code>）(<a href="#fig-imputation" class="quarto-xref">图&nbsp;<span>9.1</span></a>)、中位数（<code>po("imputemedian")</code>）或众数（<code>po("imputemode")</code>）替换缺失值。另一种做法是从特征的经验分布中抽样插补，例如直方图（<code>po("imputehist")</code>）。除了猜测缺失特征可能是什么之外，还可以用一个新水平替换缺失值，例如命名为 <code>.MISSING</code>（<code>po("imputeoor")</code>）。对于数值特征，<span class="citation" data-cites="ding2010investigation">Ding and Simonoff (<a href="https://mlr3book.mlr-org.com/references.html#ref-ding2010investigation" role="doc-biblioref">2010</a>)</span> 表明，对于二分类和基于树的模型，将缺失值编码为超出范围（out-of-range，OOR）的值（例如一个高于最大观测值的常量）是一种合理的做法。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">数据插补（Data Imputation）</span></div></div>
 <div class="cell">
 <div class="cell-output-display">
 <div id="fig-imputation" class="quarto-float quarto-figure quarto-figure-center anchored" alt="左侧是一列数字向量 (1.3, NA, 1.5, NA)。非 NA 的数字有箭头指向 (1.3+1.5)/2，它又有箭头指向右侧一列数字向量，现在为 (1.3, 1.4, 1.5, 1.4)，其中 '1.4' 用红色突出显示，表示它们是用均值插补的。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-imputation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/Figures/mlr3book_figures-13.svg" class="img-fluid figure-img" style="width:60.0%" alt="左侧是一列数字向量 (1.3, NA, 1.5, NA)。非 NA 的数字有箭头指向 (1.3+1.5)/2，它又有箭头指向右侧一列数字向量，现在为 (1.3, 1.4, 1.5, 1.4)，其中 '1.4' 用红色突出显示，表示它们是用均值插补的。">
+<img src="../images/Figures/mlr3book_figures-13.svg" class="img-fluid figure-img" style="width:60.0%" alt="左侧是一列数字向量 (1.3, NA, 1.5, NA)。非 NA 的数字有箭头指向 (1.3+1.5)/2，它又有箭头指向右侧一列数字向量，现在为 (1.3, 1.4, 1.5, 1.4)，其中 '1.4' 用红色突出显示，表示它们是用均值插补的。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-imputation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;9.1：利用观测值对缺失值进行均值插补。
@@ -352,7 +401,7 @@ function toggleTheme(){
 </div>
 </div>
 </div>
-<p>对于预测任务而言，跟踪缺失数据通常很重要，因为缺失数据本身往往携带信息。为了保留「哪些数据缺失」这一信息，插补应当通过添加二进制指示特征（每个被插补的特征对应一个）来记录，若某观测的特征缺失则取 <code>1</code>，存在则取 <code>0</code>（<code>po("missind")</code>）。需要指出的是，记录这一信息本身并不能防止模型解释中的问题。举一个真实世界的例子：针对白人社区的医疗数据通常比针对少数族裔社区收集得更全面。对少数族裔社区的数据进行插补，往好了说是掩盖这种数据偏差，往坏了说会因作出严重失真的假设而使偏差雪上加霜（关于数据偏差与算法公平性，见<a href="../chapter14/algorithmic_fairness.html" class="quarto-xref"><span>第 14 章</span></a>）。</p>
+<p>对于预测任务而言，跟踪缺失数据通常很重要，因为缺失数据本身往往携带信息。为了保留「哪些数据缺失」这一信息，插补应当通过添加二进制指示特征（每个被插补的特征对应一个）来记录，若某观测的特征缺失则取 <code>1</code>，存在则取 <code>0</code>（<code>po("missind")</code>）。需要指出的是，记录这一信息本身并不能防止模型解释中的问题。举一个真实世界的例子：针对白人社区的医疗数据通常比针对少数族裔社区收集得更全面。对少数族裔社区的数据进行插补，往好了说是掩盖这种数据偏差，往坏了说会因作出严重失真的假设而使偏差雪上加霜（关于数据偏差与算法公平性，见<a href="https://mlr3book.mlr-org.com/chapter14/algorithmic_fairness.html" class="quarto-xref"><span>第 14 章</span></a>）。</p>
 <p>在下面的代码中，我们用上面列出的 <a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a> 创建了一个流水线，并利用 <code>po("featureunion")</code> 组合多个作用于 <code>"integer"</code> 列的 <code>PipeOp</code>。</p>
 <div class="cell">
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">impute_hist</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span></span>
@@ -370,7 +419,7 @@ function toggleTheme(){
 <div class="cell-output-display">
 <div id="fig-impute" class="quarto-float quarto-figure quarto-figure-center anchored" alt="流程图显示 '<INPUT>' 有箭头指向 'missind' 和 'imputehist'，两者都有箭头指向 'featureunion'，后者有一个箭头指向 'imputeoor'，再有一个箭头指向 '<OUTPUT>'。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-impute-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/preprocessing_files/figure-html/fig-impute-1.png" class="img-fluid figure-img" style="width:100.0%" alt="流程图显示 '<INPUT>' 有箭头指向 'missind' 和 'imputehist'，两者都有箭头指向 'featureunion'，后者有一个箭头指向 'imputeoor'，再有一个箭头指向 '<OUTPUT>'。">
+<img src="../images/preprocessing_files/figure-html/fig-impute-1.png" class="img-fluid figure-img" style="width:100.0%" alt="流程图显示 '<INPUT>' 有箭头指向 'missind' 和 'imputehist'，两者都有箭头指向 'featureunion'，后者有一个箭头指向 'imputeoor'，再有一个箭头指向 '<OUTPUT>'。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-impute-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;9.2：用直方图对数值特征的缺失值进行插补并添加二进制指示列，对分类特征的缺失值用新水平做超出范围（OOR）处理的流水线。
@@ -400,12 +449,12 @@ function toggleTheme(){
 5:     RF_imp_OOR    16394</code></pre>
 </div>
 </div>
-<p>与编码类似，我们看到不同插补策略之间的性能差异很有限。这在此处符合预期，并印证了 <span class="citation" data-cites="ding2010investigation">Ding and Simonoff (<a href="../references.html#ref-ding2010investigation" role="doc-biblioref">2010</a>)</span> 的发现——超出范围插补对基于树的方法而言既简单又有效。</p>
-<p>还存在许多更先进的插补策略，包括基于模型的插补（用机器学习模型来预测缺失值），以及多重插补（multiple imputation，反复对数据重采样并在每个样本中插补，例如用均值插补，以获得更稳健的估计）。然而，这些更高级的技术很少能显著提升模型的预测性能，上面介绍的简单插补技术通常已经足够 <span class="citation" data-cites="Poulos2018">(<a href="../references.html#ref-Poulos2018" role="doc-biblioref">Poulos and Valle 2018</a>)</span>。尽管如此，这些方法仍然重要，因为找到与观测值分布吻合良好的插补值，才能拟合出一个可以在后续步骤中被解释和分析的模型。</p>
+<p>与编码类似，我们看到不同插补策略之间的性能差异很有限。这在此处符合预期，并印证了 <span class="citation" data-cites="ding2010investigation">Ding and Simonoff (<a href="https://mlr3book.mlr-org.com/references.html#ref-ding2010investigation" role="doc-biblioref">2010</a>)</span> 的发现——超出范围插补对基于树的方法而言既简单又有效。</p>
+<p>还存在许多更先进的插补策略，包括基于模型的插补（用机器学习模型来预测缺失值），以及多重插补（multiple imputation，反复对数据重采样并在每个样本中插补，例如用均值插补，以获得更稳健的估计）。然而，这些更高级的技术很少能显著提升模型的预测性能，上面介绍的简单插补技术通常已经足够 <span class="citation" data-cites="Poulos2018">(<a href="https://mlr3book.mlr-org.com/references.html#ref-Poulos2018" role="doc-biblioref">Poulos and Valle 2018</a>)</span>。尽管如此，这些方法仍然重要，因为找到与观测值分布吻合良好的插补值，才能拟合出一个可以在后续步骤中被解释和分析的模型。</p>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>本节对比了几类缺失值插补策略：均值/中位数/众数插补计算简单，但会低估方差并扭曲分布；直方图抽样（`imputehist`）从经验分布中随机抽取，能在一定程度上保持分布形状；超出范围插补（`imputeoor`）为数值特征填入一个「不可能出现」的常量、为分类特征新增一个「缺失」水平，其价值在于让树模型在分裂时能显式地学习「缺失与否」这一信号。这正好呼应了前文「缺失本身携带信息」的观点——树模型天然擅长利用 <code>po("missind")</code> 产生的指示列。对于线性模型等对分布敏感的算法，均值插补等简单方法仍是最常用的兜底方案；而多重插补（如 R 包 `mice`）主要服务于推断与不确定性量化，在预测性能上通常没有显著收益。</p>
 </div>
-</section><section id="sec-prepro-robustify" class="level2 page-columns page-full" data-number="9.4"><h2 data-number="9.4" class="anchored" data-anchor-id="sec-prepro-robustify">
+</section><section id="sec-prepro-robustify" class="level2 page-columns page-full" data-number="9.4"><h2 data-number="9.4" class="anchored" data-anchor-id="sec-prepro-robustify" id="sec-prepro-robustify">
 <span class="header-section-number">9.4</span> 流水线 Robustify（Pipeline Robustify）</h2>
 <p><code>mlr3pipelines</code> 提供了一个简单可复用的流水线（在众多用途中，主要用于插补与因子编码），名为 <code>ppl("robustify")</code>，它包含合理的默认设置，在大多数编码或插补数据的场景下都可以使用。该流水线包含以下 <a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a>（有些被多次应用，且大多数使用选择器）：</p><div class="no-row-height column-margin column-container"><span class="margin-aside">ppl("robustify")</span></div></div>
 <ol type="1">
@@ -455,7 +504,7 @@ function toggleTheme(){
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong><code>ppl("robustify")</code> 是 mlr3 生态中最常用的「一键预处理」入口，本质是把本章前两节介绍的各种预处理操作按合理顺序组合成一个默认流水线。它的一个贴心设计是感知学习器与任务：当学习器自带缺失值处理能力（如部分树模型具备 <code>"missings"</code> 属性）或任务中没有缺失值时，相关插补节点会被自动移除，避免无谓的计算。使用时需留意，它的默认策略是一刀切式的「防御性」处理——所有分类特征最终都会走独热编码，因此若你有高基数分类特征或对编码方式有特殊要求（如本章 9.2 节的影响编码），仍应自己定制流水线，而不是盲目依赖 <code>robustify</code>。</p>
 </div>
-</section><section id="sec-prepro-scale" class="level2" data-number="9.5"><h2 data-number="9.5" class="anchored" data-anchor-id="sec-prepro-scale">
+</section><section id="sec-prepro-scale" class="level2" data-number="9.5"><h2 data-number="9.5" class="anchored" data-anchor-id="sec-prepro-scale" id="sec-prepro-scale">
 <span class="header-section-number">9.5</span> 特征与目标变换（Transforming Features and Targets）</h2>
 <p>对特征和目标做简单变换，对某些学习器可能是有益的（有时是必需的）。特别是，对目标做对数变换有助于使分布更加对称，并能帮助减小离群值的影响。类似地，对偏态特征做对数变换也有助于降低离群值的影响。在<a href="#fig-sale" class="quarto-xref">图&nbsp;<span>9.3</span></a>中，我们绘制了 <code>ames</code> 数据集中目标的分布，以及对数变换后的目标分布，可以看到仅对变量取对数就能得到对称得多、离群值更少的分布。</p>
 <div class="cell">
@@ -473,7 +522,7 @@ function toggleTheme(){
 <div class="cell-output-display">
 <div id="fig-sale" class="quarto-float quarto-figure quarto-figure-center anchored" alt="两张箱线图。左图显示房价最高达 60 万美元，大多数价格在约 10 万至 20 万美元之间。右图显示对数房价主要集中在 12 附近，在 11 至 13 之间分布均匀，两侧各有少量离群值。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-sale-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/preprocessing_files/figure-html/fig-sale-1.png" class="img-fluid figure-img" style="width:100.0%" alt="两张箱线图。左图显示房价最高达 60 万美元，大多数价格在约 10 万至 20 万美元之间。右图显示对数房价主要集中在 12 附近，在 11 至 13 之间分布均匀，两侧各有少量离群值。">
+<img src="../images/preprocessing_files/figure-html/fig-sale-1.png" class="img-fluid figure-img" style="width:100.0%" alt="两张箱线图。左图显示房价最高达 60 万美元，大多数价格在约 10 万至 20 万美元之间。右图显示对数房价主要集中在 12 附近，在 11 至 13 之间分布均匀，两侧各有少量离群值。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-sale-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;9.3：ames 数据集中房屋售价（美元）在对数变换前（左）与变换后（右）的分布。变换前，价格分布偏向较便宜的房产，并有少数价格极高的离群房产。变换后，分布对称得多，大部分点均匀分布在相同的区间附近。
@@ -543,14 +592,14 @@ function toggleTheme(){
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>房价这类价格数据通常呈右偏分布，少数昂贵房产会严重拉偏均值并放大误差项的影响。对目标取对数后，模型在「对数价格」尺度上拟合，误差项更接近对称分布，MAE 也往往显著下降。但需要强调：变换必须在训练时施加，并在预测后反转（这里用 <code>exp</code> 恢复原始尺度），否则所有下游评估都会失真。<code>ppl("targettrafo")</code> 的两个回调参数 <code>targetmutate.trafo</code>（训练前对目标施加）与 <code>targetmutate.inverter</code>（预测后反转）正是为了保证这一点在重采样循环中也不会出错。类似的场景还有 Box-Cox 变换、对计数数据取平方根等，读者可按同样模式替换回调。值得注意的是，树模型（随机森林、XGBoost）对单调变换不敏感，因此对数变换的收益主要体现在线性模型等对分布敏感的方法上。</p>
 </div>
-</section><section id="functional-feature-extraction" class="level2" data-number="9.6"><h2 data-number="9.6" class="anchored" data-anchor-id="functional-feature-extraction">
+</section><section id="functional-feature-extraction" class="level2" data-number="9.6"><h2 data-number="9.6" class="anchored" data-anchor-id="functional-feature-extraction" id="functional-feature-extraction">
 <span class="header-section-number">9.6</span> 函数型特征提取（Functional Feature Extraction）</h2>
-<p>作为数据预处理的最后一步，我们将考察从函数型特征（functional features）中提取特征。在<a href="../chapter6/feature_selection.html" class="quarto-xref"><span>第 6 章</span></a>中，我们讨论了自动化特征选择，以及如何用过滤器和包装器的自动化方法把数据集缩减为一组优化的特征。函数型特征提取与此不同，因为我们现在关注的是彼此相互依赖、合在一起可能提供有用信息（但单独来看没有信息量）的特征。<a href="#fig-functional-features" class="quarto-xref">图&nbsp;<span>9.4</span></a> 可视化了普通特征与函数型特征之间的区别。</p>
+<p>作为数据预处理的最后一步，我们将考察从函数型特征（functional features）中提取特征。在<a href="https://mlr3book.mlr-org.com/chapter6/feature_selection.html" class="quarto-xref"><span>第 6 章</span></a>中，我们讨论了自动化特征选择，以及如何用过滤器和包装器的自动化方法把数据集缩减为一组优化的特征。函数型特征提取与此不同，因为我们现在关注的是彼此相互依赖、合在一起可能提供有用信息（但单独来看没有信息量）的特征。<a href="#fig-functional-features" class="quarto-xref">图&nbsp;<span>9.4</span></a> 可视化了普通特征与函数型特征之间的区别。</p>
 <div class="cell">
 <div class="cell-output-display">
 <div id="fig-functional-features" class="quarto-float quarto-figure quarto-figure-center anchored" alt="左侧是一张表格，列名为 'x1,x2,x3,xt1,xt2,...,xt365'。前三列下方标注 '普通特征'，其余列下方标注 '函数型特征，例如一年中的天数'。表格有一个双向箭头指向折线图，表示对函数型特征其中一行进行绘图。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-functional-features-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/Figures/mlr3book_figures-14.svg" class="img-fluid figure-img" style="width:100.0%" alt="左侧是一张表格，列名为 'x1,x2,x3,xt1,xt2,...,xt365'。前二列下方标注 '普通特征'，其余列下方标注 '函数型特征，例如一年中的天数'。表格有一个双向箭头指向折线图，表示对函数型特征其中一行进行绘图。">
+<img src="../images/Figures/mlr3book_figures-14.svg" class="img-fluid figure-img" style="width:100.0%" alt="左侧是一张表格，列名为 'x1,x2,x3,xt1,xt2,...,xt365'。前二列下方标注 '普通特征'，其余列下方标注 '函数型特征，例如一年中的天数'。表格有一个双向箭头指向折线图，表示对函数型特征其中一行进行绘图。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-functional-features-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;9.4：变量 x1、x2、x3 是普通特征，变量 xt1,…,xt365 是函数型特征，可以对它们绘图以识别重要性质。
@@ -562,7 +611,7 @@ function toggleTheme(){
 <div class="cell">
 <div class="sourceCode" id="cb39"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">energy_data</span> <span class="op">=</span> <span class="fu">mlr3data</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/mlr3data/man/energy_usage.html">energy_usage</a></span></span></code></pre></div>
 </div>
-<p>在这个数据集中，每一行代表一所房屋，每个特征是在给定时间点厨房电器的总耗电量 <span class="citation" data-cites="bagnall2017great">(<a href="../references.html#ref-bagnall2017great" role="doc-biblioref">Bagnall et al. 2017</a>)</span>。耗电量以两分钟为间隔测量，共产生 720 个特征。</p>
+<p>在这个数据集中，每一行代表一所房屋，每个特征是在给定时间点厨房电器的总耗电量 <span class="citation" data-cites="bagnall2017great">(<a href="https://mlr3book.mlr-org.com/references.html#ref-bagnall2017great" role="doc-biblioref">Bagnall et al. 2017</a>)</span>。耗电量以两分钟为间隔测量，共产生 720 个特征。</p>
 <div class="cell">
 <div class="sourceCode" id="cb40"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org">ggplot2</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="va">energy_data</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -572,7 +621,7 @@ function toggleTheme(){
 <div class="cell-output-display">
 <div id="fig-energy" class="quarto-float quarto-figure quarto-figure-center anchored" alt="折线图，x 轴为 '两分钟间隔'，范围从 1 到 720，y 轴为 '耗电量'，范围从 0 到 20。在 (200, 20) 和 (300, 20) 附近有尖峰，然后在 (500-700, 3) 之间有一段持续升高的用电。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-energy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/preprocessing_files/figure-html/fig-energy-1.png" class="img-fluid figure-img" style="width:100.0%" alt="折线图，x 轴为 '两分钟间隔'，范围从 1 到 720，y 轴为 '耗电量'，范围从 0 到 20。在 (200, 20) 和 (300, 20) 附近有尖峰，然后在 (500-700, 3) 之间有一段持续升高的用电。">
+<img src="../images/preprocessing_files/figure-html/fig-energy-1.png" class="img-fluid figure-img" style="width:100.0%" alt="折线图，x 轴为 '两分钟间隔'，范围从 1 到 720，y 轴为 '耗电量'，范围从 0 到 20。在 (200, 20) 和 (300, 20) 附近有尖峰，然后在 (500-700, 3) 之间有一段持续升高的用电。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-energy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;9.5：一栋示例房屋一天内的能源消耗，以两分钟间隔记录。
@@ -646,9 +695,9 @@ function toggleTheme(){
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>函数型特征（functional features）指那些本质上是一条曲线或时间序列的特征列，单独看每一列都没有独立含义，必须整体解读。直接把它们作为 720 个特征丢进模型通常是有害的：一是维度爆炸导致过拟合风险，二是每个特征毫无解释力。正确做法是先「降维」——提取曲线形态的统计量（均值、方差、峰值、斜率等），这正是本节自定义 <code>PipeOp</code> 做的事。<code>PipeOpTaskPreprocSimple</code> 是 mlr3pipelines 中用于「每个样本独立变换」的基类，自定义时只需实现私有方法 <code>.transform_dt</code>（训练与预测共用）。需要注意「train 一次、推理时复用一个已训练 PipeOp」与「把 PipeOp 编入流水线」的区别：前者适合一次性变换数据（无泄漏风险），后者适合需要把变换逻辑整体嵌入重采样/调优循环的场景。</p>
 </div>
-</section><section id="conclusion" class="level2" data-number="9.7"><h2 data-number="9.7" class="anchored" data-anchor-id="conclusion">
+</section><section id="conclusion" class="level2" data-number="9.7"><h2 data-number="9.7" class="anchored" data-anchor-id="conclusion" id="conclusion">
 <span class="header-section-number">9.7</span> 结论（Conclusion）</h2>
-<p>在本章中，我们以<a href="../chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>和<a href="../chapter8/non-sequential_pipelines_and_tuning.html" class="quarto-xref"><span>第 8 章</span></a>学到的所有内容为基础，考察了流水线在数据预处理中的具体用法。我们主要聚焦于特征工程，它借助 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 尽可能自动化预处理流程，同时仍保证用户的可控性。我们考察了分类变量的因子编码、缺失数据插补、变量变换以及特征提取。预处理在机器学习实验中几乎总是必需的，应用 <code>ppl("robustify")</code> 在多数情况下都能通过执行最常见的预处理步骤来简化这一流程，我们将在<a href="../chapter11/large-scale_benchmarking.html" class="quarto-xref"><span>第 11 章</span></a>中看到它的应用。</p>
+<p>在本章中，我们以<a href="https://mlr3book.mlr-org.com/chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>和<a href="https://mlr3book.mlr-org.com/chapter8/non-sequential_pipelines_and_tuning.html" class="quarto-xref"><span>第 8 章</span></a>学到的所有内容为基础，考察了流水线在数据预处理中的具体用法。我们主要聚焦于特征工程，它借助 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 尽可能自动化预处理流程，同时仍保证用户的可控性。我们考察了分类变量的因子编码、缺失数据插补、变量变换以及特征提取。预处理在机器学习实验中几乎总是必需的，应用 <code>ppl("robustify")</code> 在多数情况下都能通过执行最常见的预处理步骤来简化这一流程，我们将在<a href="https://mlr3book.mlr-org.com/chapter11/large-scale_benchmarking.html" class="quarto-xref"><span>第 11 章</span></a>中看到它的应用。</p>
 <p>本章没有引入任何新类，因此<a href="#tbl-prepro-api" class="quarto-xref">表&nbsp;<span>9.1</span></a>列出了我们讨论过的 <a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a> 和 <a href="https://mlr3pipelines.mlr-org.com/reference/Graph.html"><code>Graph</code></a>。</p>
 <div id="tbl-prepro-api" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-prepro-api-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -701,7 +750,7 @@ function toggleTheme(){
 </div>
 </figure>
 </div>
-</section><section id="exercises" class="level2" data-number="9.8"><h2 data-number="9.8" class="anchored" data-anchor-id="exercises">
+</section><section id="exercises" class="level2" data-number="9.8"><h2 data-number="9.8" class="anchored" data-anchor-id="exercises" id="exercises">
 <span class="header-section-number">9.8</span> 练习（Exercises）</h2>
 <p>我们将考虑一个与本章类似但使用 King County 房价回归数据（可通过 <code>tsk("kc_housing")</code> 获得）的预测问题。为了评估模型，我们再次使用 10 折交叉验证、平均绝对误差和 <code>lrn("regr.glmnet")</code>。暂时我们先忽略 <code>date</code> 列，直接把它移除：</p>
 <div class="cell">
@@ -713,7 +762,7 @@ function toggleTheme(){
 <li>观察这些特征，是否存在可能有问题的特征？如果有，请修改或移除它们。检查数据集和学习器的属性，以了解你需要做哪些预处理步骤。</li>
 <li>构建一个合适的流水线，使 <code>glmnet</code> 能在该数据集上训练。用 <code>ppl("robustify")</code> 构建一个新的 <code>glmnet</code> 模型。在基准测试实验中比较这两个流水线。</li>
 <li>现在考虑 <code>date</code> 特征：你如何以一种 <code>glmnet</code> 能用的方式从这个特征中提取信息？这样做会提升你流水线的性能吗？最后，考虑该数据集的空间特性。你能从经纬度坐标中提取出额外的特征吗？（提示：西雅图市中心的经纬度坐标为 <code>47.605</code>/<code>122.334</code>）。</li>
-</ol></section><section id="citation" class="level2" data-number="9.9"><h2 data-number="9.9" class="anchored" data-anchor-id="citation">
+</ol></section><section id="citation" class="level2" data-number="9.9"><h2 data-number="9.9" class="anchored" data-anchor-id="citation" id="citation">
 <span class="header-section-number">9.9</span> 引用（Citation）</h2>
 <p>请按如下方式引用本章：</p>
 <p>Thomas J. (2024). Preprocessing. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/preprocessing.html.</p>
@@ -743,5 +792,6 @@ MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }
 <script type="text/javascript" id="MathJax-script" async
   src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
 </script>
+<script src="../search.js"></script>
 </body>
 </html>

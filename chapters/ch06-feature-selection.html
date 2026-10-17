@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>特征选择（Feature Selection）</title>
+<script>
+(function(){
+  var saved = localStorage.getItem("mlr3-theme");
+  if (saved === null) saved = "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+})();
+</script>
+<style>
+:root {
+  --bg: #1e2228; --fg: #d8dee4; --muted: #9aa4b0;
+  --panel: #262c34; --panel2: #2e3540; --border: #3a4350;
+  --accent: #4ea1ff; --accent2: #8f7ae6;
+  --code-bg: #161a20; --code-fg: #d8dee4;
+  --note-bg: #2a3450; --note-border: #5a7fff;
+  --callout-bg: #2b3826; --callout-border: #6bbf59;
+  --table-head: #2e3540; --table-row: #262c34; --link: #6cb0ff;
+  --h-border: #3a4350;
+}
+[data-theme="light"] {
+  --bg: #f7f8fa; --fg: #24292f; --muted: #57606a;
+  --panel: #ffffff; --panel2: #f0f2f5; --border: #d9dee3;
+  --accent: #0969da; --accent2: #8250df;
+  --code-bg: #f3f4f6; --code-fg: #24292f;
+  --note-bg: #eef2ff; --note-border: #5a7fff;
+  --callout-bg: #eff7ec; --callout-border: #6bbf59;
+  --table-head: #eef1f4; --table-row: #ffffff; --link: #0969da;
+  --h-border: #d9dee3;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  line-height: 1.78; font-size: 16px;
+  transition: background .2s, color .2s;
+}
+.container { max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+/* 顶栏 */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+}
+.topbar .brand { font-weight: 600; font-size: 15px; color: var(--fg); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+.topbar .brand .logo { color: var(--accent); }
+.topbar .right { display: flex; align-items: center; gap: 10px; }
+.topbar .home-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+.topbar .home-link:hover { color: var(--accent); }
+.theme-toggle {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+/* 章头 */
+.header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
+.header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
+.header-block h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.35; }
+.header-block .subtitle { color: var(--muted); font-size: 14px; }
+/* 章节导航 */
+.chnav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0 6px; flex-wrap: wrap; }
+.chnav a {
+  background: var(--panel); border: 1px solid var(--border); color: var(--fg);
+  text-decoration: none; font-size: 14px; padding: 10px 16px; border-radius: 8px;
+  max-width: 46%; display: block;
+}
+.chnav a:hover { border-color: var(--accent); color: var(--accent); }
+.chnav .dir { color: var(--muted); font-size: 12px; display: block; }
+.chnav .ch { font-weight: 600; }
+.chnav a.disabled { opacity: .4; pointer-events: none; }
+/* 正文 */
+main { padding: 0 0 20px; }
+main h1 { font-size: 26px; margin: 40px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--h-border); }
+main h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--h-border); }
+main h3 { font-size: 18px; margin: 28px 0 10px; }
+main h4 { font-size: 16px; margin: 22px 0 8px; color: var(--accent); }
+main p { margin: 10px 0; }
+main a { color: var(--link); text-decoration: none; }
+main a:hover { text-decoration: underline; }
+main strong { font-weight: 600; }
+main ul, main ol { padding-left: 26px; }
+main li { margin: 5px 0; }
+main blockquote {
+  margin: 12px 0; padding: 10px 16px; border-left: 4px solid var(--border);
+  background: var(--panel2); color: var(--muted); border-radius: 0 6px 6px 0;
+}
+main hr { border: none; border-top: 1px solid var(--border); margin: 26px 0; }
+main img { max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 6px; }
+main table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+main th { background: var(--table-head); font-weight: 600; }
+main th, main td { border: 1px solid var(--border); padding: 7px 11px; }
+main tr:nth-child(even) td { background: var(--table-row); }
+/* 代码 */
+pre {
+  background: var(--code-bg); color: var(--code-fg);
+  padding: 14px 16px; border-radius: 8px; overflow-x: auto;
+  border: 1px solid var(--border); font-size: 13.5px; line-height: 1.6;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+code {
+  font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+  background: var(--panel2); color: var(--accent);
+  padding: 2px 5px; border-radius: 4px; font-size: 13.5px;
+}
+pre code { background: none; color: var(--code-fg); padding: 0; }
+/* 代码块容器（Quarto 结构） */
+.sourceCode { margin: 14px 0; }
+.sourceCode pre { margin: 0; }
+/* 输出块 */
+.cell { margin: 6px 0; }
+.cell-output { margin: 0 0 6px; }
+.cell-output pre { background: var(--panel2); border-style: dashed; }
+.cell-output-stderr { border-color: #d29922; }
+.cell-output-stdout pre { border-color: var(--border); }
+/* figure */
+figure { margin: 18px 0; text-align: center; }
+figure img { margin: 0 auto; }
+figcaption, .caption { color: var(--muted); font-size: 13px; margin-top: 6px; text-align: center; }
+.quarto-float { margin: 18px 0; }
+.quarto-figure { margin: 18px 0; text-align: center; }
+/* 背景与解释（译者注）框 */
+.bg-note {
+  background: var(--note-bg); border: 1px solid var(--note-border);
+  border-radius: 8px; padding: 14px 18px; margin: 18px 0;
+  font-size: 15px;
+}
+.bg-note p { margin: 6px 0; }
+.bg-note .bg-title { font-weight: 600; color: var(--accent); }
+/* 原书 callout 提示框 */
+.callout {
+  border-radius: 8px; padding: 12px 18px; margin: 16px 0;
+  border-left: 5px solid var(--accent); background: var(--panel2);
+}
+.callout-tip { border-left-color: #6bbf59; }
+.callout-note { border-left-color: var(--accent); }
+.callout-warning { border-left-color: #d29922; }
+.callout-important { border-left-color: #e05d5d; }
+.callout-header { font-weight: 600; margin-bottom: 4px; }
+.callout-title-container { display: inline; }
+.callout-body p { margin: 6px 0; }
+.callout-icon-container { display: none; }
+/* 脚注 */
+.footnote-ref { font-size: 12px; vertical-align: super; }
+/* 页脚 */
+.footer {
+  margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 13px; text-align: center;
+}
+.footer .lic { margin-top: 6px; font-size: 12px; }
+/* 表格滚动 */
+main table { display: block; overflow-x: auto; }
+/* banner 样式（原书 callout 可能以其他名目出现） */
+[class*="callout"] > p:first-child { margin-top: 4px; }
+</style>
+<script>
+function toggleTheme(){
+  var cur = document.documentElement.getAttribute("data-theme");
+  var next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("mlr3-theme", next);
+}
+</script>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <div class="right">
+    <a class="home-link" href="index.html">目录</a>
+    <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
+  </div>
+</div>
+<div class="container">
+  <div class="header-block">
+    <div class="part">第二部分 调优与特征选择</div>
+    <h1>特征选择（Feature Selection）</h1>
+    <div class="subtitle">《Applied Machine Learning Using mlr3 in R》中文翻译 · 章节 第 6 章 特征选择</div>
+  </div>
+  <main>
+<p><strong>Marvin N. Wright</strong> <br><em>莱布尼茨预防研究与流行病学研究所（Leibniz Institute for Prevention Research and Epidemiology – BIPS）、不来梅大学（University of Bremen）与哥本哈根大学（University of Copenhagen）</em> <br><br></p>
+<p>特征选择（feature selection），也叫变量选择或描述符选择（variable or descriptor selection），是指为给定的任务和学习器找到一组合适的特征子集并加以使用的过程。使用一组<em>最优</em>特征可以带来多重好处：</p>
+<ul>
+<li>改进预测性能，因为我们减少了对无关特征的过拟合（overfitting），</li>
+<li>不依赖噪声特征的稳健模型，</li>
+<li>更简单、更易解释的模型，</li>
+<li>更快的模型拟合，例如用于模型更新时，</li>
+<li>更快的预测，以及</li>
+<li>无需采集可能很昂贵的特征。</li>
+</ul>
+<p>然而，这些目标未必会被同一组特征同时优化，因此特征选择可以被看作一个多目标优化问题。在本章中，我们主要把特征选择当作提升预测性能的手段来关注，但也会简要介绍多准则的优化（<a href="#sec-multicrit-featsel" class="quarto-xref"><span>第 6.2.5 节</span></a>）。</p>
+<p>减少特征数量可以在许多场景下改进模型，但在特征数量相对于数据点数量很高的数据集上尤其有帮助。许多学习器会进行隐式特征选择，也称为嵌入式（embedded）特征选择，例如通过选择决策树用于分裂的变量。大多数其他特征选择方法都是与模型无关的（model agnostic），即它们可以与任何学习器一起使用。在识别相关特征的众多不同方法中，我们将聚焦于两个一般性的概念，并在下面详细描述：过滤式（Filter）与包裹式（Wrapper）方法 <span class="citation" data-cites="guyon2003 chandrashekar2014">(<a href="../references.html#ref-guyon2003" role="doc-biblioref">Guyon and Elisseeff 2003</a>; <a href="../references.html#ref-chandrashekar2014" role="doc-biblioref">Chandrashekar and Sahin 2014</a>)</span>。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>特征选择要解决的核心矛盾是"多的不一定好"：特征越多，模型越容易记住训练集的噪声（过拟合），训练和预测越慢，模型越难解释，且某些特征的采集成本可能很高。注意本章同时引入了三个近义概念——特征选择（feature selection）、变量选择（variable selection）、描述符选择（descriptor selection）：前两个可互换使用；"描述符"是化学计量学等领域的传统叫法，指从原始信号中提取的特征。另一个易混点是"特征选择"与"特征提取/降维"（如 PCA）的区别：前者只选原特征的一个子集，后者会构造新的合成特征。此外，过滤式与包裹式的本质差异在于是否把"最终的学习器"纳入选择过程——过滤式打分独立于学习器，包裹式直接以学习器的预测性能来评估特征子集，二者的权衡我们将在本章反复看到。</p>
+</div>
+<section id="sec-fs-filter" class="level2 page-columns page-full" data-number="6.1"><h2 data-number="6.1" class="anchored" data-anchor-id="sec-fs-filter">
+<span class="header-section-number">6.1</span> 过滤式方法（Filters）</h2>
+<p>过滤式方法是预处理步骤，可以在训练模型之前应用。一个非常简单的过滤式方法可能长这样：</p>
+<ol type="1">
+<li>计算每个特征与数值型目标变量之间的相关系数 <span class="math inline">\(\rho\)</span>，然后</li>
+<li>选择所有 <span class="math inline">\(\rho &gt; 0.2\)</span> 的特征用于后续建模步骤。</li>
+</ol>
+<p>这种方法是一个<em>单变量</em>（univariate）过滤器，因为它只考虑每个特征与目标变量之间的单变量关系。而且，它只能应用于具有连续特征的回归任务，且 <span class="math inline">\(\rho &gt; 0.2\)</span> 的阈值相当武断。因此，更高级的过滤方法，例如基于特征重要性的<em>多变量</em>（multivariate）过滤器，通常表现更好 <span class="citation" data-cites="bommert2020">(<a href="../references.html#ref-bommert2020" role="doc-biblioref">Bommert et al. 2020</a>)</span>。另一方面，单变量过滤器的一个好处是它们通常比更复杂的过滤器或包裹式方法在计算上更便宜。在下文中，我们将描述如何计算单变量、多变量和特征重要性过滤器，如何访问隐式选择的特征，如何将过滤器集成到机器学习流水线中，以及如何优化过滤阈值。</p>
+<p>过滤算法通过给每个特征分配数值分数来选择和剔除特征，例如特征与目标变量之间的相关性，然后用这些分数对特征进行排序，并基于排序选择一个特征子集。得分较低的特征在后续建模步骤中被省略。所有过滤器都通过 <a href="https://mlr3filters.mlr-org.com"><code>mlr3filters</code></a> 包实现。下面，我们介绍如何</p>
+<ul>
+<li>实例化一个 <a href="https://www.rdocumentation.org/packages/base/topics/funprog"><code>Filter</code></a> 对象，</li>
+<li>为给定任务计算分数，以及</li>
+<li>使用计算得到的分数来选择或剔除特征。</li>
+</ul>
+<p>过滤器的特殊情况是特征重要性过滤器（<a href="#sec-fs-var-imp-filters" class="quarto-xref"><span>第 6.1.2 节</span></a>）和嵌入式方法（<a href="#sec-fs-embedded-methods" class="quarto-xref"><span>第 6.1.3 节</span></a>）。特征重要性过滤器根据所选 <a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 诱导出的模型，选择那些重要的特征。它们依赖学习器从训练好的模型中提取特征重要性信息，例如通过检查学到的决策树并返回用作分裂变量的特征，或者通过计算每个特征的模型无关特征重要性（<a href="../chapter12/model_interpretation.html" class="quarto-xref"><span>第 12 章</span></a>）值。嵌入式方法利用某些学习器隐式执行的特征选择，直接从学习器中取回内部选择的特征。</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+独立的学习器与过滤器（Independent Learners and Filters）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>在特征重要性或嵌入式过滤器中使用的学习器，与后续建模步骤中使用的学习器相互独立。例如，人们可以用随机森林的特征重要性做特征选择，然后在缩减后的特征集上训练一个神经网络。</p>
+</div>
+</div>
+<p><code>mlr3filters</code> 中实现了很多过滤方法，包括：</p>
+<ul>
+<li>相关性（Correlation），计算数值特征与数值目标之间的 Pearson 或 Spearman 相关系数（<code>flt("correlation")</code>）</li>
+<li>信息增益（Information gain），即特征与目标之间的互信息，或者说某个特征对目标不确定性的减少量（<code>flt("information_gain")</code>）</li>
+<li>最小联合互信息最大化（Minimal joint mutual information maximization，<code>flt("jmim")</code>）</li>
+<li>置换分数（Permutation score），用给定学习器为每个特征计算置换特征重要性（见<a href="../chapter12/model_interpretation.html" class="quarto-xref"><span>第 12 章</span></a>）（<code>flt("permutation")</code>）</li>
+<li>为每个特征单独计算的 ROC 曲线下面积（Area under the ROC curve，<code>flt("auc")</code>）</li>
+</ul>
+<p>大多数过滤方法都有一些局限。例如，相关性过滤器只能用于具有数值特征的回归任务。关于所有已实现过滤方法的完整列表，我们请读者参考 <a href="https://mlr3filters.mlr-org.com">https://mlr3filters.mlr-org.com</a>，该网站也列出了支持的任务和特征类型。<span class="citation" data-cites="bommert2020">Bommert et al. (<a href="../references.html#ref-bommert2020" role="doc-biblioref">2020</a>)</span> 对过滤方法进行了基准测试，他们建议不要只依赖单一一种过滤方法，而应在可用计算资源允许的情况下尝试多种方法。如果只用一种过滤方法，作者推荐使用基于随机森林置换重要性的特征重要性过滤器（见<a href="#sec-fs-var-imp-filters" class="quarto-xref"><span>第 6.1.2 节</span></a>），与上述置换方法类似，但在他们的比较中 JMIM 和 AUC 过滤器也表现良好。</p>
+<section id="sec-fs-calc" class="level3 page-columns page-full" data-number="6.1.1"><h3 data-number="6.1.1" class="anchored" data-anchor-id="sec-fs-calc">
+<span class="header-section-number">6.1.1</span> 计算过滤值（Calculating Filter Values）</h3>
+<p>第一步是用所需的过滤方法的类创建一个新的 R 对象。这些对象可以从 <a href="https://mlr3filters.mlr-org.com/reference/mlr_filters.html"><code>mlr_filters</code></a> 字典中通过糖函数 <a href="https://mlr3filters.mlr-org.com/reference/flt.html"><code>flt()</code></a> 获取。每个类为 <a href="https://www.rdocumentation.org/packages/base/topics/funprog"><code>Filter</code></a> 的对象都有一个 <code>$calculate()</code> 方法，它计算过滤值并按降序对它们排序。例如，我们可以使用上面描述的信息增益过滤器：</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://mlr3filters.mlr-org.com/reference/flt.html">flt()</a></code></span><span class="margin-aside"><code>$calculate()</code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3filters.mlr-org.com">mlr3filters</a></span><span class="op">)</span></span>
+<span><span class="va">flt_gain</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3filters.mlr-org.com/reference/flt.html">flt</a></span><span class="op">(</span><span class="st">"information_gain"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>这样的 <code>Filter</code> 对象现在可以在 <code>tsk("penguins")</code> 上计算过滤值并获取结果：</p>
+<div class="cell">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_pen</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"penguins"</span><span class="op">)</span></span>
+<span><span class="va">flt_gain</span><span class="op">$</span><span class="fu">calculate</span><span class="op">(</span><span class="va">tsk_pen</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">flt_gain</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          feature    score
+1: flipper_length 0.581168
+2:    bill_length 0.544897
+3:     bill_depth 0.538719
+4:         island 0.520157
+5:      body_mass 0.442880
+6:            sex 0.007244
+7:           year 0.000000</code></pre>
+</div>
+</div>
+<p>这表明在该数据集中，鳍状肢（flipper）和喙（bill）的测量值是预测企鹅物种最有信息量的特征，而性别（sex）和年份（year）的信息量最低。一些过滤器有可以像 <code>Learner</code> 超参数一样修改的超参数。例如，使用相关性过滤器计算 <code>"spearman"</code> 相关而不是 <code>"pearson"</code> 相关：</p>
+<div class="cell">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">flt_cor</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3filters.mlr-org.com/reference/flt.html">flt</a></span><span class="op">(</span><span class="st">"correlation"</span>, method <span class="op">=</span> <span class="st">"spearman"</span><span class="op">)</span></span>
+<span><span class="va">flt_cor</span><span class="op">$</span><span class="va">param_set</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;ParamSet(2)&gt;
+       id    class lower upper nlevels    default    value
+1:    use ParamFct    NA    NA       5 everything   [NULL]
+2: method ParamFct    NA    NA       3    pearson spearman</code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>信息增益（information gain）直接来自信息论：它等于特征 X 的熵与已知 X 之后目标 Y 条件熵之差，即「知道了 X，Y 的不确定性被消除了多少」。得分 0 表示 X 与 Y 完全独立（如本例中的 year，对企鹅物种没有任何解释力）；得分越高，X 对 Y 的判别力越强。注意信息增益的排序风格——它只关心「单个特征与目标的关联强度」，不关心特征之间的冗余，因此两个都很强的特征可能高度相关、信息重复。这正是一般教材（如 ISLR）常提到的：单变量排序并不能保证选出「组合最优」的特征子集。此外，本例中 year 得 0 分是个很好的提醒：并不是所有被记录下来的变量都适合做预测，差的过滤分数本身就是一种信息。</p>
+</div>
+</section><section id="sec-fs-var-imp-filters" class="level3 page-columns page-full" data-number="6.1.2"><h3 data-number="6.1.2" class="anchored" data-anchor-id="sec-fs-var-imp-filters">
+<span class="header-section-number">6.1.2</span> 特征重要性过滤器（Feature Importance Filters）</h3>
+<p>要使用特征重要性过滤器，我们可以用一个带 <code>$importance()</code> 方法的学习器，它会报告特征重要性。所有具有 "importance"（重要性）属性的学习器都有这个功能。具有该属性的学习器列表可以通过以下命令找到：</p>
+<div class="cell">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">mlr_learners</span><span class="op">)</span><span class="op">[</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">sapply</a></span><span class="op">(</span><span class="va">properties</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="st">"importance"</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">x</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+</div>
+<p>对于某些学习器，所需的过滤方法需要作为超参数来设置。例如，<code>lrn("classif.ranger")</code> 带有多种内置方法，可以在构造时选择：要使用 <code>"impurity"</code>（不纯度）特征重要性方法，在学习器构造时选择它：</p>
+<div class="cell">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.ranger"</span><span class="op">)</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">levels</span><span class="op">$</span><span class="va">importance</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "none"               "impurity"           "impurity_corrected"
+[4] "permutation"       </code></pre>
+</div>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_ranger</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.ranger"</span>, importance <span class="op">=</span> <span class="st">"impurity"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>我们必须先移除缺失数据，因为这个学习器不能处理缺失数据，即它没有 "missing"（缺失）属性。注意，这里我们使用 <a href="../chapter2/data_and_basic_modeling.html#sec-tasks-mutators" class="quarto-xref"><span>第 2.1.3 节</span></a> 中介绍的 <code>$filter()</code> 方法来移除行；不过这里的 "filter" 名称与特征过滤无关。</p>
+<div class="cell">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_pen</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"penguins"</span><span class="op">)</span></span>
+<span><span class="va">tsk_pen</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="va">tsk_pen</span><span class="op">$</span><span class="va">row_ids</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/stats/complete.cases.html">complete.cases</a></span><span class="op">(</span><span class="va">tsk_pen</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>现在我们可以使用 <code>flt("importance")</code> 计算重要性的值：</p>
+<div class="cell">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">flt_importance</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3filters.mlr-org.com/reference/flt.html">flt</a></span><span class="op">(</span><span class="st">"importance"</span>, learner <span class="op">=</span> <span class="va">lrn_ranger</span><span class="op">)</span></span>
+<span><span class="va">flt_importance</span><span class="op">$</span><span class="fu">calculate</span><span class="op">(</span><span class="va">tsk_pen</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">flt_importance</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          feature  score
+1:    bill_length 76.375
+2: flipper_length 45.349
+3:     bill_depth 36.306
+4:      body_mass 26.458
+5:         island 24.078
+6:            sex  1.597
+7:           year  1.216</code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>特征重要性过滤器与单变量过滤器（如信息增益）的关键区别在于：它由某个学习器（这里选的是 <code>classif.ranger</code> 随机森林）在数据上训练后，从学到的模型中提取重要性分数。这意味着它考虑了特征之间的相互作用，而不仅仅是单变量关联。但它也引入了新的假设——分数取决于所选学习器和具体的重要性定义，例如「不纯度」（impurity）方法按分裂时基尼/方差减少量加权，而「置换」（permutation）方法重排某一特征后观察预测性能的下降。另一个值得注意的细节：本小节示例里，重要性过滤器使用的随机森林与后续建模要用的学习器可以不是同一个（见上面的 callout 提示框）。这正是过滤式方法的优点——特征选择过程与最终建模解耦。</p>
+</div>
+</section><section id="sec-fs-embedded-methods" class="level3 page-columns page-full" data-number="6.1.3"><h3 data-number="6.1.3" class="anchored" data-anchor-id="sec-fs-embedded-methods">
+<span class="header-section-number">6.1.3</span> 嵌入式方法（Embedded Methods）</h3>
+<p>许多学习器在内部会选择一部分对预测有帮助的特征子集，而忽略其他特征。例如，决策树可能从不选择某些特征进行分裂。这些子集可以用于特征选择，我们称之为嵌入式方法，因为特征选择被嵌入在学习器中。如果学习器具有 <code>"selected_features"</code> 属性，就可以查询被选择的（以及未被选择的）特征。同上，我们可以用以下命令找到这些学习器：</p>
+<div class="cell">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">mlr_learners</span><span class="op">)</span><span class="op">[</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">sapply</a></span><span class="op">(</span><span class="va">properties</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="st">"selected_features"</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">x</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+</div>
+<p>例如，我们可以使用 <code>lrn("classif.rpart")</code>：</p>
+<div class="cell">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_pen</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"penguins"</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.rpart"</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_pen</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">selected_features</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "flipper_length" "bill_length"    "island"        </code></pre>
+</div>
+</div>
+<p>模型选择的特征可以通过 <a href="https://www.rdocumentation.org/packages/base/topics/funprog"><code>Filter</code></a> 对象提取，其中 <code>$calculate()</code> 对应于在给定任务上训练学习器：</p>
+<div class="cell">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">flt_selected</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3filters.mlr-org.com/reference/flt.html">flt</a></span><span class="op">(</span><span class="st">"selected_features"</span>, learner <span class="op">=</span> <span class="va">lrn_rpart</span><span class="op">)</span></span>
+<span><span class="va">flt_selected</span><span class="op">$</span><span class="fu">calculate</span><span class="op">(</span><span class="va">tsk_pen</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">flt_selected</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          feature score
+1:         island     1
+2: flipper_length     1
+3:    bill_length     1
+4:     bill_depth     0
+5:            sex     0
+6:           year     0
+7:      body_mass     0</code></pre>
+</div>
+</div>
+<p>与其他过滤方法相反，嵌入式方法只返回 <code>1</code>（被选择的特征）和 <code>0</code>（被剔除的特征）的值。</p>
+</section><section id="sec-fs-filter-based" class="level3 page-columns page-full" data-number="6.1.4"><h3 data-number="6.1.4" class="anchored" data-anchor-id="sec-fs-filter-based">
+<span class="header-section-number">6.1.4</span> 基于过滤器的特征选择（Filter-Based Feature Selection）</h3>
+<p>在为每个特征计算分数之后，必须在后续建模步骤中选择要保留的特征或被剔除的特征。对于嵌入式方法（<a href="#sec-fs-embedded-methods" class="quarto-xref"><span>第 6.1.3 节</span></a>）中描述的 <code>"selected_features"</code> 过滤器，这一步很简单，因为该方法对要保留的特征赋值为 <code>1</code>，对要剔除的特征赋值为 <code>0</code>。下面，我们找出值为 <code>1</code> 的特征名称，并用 <code>task$select()</code> 选择这些特征。乍一看，让过滤器先根据 <code>$selected_features()</code> 返回的特征名称分配分数，再把分数转回要保留的特征名称，似乎有点绕。然而，这种做法的好处是我们可以对所有的过滤方法使用同一个接口，这在我们要在流水线中自动化特征选择过程时尤其有用，正如我们将在 <a href="../chapter8/non-sequential_pipelines_and_tuning.html#sec-pipelines-featsel" class="quarto-xref"><span>第 8.4.5 节</span></a> 中看到的那样。</p>
+<div class="cell">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">flt_selected</span><span class="op">$</span><span class="fu">calculate</span><span class="op">(</span><span class="va">tsk_pen</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 选择所有 rpart 用到的特征</span></span>
+<span><span class="va">keep</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/which.html">which</a></span><span class="op">(</span><span class="va">flt_selected</span><span class="op">$</span><span class="va">scores</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">tsk_pen</span><span class="op">$</span><span class="fu">select</span><span class="op">(</span><span class="va">keep</span><span class="op">)</span></span>
+<span><span class="va">tsk_pen</span><span class="op">$</span><span class="va">feature_names</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "bill_length"    "flipper_length" "island"        </code></pre>
+</div>
+</div>
+<p>对于分配连续分数的过滤方法，本质上有两种选择特征的方式：</p>
+<ul>
+<li>选择得分最高的前 <span class="math inline">\(k\)</span> 个特征；或</li>
+<li>选择所有分数高于阈值 <span class="math inline">\(\tau\)</span> 的特征。</li>
+</ul>
+<p>第一种选项等价于剔除分数最低的后 <span class="math inline">\(p-k\)</span> 个特征。对两种选项都必须定出一个阈值，而这个阈值往往相当武断。例如，用信息增益过滤器实现第一种选项：</p>
+<div class="cell">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_pen</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"penguins"</span><span class="op">)</span></span>
+<span><span class="va">flt_gain</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3filters.mlr-org.com/reference/flt.html">flt</a></span><span class="op">(</span><span class="st">"information_gain"</span><span class="op">)</span></span>
+<span><span class="va">flt_gain</span><span class="op">$</span><span class="fu">calculate</span><span class="op">(</span><span class="va">tsk_pen</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 从信息增益过滤器中选出得分前三的特征</span></span>
+<span><span class="va">keep</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">flt_gain</span><span class="op">$</span><span class="va">scores</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">tsk_pen</span><span class="op">$</span><span class="fu">select</span><span class="op">(</span><span class="va">keep</span><span class="op">)</span></span>
+<span><span class="va">tsk_pen</span><span class="op">$</span><span class="va">feature_names</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "bill_depth"     "bill_length"    "flipper_length"</code></pre>
+</div>
+</div>
+<p>或者，第二种选项，令 <span class="math inline">\(\tau = 0.5\)</span>：</p>
+<div class="cell">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_pen</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"penguins"</span><span class="op">)</span></span>
+<span><span class="va">flt_gain</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3filters.mlr-org.com/reference/flt.html">flt</a></span><span class="op">(</span><span class="st">"information_gain"</span><span class="op">)</span></span>
+<span><span class="va">flt_gain</span><span class="op">$</span><span class="fu">calculate</span><span class="op">(</span><span class="va">tsk_pen</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 从信息增益过滤器中选出所有得分 &gt; 0.5 的特征</span></span>
+<span><span class="va">keep</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/which.html">which</a></span><span class="op">(</span><span class="va">flt_gain</span><span class="op">$</span><span class="va">scores</span> <span class="op">&gt;</span> <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">tsk_pen</span><span class="op">$</span><span class="fu">select</span><span class="op">(</span><span class="va">keep</span><span class="op">)</span></span>
+<span><span class="va">tsk_pen</span><span class="op">$</span><span class="va">feature_names</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "bill_depth"     "bill_length"    "flipper_length" "island"        </code></pre>
+</div>
+</div>
+<p>在 <a href="../chapter8/non-sequential_pipelines_and_tuning.html#sec-pipelines-featsel" class="quarto-xref"><span>第 8.4.5 节</span></a> 中，我们将回到基于过滤器的特征选择，以及如何利用流水线和调优来自动化并优化特征选择过程。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>选择「保留 top-k」还是「保留分数大于阈值 τ」是一个经典工程取舍。前者固定了特征个数（适合想要严格限制模型规模的场合），但阈值 k 本身仍然要靠经验或额外调优；后者把「什么算重要」交给分数分布说话，但碰到分数整体都高的数据集时可能一个特征也剔不掉，反之则可能全被删光。两种方式都要面对「阈值武断」的批评，这也是 6.1 节开头把 `ρ > 0.2` 的例子叫作“相当武断”的原因。更稳健的做法是把特征个数/阈值当作超参数，在第 8 章通过流水线+调优来自动决定——这正好呼应了本书「尽力避免人为设定阈值」的一贯精神。另外注意本小节的 `task$select()` 只改任务列的子集，不会真正删除底层数据，因此可以放心在实验流程中反复使用。</p>
+</div>
+</section></section><section id="sec-fs-wrapper" class="level2 page-columns page-full" data-number="6.2"><h2 data-number="6.2" class="anchored" data-anchor-id="sec-fs-wrapper">
+<span class="header-section-number">6.2</span> 包裹式方法（Wrapper Methods）</h2>
+<p>包裹式方法通过在所选的特征子集上拟合模型并评估其性能来工作 <span class="citation" data-cites="Kohavi1997">(<a href="../references.html#ref-Kohavi1997" role="doc-biblioref">Kohavi and John 1997</a>)</span>。这可以顺序进行，例如在顺序前向选择（sequential forward selection）中迭代地向模型添加特征；也可以并行进行，例如在随机搜索中评估随机的特征子集。下面，我们在一个共同的框架中描述这些简单方法，以及基因搜索（genetic search）等更高级的方法。我们还将展示如何通过优化多个性能度量来选择特征，以及如何把一个带特征选择的学习器包装起来，以便在流水线或基准测试中使用它。</p>
+<p>更详细地说，包裹式方法通过用重采样（用 holdout 或更昂贵的 CV）来评估一个被限制在该特征子集上的学习器的性能，使用选定的性能指标，并利用得到的性能来引导搜索。具体的搜索策略迭代是由一个 <a href="https://mlr3fselect.mlr-org.com/reference/FSelectorBatch.html"><code>FSelectorBatch</code></a> 对象定义的。一个简单的例子是顺序前向选择：它先从计算每个单特征模型开始，选择最好的一个，然后迭代地总是添加能带来最大性能提升的特征（<a href="#fig-sequential-forward-selection" class="quarto-xref">图&nbsp;<span>6.1</span></a>）。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-sequential-forward-selection" class="quarto-float quarto-figure quarto-figure-center anchored" alt="一个网状图，底部有 1 个元素，第二行 4 个，第三行 6 个，第四行 4 个，第五（顶部）行 1 个。每个元素由四个数字 0 和 1 组成，分别表示被选（1）与未被选（0）的特征。图上覆盖的路径暗示最有路径为 '0000' -> '1000' -> '1010' -> '1011' -> '1111'。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-sequential-forward-selection-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/mlr3book_figures-16.svg" class="img-fluid figure-img" style="width:80.0%" alt="一个网状图，底部有 1 个元素，第二行 4 个，第三行 6 个，第四行 4 个，第五（顶部）行 1 个。每个元素由四个数字 0 和 1 组成，分别表示被选（1）与未被选（0）的特征。图上覆盖的路径暗示最有路径为 '0000' -> '1000' -> '1010' -> '1011' -> '1111'。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-sequential-forward-selection-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;6.1：四个特征的顺序前向选择的二进制表示。灰色表示已评估的特征集，其中深灰色表示每次迭代中最好的特征集；白色表示未被评估的特征集。我们从底部开始，没有任何被选特征（全部为'0'）。在下次迭代中，所有特征被单独测试（各自单独为'1'），并选择最好的选项（第二行中最深的）。如此继续选择第二、第三和第四个特征。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>包裹式方法可以和任何学习器一起使用，但可能需要训练甚至重采样学习器很多次，导致该方法计算密集。所有包裹式方法都通过 <a href="https://mlr3fselect.mlr-org.com"><code>mlr3fselect</code></a> 包实现。</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+特征选择与 HPO（Feature Selection and HPO）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>上面解释的基于包裹式的特征选择，与 HPO 中的黑箱优化方法非常相似（<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>），另见 <a href="../chapter4/hyperparameter_optimization.html#fig-optimization-loop-basic" class="quarto-xref">图&nbsp;<span>4.1</span></a>。主要区别在于，我们搜索的是表现良好的特征子集，而不是超参数配置。这种相似性不仅在概念和结构层面成立，在 <code>mlr3</code> 的类和 API 层面也是如此。API 在许多地方几乎完全相同：我们可以使用相同的终止器；结果以与调优类似的方式记录到归档中；我们也可以优化多个性能度量来创建帕累托最优解。</p>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>包裹式与过滤式的根本差异对照（这也是面试和教材中最常考的知识点）：过滤式在训练之前先打分筛特征，计算快、与后续模型无关，但「每个特征单独与目标的相关性」不能反映特征组合后的价值；包裹式把特征子集当作搜索空间中的点，直接以「学习器在该子集上的交叉验证性能」做目标函数，能用上模型间的交互信息（比如两个单独都很弱、合在一起却很强的特征），代价是每评估一个子集都要重训模型，计算开销大得多。图 6.1 用四个特征的二进制编码展示了顺序前向选择的缩影：每一步只允许在位时曾经的子集上追加一个特征，因此它本质上是一种贪婪（greedy）搜索——能快速给出一个不错的解，但可能错过「先加弱特征、再加另一个才能发挥效果」的组合。`mlr3fselect` 把这一整套包装成与 `tune()` 同构的 `fselect()` 接口，正是为了让读者把选特征当成「另一个黑箱优化问题」来看待。</p>
+</div>
+<section id="sec-fs-wrapper-example" class="level3 page-columns page-full" data-number="6.2.1"><h3 data-number="6.2.1" class="anchored" data-anchor-id="sec-fs-wrapper-example">
+<span class="header-section-number">6.2.1</span> 简单的前向选择示例（Simple Forward Selection Example）</h3>
+<p>我们从上面的简单例子开始，在 <code>tsk("penguins")</code> 上做顺序前向选择，类似 <a href="../chapter4/hyperparameter_optimization.html#sec-autotuner" class="quarto-xref"><span>第 4.2 节</span></a> 展示的糖函数 <a href="https://mlr3tuning.mlr-org.com/reference/tune.html"><code>tune()</code></a> 的工作方式，我们可以用 <a href="https://mlr3fselect.mlr-org.com/reference/fselect.html"><code>fselect()</code></a> 直接开始优化并选择特征。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://mlr3fselect.mlr-org.com/reference/fselect.html">fselect()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3fselect.mlr-org.com">mlr3fselect</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 缩减特征集合以方便可视化</span></span>
+<span><span class="va">tsk_pen</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"penguins"</span><span class="op">)</span></span>
+<span><span class="va">tsk_pen</span><span class="op">$</span><span class="fu">select</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"bill_depth"</span>, <span class="st">"bill_length"</span>, <span class="st">"body_mass"</span>,</span>
+<span>  <span class="st">"flipper_length"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">instance</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3fselect.mlr-org.com/reference/fselect.html">fselect</a></span><span class="op">(</span></span>
+<span>  fselector <span class="op">=</span> <span class="fu"><a href="https://mlr3fselect.mlr-org.com/reference/fs.html">fs</a></span><span class="op">(</span><span class="st">"sequential"</span><span class="op">)</span>,</span>
+<span>  task <span class="op">=</span>  <span class="va">tsk_pen</span>,</span>
+<span>  learner <span class="op">=</span> <span class="va">lrn_rpart</span>,</span>
+<span>  resampling <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>,</span>
+<span>  measure <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>为了显示所有被分析的特征子集及其对应的性能，我们使用 <code>as.data.table(instance$archive)</code>。在这个例子中，<code>batch_nr</code> 列代表顺序前向选择的迭代次数，我们先看第一次迭代。</p>
+<div class="cell">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">dt</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">instance</span><span class="op">$</span><span class="va">archive</span><span class="op">)</span></span>
+<span><span class="va">dt</span><span class="op">[</span><span class="va">batch_nr</span> <span class="op">==</span> <span class="fl">1</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   bill_depth bill_length body_mass flipper_length classif.acc
+1:       TRUE       FALSE     FALSE          FALSE      0.7557
+2:      FALSE        TRUE     FALSE          FALSE      0.7353
+3:      FALSE       FALSE      TRUE          FALSE      0.7064
+4:      FALSE       FALSE     FALSE           TRUE      0.7936</code></pre>
+</div>
+</div>
+<p>我们看到在第一次迭代中，特征 <code>flipper_length</code> 取得了最高的预测性能，因此被选中。我们绘制随迭代次数变化的性能：</p>
+<div class="cell">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">autoplot</span><span class="op">(</span><span class="va">instance</span>, type <span class="op">=</span> <span class="st">"performance"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-forwardselection" class="quarto-float quarto-figure quarto-figure-center anchored" alt="散点与折线图，x 轴为 &quot;Batch&quot;，y 轴为 &quot;classif.acc&quot;。折线从 1 到 batch 2 性能提升，在 batch 3 时略微上升，在 4 时下降，具体数值见打印出的实例归档。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-forwardselection-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/feature_selection_files/figure-html/fig-forwardselection-1.png" class="img-fluid figure-img" style="width:100.0%" alt="散点与折线图，x 轴为 &quot;Batch&quot;，y 轴为 &quot;classif.acc&quot;。折线从 1 到 batch 2 性能提升，在 batch 3 时略微上升，在 4 时下降，具体数值见打印出的实例归档。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-forwardselection-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;6.2：顺序前向选择各迭代中模型的性能。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>在图中，我们可以看到添加第二个特征可以进一步将性能提升到 90% 以上。要查看添加了哪个特征，我们可以回到归档中查看第二次迭代：</p>
+<div class="cell">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">dt</span><span class="op">[</span><span class="va">batch_nr</span> <span class="op">==</span> <span class="fl">2</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   bill_depth bill_length body_mass flipper_length classif.acc
+1:       TRUE       FALSE     FALSE           TRUE      0.7907
+2:      FALSE        TRUE     FALSE           TRUE      0.9331
+3:      FALSE       FALSE      TRUE           TRUE      0.7878</code></pre>
+</div>
+</div>
+<p>第三次迭代中的提升很小，因此我们甚至可以倾向于选择一个略有劣势、但只有两个特征的模型来减小数据规模。</p>
+<p>为了直接展示最好的特征集，我们可以使用 <code>$result_feature_set</code>，它返回按字母顺序（而非选择顺序）排列的特征：</p>
+<div class="cell">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">instance</span><span class="op">$</span><span class="va">result_feature_set</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "bill_depth"     "bill_length"    "flipper_length"</code></pre>
+</div>
+</div>
+<p><code>mlr3fselect</code> 的核心是以下几个 R6 类：</p>
+<ul>
+<li>
+<code>FSelectInstanceBatchSingleCrit</code>、<a href="https://mlr3fselect.mlr-org.com/reference/FSelectInstanceBatchMultiCrit.html"><code>FSelectInstanceBatchMultiCrit</code></a>：这两个类描述特征选择问题并存储结果。
+</li>
+<li>
+<a href="https://mlr3fselect.mlr-org.com/reference/FSelectorBatch.html"><code>FSelectorBatch</code></a>：该类是特征选择算法实现的基类。
+</li>
+</ul>
+<p>在内部，<code><a href="https://mlr3fselect.mlr-org.com/reference/fselect.html">fselect()</a></code> 函数创建一个 <a href="https://mlr3fselect.mlr-org.com/reference/FSelectInstanceBatchSingleCrit.html"><code>FSelectInstanceBatchSingleCrit</code></a> 对象，并基于所选方法（在本例中是一个 <a href="https://mlr3fselect.mlr-org.com/reference/mlr_fselectors_sequential.html"><code>FSelectorBatchSequential</code></a> 对象），用一个 <a href="https://mlr3fselect.mlr-org.com/reference/FSelectorBatch.html"><code>FSelectorBatch</code></a> 对象执行特征选择。这类似于 <code>tune()</code> 函数内部发生的过程，将在下一节中更详细地解释。它使用提供的重采样和度量，在任务上评估 <code>FSelectorBatch</code> 提供的所有特征子集。</p>
+<p>在接下来的两节中，我们将手动创建这些类，以更深入地了解 <code>mlr3fselect</code> 包。</p>
+</section><section id="the-fselectinstance-classes" class="level3 page-columns page-full" data-number="6.2.2"><h3 data-number="6.2.2" class="anchored" data-anchor-id="the-fselectinstance-classes">
+<span class="header-section-number">6.2.2</span> FSelectInstance 类（The FSelectInstance Classes）</h3>
+<p>要创建一个 <code>FSelectInstanceBatchSingleCrit</code> 对象，我们使用糖函数 <a href="https://mlr3fselect.mlr-org.com/reference/fsi.html"><code>fsi()</code></a>：</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://mlr3fselect.mlr-org.com/reference/fsi.html">fsi()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">instance</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3fselect.mlr-org.com/reference/fsi.html">fsi</a></span><span class="op">(</span></span>
+<span>  task <span class="op">=</span> <span class="va">tsk_pen</span>,</span>
+<span>  learner <span class="op">=</span> <span class="va">lrn_rpart</span>,</span>
+<span>  resampling <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>,</span>
+<span>  measure <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span>,</span>
+<span>  terminator <span class="op">=</span> <span class="fu"><a href="https://bbotk.mlr-org.com/reference/trm.html">trm</a></span><span class="op">(</span><span class="st">"evals"</span>, n_evals <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>注意我们还没有选择特征选择算法，因此也还没有选择任何特征。我们还提供了一个 <code>Terminator</code>，用来停止特征选择，这些对象与 <a href="../chapter4/hyperparameter_optimization.html#sec-terminator" class="quarto-xref"><span>第 4.1.2 节</span></a> 中看到的相同。</p>
+<p>要启动特征选择，我们还需要选择一个算法，算法通过 <a href="https://mlr3fselect.mlr-org.com/reference/FSelectorBatch.html"><code>FSelectorBatch</code></a> 类定义，将在下一节中描述。</p>
+</section><section id="the-fselector-class" class="level3 page-columns page-full" data-number="6.2.3"><h3 data-number="6.2.3" class="anchored" data-anchor-id="the-fselector-class">
+<span class="header-section-number">6.2.3</span> FSelector 类（The FSelector Class）</h3>
+<p><code>FSelectorBatch</code> 类是不同特征选择算法的基类。<code>mlr3fselect</code> 目前实现以下算法：</p>
+<ul>
+<li>随机搜索（Random search），随机尝试特征子集直到终止（<code>fs("random_search")</code>）</li>
+<li>穷举搜索（Exhaustive search），尝试所有可能的特征子集（<code>fs("exhaustive_search")</code>）</li>
+<li>顺序搜索（Sequential search），即顺序前向或后向选择（<code>fs("sequential")</code>）</li>
+<li>递归特征消除（Recursive feature elimination），利用学习器的重要性分数迭代地移除特征重要性低的特征（<code>fs("rfe")</code>）</li>
+<li>设计点（Design points），尝试所有用户提供的特征集（<code>fs("design_points")</code>）</li>
+<li>基因搜索（Genetic search），实现一个把特征看作二进制序列、通过变异寻找最佳子集的遗传算法（<code>fs("genetic_search")</code>）</li>
+<li>影子变量搜索（Shadow variable search），添加所有特征置换后的副本（影子变量），执行前向选择，并在选中一个影子变量时停止（<code>fs("shadow_variable_search")</code>）</li>
+</ul>
+<p>注意所有这些方法都可以用终止器（提前）停止，例如穷举搜索可以在给定次数的评估后被停止。在本例中，我们将使用一个简单的随机搜索，并从 <a href="https://mlr3fselect.mlr-org.com/reference/mlr_fselectors.html"><code>mlr_fselectors</code></a> 字典中用 <a href="https://mlr3fselect.mlr-org.com/reference/fs.html"><code>fs()</code></a> 获取它。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://mlr3fselect.mlr-org.com/reference/fs.html">fs()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">fselector</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3fselect.mlr-org.com/reference/fs.html">fs</a></span><span class="op">(</span><span class="st">"random_search"</span><span class="op">)</span></span></code></pre></div>
+</div>
+</section><section id="starting-the-feature-selection" class="level3 page-columns page-full" data-number="6.2.4"><h3 data-number="6.2.4" class="anchored" data-anchor-id="starting-the-feature-selection">
+<span class="header-section-number">6.2.4</span> 启动特征选择（Starting the Feature Selection）</h3>
+<p>要启动特征选择，我们把 <code>FSelectInstanceBatchSingleCrit</code> 对象传给已初始化 <code>FSelectorBatch</code> 对象的 <code>$optimize()</code> 方法：</p>
+<div class="cell">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">fselector</span><span class="op">$</span><span class="fu">optimize</span><span class="op">(</span><span class="va">instance</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>算法的进行如下：</p>
+<ol type="1">
+<li><code>FSelectorBatch</code> 提出至少一个特征子集，也可能提出多个可以并行评估的子集，这可以通过设置 <code>batch_size</code> 来控制。</li>
+<li>对于每个特征子集，给定的学习器使用提供的重采样在任务上拟合，并用给定的度量进行评估。</li>
+<li>所有评估结果被存储在 <code>FSelectInstanceBatchSingleCrit</code> 对象的归档中。</li>
+<li>查询终止器。如果终止条件未被触发，回到第 1 步。</li>
+<li>确定观测性能最好的特征子集。</li>
+<li>把最好的特征子集作为结果存储在实例对象中。</li>
+</ol>
+<p>最佳特征子集和对应的实测性能可以从实例中获取：</p>
+<div class="cell">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span>  <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">instance</span><span class="op">$</span><span class="va">result</span><span class="op">)</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">features</span>, <span class="va">classif.acc</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                                features classif.acc
+1: bill_depth,bill_length,flipper_length       0.936</code></pre>
+</div>
+</div>
+<p>与前面的前向选择示例一样，我们可以查看所有子集评估，它们存储在 <code>FSelectInstanceBatchSingleCrit</code> 对象的归档中，可以通过 <code><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table()</a></code> 访问：</p>
+<div class="cell">
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">instance</span><span class="op">$</span><span class="va">archive</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>,</span>
+<span>  <span class="fu">.</span><span class="op">(</span><span class="va">bill_depth</span>, <span class="va">bill_length</span>, <span class="va">body_mass</span>, <span class="va">flipper_length</span>, <span class="va">classif.acc</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   bill_depth bill_length body_mass flipper_length classif.acc
+1:      FALSE        TRUE     FALSE          FALSE      0.7558
+2:       TRUE        TRUE      TRUE           TRUE      0.9360
+3:       TRUE       FALSE     FALSE          FALSE      0.7153
+4:       TRUE       FALSE      TRUE           TRUE      0.7993
+5:       TRUE        TRUE      TRUE          FALSE      0.9244</code></pre>
+</div>
+</div>
+<p>现在，优化后的特征子集可以用来对任务做子集化，并在所有观测上拟合模型：</p>
+<div class="cell">
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_pen</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"penguins"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">tsk_pen</span><span class="op">$</span><span class="fu">select</span><span class="op">(</span><span class="va">instance</span><span class="op">$</span><span class="va">result_feature_set</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_pen</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>训练好的模型现在可以用于对外部数据进行预测。</p>
+</section><section id="sec-multicrit-featsel" class="level3 page-columns page-full" data-number="6.2.5"><h3 data-number="6.2.5" class="anchored" data-anchor-id="sec-multicrit-featsel">
+<span class="header-section-number">6.2.5</span> 优化多个性能度量（Optimizing Multiple Performance Measures）</h3>
+<p>你可能想用多个准则来评估特征子集的性能。使用 <code>mlr3fselect</code>，结果是不被其他子集帕累托支配的所有特征子集的集合。同样地，我们指出这与 HPO 的相似性，并请读者参考多目标超参数优化（见 <a href="../chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-multi-metrics-tuning" class="quarto-xref"><span>第 5.2 节</span></a> 和 <span class="citation" data-cites="karl2022">Karl et al. (<a href="../references.html#ref-karl2022" role="doc-biblioref">2022</a>)</span>）。</p>
+<p>在下面的示例中，我们将在 sonar 数据集上进行特征选择。这一次，我们将使用 <a href="https://mlr3fselect.mlr-org.com/reference/FSelectInstanceBatchMultiCrit.html"><code>FSelectInstanceBatchMultiCrit</code></a> 选择一组高灵敏度（sensitivity，即 TPR）和高特异度（specificity，即 TNR）的特征子集。带多个准则的特征选择过程与单准则类似，只是我们选择两个要优化的度量：</p>
+<div class="cell">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">instance</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3fselect.mlr-org.com/reference/fsi.html">fsi</a></span><span class="op">(</span></span>
+<span>  task <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"sonar"</span><span class="op">)</span>,</span>
+<span>  learner <span class="op">=</span> <span class="va">lrn_rpart</span>,</span>
+<span>  resampling <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"holdout"</span><span class="op">)</span>,</span>
+<span>  measure <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msrs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"classif.tpr"</span>, <span class="st">"classif.tnr"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  terminator <span class="op">=</span> <span class="fu"><a href="https://bbotk.mlr-org.com/reference/trm.html">trm</a></span><span class="op">(</span><span class="st">"evals"</span>, n_evals <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>当选择多于一个度量时，函数 <a href="https://mlr3fselect.mlr-org.com/reference/fsi.html"><code>fsi</code></a> 会创建一个 <code>FSelectInstanceBatchMultiCrit</code> 实例。我们现在创建一个 <a href="https://mlr3fselect.mlr-org.com/reference/FSelectorBatch.html"><code>FSelectorBatch</code></a>，并把 <code>FSelectInstanceBatchMultiCrit</code> 对象传给 <code>FSelectorBatch</code> 的 <code>$optimize()</code> 函数，以搜索 TPR 和 FPR 最好的特征子集。注意，这两个度量不能同时最优（除了完美分类器），因此我们预期会有多个帕累托最优解。</p>
+<div class="cell">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">fselector</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3fselect.mlr-org.com/reference/fs.html">fs</a></span><span class="op">(</span><span class="st">"random_search"</span><span class="op">)</span></span>
+<span><span class="va">fselector</span><span class="op">$</span><span class="fu">optimize</span><span class="op">(</span><span class="va">instance</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>同上，最佳特征子集和对应的实测性能可以从实例中获取。</p>
+<div class="cell">
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">instance</span><span class="op">$</span><span class="va">result</span><span class="op">)</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">features</span>, <span class="va">classif.tpr</span>, <span class="va">classif.tnr</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                          features classif.tpr classif.tnr
+1:  V1,V11,V13,V14,V15,V18,...[29]       0.750      0.7241
+2:  V1,V10,V11,V12,V13,V14,...[60]       0.875      0.6897
+3:   V1,V11,V15,V16,V18,V2,...[23]       0.675      0.8276
+4:  V1,V10,V11,V12,V13,V14,...[54]       0.875      0.6897
+5: V11,V12,V14,V15,V16,V19,...[31]       0.900      0.5517</code></pre>
+</div>
+</div>
+<p>我们看到灵敏度和特异度之间有不同的权衡，但没有任何一个特征子集被另一个支配，即没有任何子集的灵敏度和特异度同时差于另一个子集。</p>
+</section><section id="sec-autofselect" class="level3 page-columns page-full" data-number="6.2.6"><h3 data-number="6.2.6" class="anchored" data-anchor-id="sec-autofselect">
+<span class="header-section-number">6.2.6</span> 嵌套重采样（Nested Resampling）</h3>
+<p>与调优一样，最终选出的特征子集的性能估计通常存在乐观偏差（optimistically biased）。要获得无偏的性能估计，需要使用嵌套重采样，其设置方式与 HPO 类似（见 <a href="../chapter4/hyperparameter_optimization.html#sec-nested-resampling" class="quarto-xref"><span>第 4.3 节</span></a>）。我们现在在 <code>sonar</code> 任务上以此为例进行演示。<a href="https://mlr3fselect.mlr-org.com/reference/AutoFSelector.html"><code>AutoFSelector</code></a> 类包装一个学习器，并用自动特征选择对它进行增强。由于 <code>AutoFSelector</code> 本身继承自 <a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 基类，它可以像任何其他学习器一样使用。在下面的示例中，创建了一个逻辑回归学习器。这个学习器随后被包装进一个使用 holdout（内部）重采样进行性能评估的随机搜索特征选择器中。糖函数 <a href="https://mlr3fselect.mlr-org.com/reference/auto_fselector.html"><code>auto_fselector</code></a> 可以用来创建一个 <code>AutoFSelector</code> 实例：</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>auto_fselector</code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">afs</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3fselect.mlr-org.com/reference/auto_fselector.html">auto_fselector</a></span><span class="op">(</span></span>
+<span>  fselector <span class="op">=</span> <span class="fu"><a href="https://mlr3fselect.mlr-org.com/reference/fs.html">fs</a></span><span class="op">(</span><span class="st">"random_search"</span><span class="op">)</span>,</span>
+<span>  learner <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.log_reg"</span><span class="op">)</span>,</span>
+<span>  resampling <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"holdout"</span><span class="op">)</span>,</span>
+<span>  measure <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span>,</span>
+<span>  terminator <span class="op">=</span> <span class="fu"><a href="https://bbotk.mlr-org.com/reference/trm.html">trm</a></span><span class="op">(</span><span class="st">"evals"</span>, n_evals <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">afs</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;AutoFSelector&gt; (classif.log_reg.fselector) ──────────────────────────
+• Model: -
+• Packages: mlr3, mlr3fselect, mlr3learners, and stats
+• Predict Type: response
+• Feature Types: logical, integer, numeric, character, factor, and
+ordered
+• Properties: offset, twoclass, and weights</code></pre>
+</div>
+</div>
+<p><code>AutoFSelector</code> 随后可以传给 <code><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark()</a></code> 或 <code><a href="https://mlr3.mlr-org.com/reference/resample.html">resample()</a></code> 进行嵌套重采样（<a href="../chapter4/hyperparameter_optimization.html#sec-nested-resampling" class="quarto-xref"><span>第 4.3 节</span></a>）。下面我们比较被包装的学习器 <code>afs</code> 和普通的逻辑回归 <code>lrn("classif.log_reg")</code>。</p>
+<div class="cell">
+<div class="sourceCode" id="cb46"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">grid</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html">benchmark_grid</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"sonar"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">afs</span>, <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.log_reg"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">bmr</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">bmr</span><span class="op">)</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">learner_id</span>, <span class="va">classif.acc</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                  learner_id classif.acc
+1: classif.log_reg.fselector       0.702
+2:           classif.log_reg       0.707</code></pre>
+</div>
+</div>
+<p>可以看到，在本例中，特征选择提升了预测性能。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>为什么「在选出特征之后再在同一个验证集上评估」会带来乐观偏差？因为特征选择过程已经"看过"验证数据——它正是依据该验证集上的性能来挑选特征子集的，所以最终子集的性能是在数据上"挑"出来的最优之一，属于典型的「在测试集上调参」问题。嵌套重采样把「选特征」的整个流程塞进内部重采样：每次外部折的训练集内部再做一轮特征选择（如这里的 holdout），得到该折专属的特征子集并训练模型，最后只在外部测试折上评估。于是外部测试折从未参与任何选择过程，性能估计才无偏。本例中带选择的逻辑回归（0.702）与普通逻辑回归（0.707）接近，与前面示例中"特征选择显著提升性能"的观感不同——这正是无偏估计带来的"冷水"，也提醒我们：过滤式特征选择若在 CV 之前做（如练习 1 所指摘的做法），会人为抬高 CV 性能。</p>
+</div>
+</section></section><section id="conclusion" class="level2 page-columns page-full" data-number="6.3"><h2 data-number="6.3" class="anchored" data-anchor-id="conclusion">
+<span class="header-section-number">6.3</span> 结论（Conclusion）</h2>
+<p>在本章中，我们学习了如何使用 <code>mlr3</code> 进行特征选择。我们介绍了过滤式和包裹式方法，并涵盖了多个性能度量的优化。一旦你学完了流水线，我们将在 <a href="../chapter8/non-sequential_pipelines_and_tuning.html#sec-pipelines-featsel" class="quarto-xref"><span>第 8.4.5 节</span></a> 中回到特征选择。</p>
+<p>如果你想了解更多关于特征选择的内容，我们推荐 <span class="citation" data-cites="chandrashekar2014">Chandrashekar and Sahin (<a href="../references.html#ref-chandrashekar2014" role="doc-biblioref">2014</a>)</span> 中的方法综述；对过滤器和包裹式方法更正式、更详细的导论见 <span class="citation" data-cites="guyon2003">Guyon and Elisseeff (<a href="../references.html#ref-guyon2003" role="doc-biblioref">2003</a>)</span>；<span class="citation" data-cites="bommert2020">Bommert et al. (<a href="../references.html#ref-bommert2020" role="doc-biblioref">2020</a>)</span> 对过滤方法进行了基准测试。</p>
+<div id="tbl-api-feature-selection" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-api-feature-selection-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+表&nbsp;6.1：本章覆盖的重要类与函数，以及其底层类（如有）、类构造函数或函数、以及重要的类字段与方法（如有）。
+</figcaption><div aria-describedby="tbl-api-feature-selection-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead><tr class="header">
+<th>类（Class）</th>
+<th>构造函数/函数（Constructor/Function）</th>
+<th>字段/方法（Fields/Methods）</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://www.rdocumentation.org/packages/base/topics/funprog"><code>Filter</code></a></td>
+<td><a href="https://mlr3filters.mlr-org.com/reference/flt.html"><code>flt()</code></a></td>
+<td><code>$calculate()</code></td>
+</tr>
+<tr class="even">
+<td>
+<a href="https://mlr3fselect.mlr-org.com/reference/FSelectInstanceBatchSingleCrit.html"><code>FSelectInstanceBatchSingleCrit</code></a> 或 <a href="https://mlr3fselect.mlr-org.com/reference/FSelectInstanceBatchMultiCrit.html"><code>FSelectInstanceBatchMultiCrit</code></a>
+</td>
+<td>
+<a href="https://mlr3fselect.mlr-org.com/reference/fsi.html"><code>fsi()</code></a> / <a href="https://mlr3fselect.mlr-org.com/reference/fselect.html"><code>fselect()</code></a>
+</td>
+<td>-</td>
+</tr>
+<tr class="odd">
+<td><a href="https://mlr3fselect.mlr-org.com/reference/FSelectorBatch.html"><code>FSelectorBatch</code></a></td>
+<td><a href="https://mlr3fselect.mlr-org.com/reference/fs.html"><code>fs()</code></a></td>
+<td><code>$optimize()</code></td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3fselect.mlr-org.com/reference/AutoFSelector.html"><code>AutoFSelector</code></a></td>
+<td><a href="https://mlr3fselect.mlr-org.com/reference/auto_fselector.html"><code>auto_fselector()</code></a></td>
+<td>
+<code>$train()</code>; <code>$predict()</code>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section><section id="exercises" class="level2 page-columns page-full" data-number="6.4"><h2 data-number="6.4" class="anchored" data-anchor-id="exercises">
+<span class="header-section-number">6.4</span> 练习（Exercises）</h2>
+<ol type="1">
+<li>在 <code>tsk("mtcars")</code> 上计算相关性过滤分数，并用过滤器选择与目标相关最强的五个特征。在完整数据集和缩减后的数据集上分别对 <code>lrn("regr.kknn")</code> 做重采样，并基于 10 折 CV 以 MSE 比较两者的性能。注意（NB）：这里我们在 CV 之外做了特征过滤，这通常不是一个好做法，因为它会使 CV 性能估计产生偏差。要正确地做，过滤应该通过流水线嵌入到 CV 内部——读完 <a href="../chapter8/non-sequential_pipelines_and_tuning.html" class="quarto-xref"><span>第 8 章</span></a> 之后，请回来用偏差更小的方式实现这个练习。</li>
+<li>对 <code>tsk("penguins")</code> 使用 <code>lrn("classif.rpart")</code> 和 holdout 重采样，按分类准确率度量应用后向选择。同时运行 <a href="#sec-fs-wrapper-example" class="quarto-xref"><span>第 6.2.1 节</span></a> 中的前向选择，与结果进行比较。选择的特征是否不同？哪种特征选择方法在其 <code>$result</code> 中报告的分类准确率更高？</li>
+<li>练习 2 中的性能比较存在问题，因为特征选择是在测试集上进行的。改变流程，用 <code><a href="https://mlr3fselect.mlr-org.com/reference/auto_fselector.html">auto_fselector()</a></code> 应用前向特征选择。使用嵌套重采样，将性能与练习 2 中的后向特征选择进行比较。</li>
+<li>(*) 编写一个过滤式与包裹式方法的混合特征选择算法。这个搜索算法应该为所有特征计算过滤分数，然后执行前向搜索。但不是试探性地把其余所有特征都加入当前特征集，而应该只随机尝试可用特征的一个子集。过滤分数高的特征应以更高的概率被加入。先为这个搜索写一个独立的 R 方法（基于学习器、任务、重采样、性能度量和一些控制设置）。然后，作为拓展目标，看看你是否能把它实现为一个继承自 <code>FSelectorBatch</code> 的 R6 类。</li>
+</ol></section><section id="citation" class="level2 page-columns page-full" data-number="6.5"><h2 data-number="6.5" class="anchored" data-anchor-id="citation">
+<span class="header-section-number">6.5</span> 引用（Citation）</h2>
+<p>请按如下方式引用本章：</p>
+<p>Wright MN. (2024). Feature Selection. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/feature_selection.html.</p>
+<div class="sourceCode" id="cb48"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="va">@incollection</span>{<span class="ot">citekey</span>,</span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span> = "<span class="st">Marvin N. Wright</span>",</span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span> = "<span class="st">Feature Selection</span>",</span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">booktitle</span> = "<span class="st">Applied Machine Learning Using {m}lr3 in {R}</span>",</span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">publisher</span> = "<span class="st">CRC Press</span>", <span class="st">year</span> = "<span class="st">2024</span>",</span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">editor</span> = "<span class="st">Bernd Bischl and Raphael Sonabend and Lars Kotthoff and Michel Lang</span>",</span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">url</span> = "<span class="st">https://mlr3book.mlr-org.com/feature_selection.html</span>"</span>
+<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+
+
+<!-- -->
+
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-bommert2020" class="csl-entry" role="listitem">
+Bommert, Andrea, Xudong Sun, Bernd Bischl, Jörg Rahnenführer, and Michel Lang. 2020. <span>“Benchmark for Filter Methods for Feature Selection in High-Dimensional Classification Data.”</span> <em>Computational Statistics &amp; Data Analysis</em> 143: 106839. <a href="https://doi.org/10.1016/j.csda.2019.106839">https://doi.org/10.1016/j.csda.2019.106839</a>.
+</div>
+<div id="ref-chandrashekar2014" class="csl-entry" role="listitem">
+Chandrashekar, Girish, and Ferat Sahin. 2014. <span>“A Survey on Feature Selection Methods.”</span> <em>Computers and Electrical Engineering</em> 40 (1): 16–28. <a href="https://doi.org/10.1016/j.compeleceng.2013.11.024">https://doi.org/10.1016/j.compeleceng.2013.11.024</a>.
+</div>
+<div id="ref-guyon2003" class="csl-entry" role="listitem">
+Guyon, Isabelle, and André Elisseeff. 2003. <span>“An Introduction to Variable and Feature Selection.”</span> <em>Journal of Machine Learning Research</em> 3 (Mar): 1157–82. <a href="https://www.jmlr.org/papers/v3/guyon03a.html">https://www.jmlr.org/papers/v3/guyon03a.html</a>.
+</div>
+<div id="ref-karl2022" class="csl-entry" role="listitem">
+Karl, Florian, Tobias Pielok, Julia Moosbauer, Florian Pfisterer, Stefan Coors, Martin Binder, Lennart Schneider, et al. 2022. <span>“Multi-Objective Hyperparameter Optimization–an Overview.”</span> <em>arXiv Preprint arXiv:2206.07438</em>. <a href="https://doi.org/10.48550/arXiv.2206.07438">https://doi.org/10.48550/arXiv.2206.07438</a>.
+</div>
+<div id="ref-Kohavi1997" class="csl-entry" role="listitem">
+Kohavi, Ron, and George H. John. 1997. <span>“Wrappers for Feature Subset Selection.”</span> <em>Artificial Intelligence</em> 97 (1): 273–324. <a href="https://doi.org/10.1016/S0004-3702(97)00043-X">https://doi.org/10.1016/S0004-3702(97)00043-X</a>.
+</div>
+</div>
+</section>
+  </main>
+  <nav class="chnav">
+    <a class="" href="ch05-advanced-tuning-bbo.html"><span class="dir">上一章</span><span class="ch">第 5 章 高级调优方法与黑箱优化</span></a>
+    <a class="" href="ch07-sequential-pipelines.html"><span class="dir">下一章</span><span class="ch">第 7 章 顺序管道</span></a>
+  </nav>
+  <div class="footer">
+    <div>《Applied Machine Learning Using mlr3 in R》中文译本 · 非官方翻译</div>
+    <div class="lic">原文 © 2024 CRC Press（Bischl, Sonabend, Kotthoff &amp; Lang 主编，CC BY-NC-SA 4.0）· 本站由志愿翻译，仅供学习交流</div>
+  </div>
+</div>
+<script>
+MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] } };
+</script>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
+</body>
+</html>

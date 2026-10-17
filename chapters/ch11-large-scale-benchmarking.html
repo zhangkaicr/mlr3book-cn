@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大规模基准测试（Large-Scale Benchmarking）</title>
+<script>
+(function(){
+  var saved = localStorage.getItem("mlr3-theme");
+  if (saved === null) saved = "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+})();
+</script>
+<style>
+:root {
+  --bg: #1e2228; --fg: #d8dee4; --muted: #9aa4b0;
+  --panel: #262c34; --panel2: #2e3540; --border: #3a4350;
+  --accent: #4ea1ff; --accent2: #8f7ae6;
+  --code-bg: #161a20; --code-fg: #d8dee4;
+  --note-bg: #2a3450; --note-border: #5a7fff;
+  --callout-bg: #2b3826; --callout-border: #6bbf59;
+  --table-head: #2e3540; --table-row: #262c34; --link: #6cb0ff;
+  --h-border: #3a4350;
+}
+[data-theme="light"] {
+  --bg: #f7f8fa; --fg: #24292f; --muted: #57606a;
+  --panel: #ffffff; --panel2: #f0f2f5; --border: #d9dee3;
+  --accent: #0969da; --accent2: #8250df;
+  --code-bg: #f3f4f6; --code-fg: #24292f;
+  --note-bg: #eef2ff; --note-border: #5a7fff;
+  --callout-bg: #eff7ec; --callout-border: #6bbf59;
+  --table-head: #eef1f4; --table-row: #ffffff; --link: #0969da;
+  --h-border: #d9dee3;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  line-height: 1.78; font-size: 16px;
+  transition: background .2s, color .2s;
+}
+.container { max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+/* 顶栏 */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+}
+.topbar .brand { font-weight: 600; font-size: 15px; color: var(--fg); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+.topbar .brand .logo { color: var(--accent); }
+.topbar .right { display: flex; align-items: center; gap: 10px; }
+.topbar .home-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+.topbar .home-link:hover { color: var(--accent); }
+.theme-toggle {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+/* 章头 */
+.header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
+.header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
+.header-block h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.35; }
+.header-block .subtitle { color: var(--muted); font-size: 14px; }
+/* 章节导航 */
+.chnav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0 6px; flex-wrap: wrap; }
+.chnav a {
+  background: var(--panel); border: 1px solid var(--border); color: var(--fg);
+  text-decoration: none; font-size: 14px; padding: 10px 16px; border-radius: 8px;
+  max-width: 46%; display: block;
+}
+.chnav a:hover { border-color: var(--accent); color: var(--accent); }
+.chnav .dir { color: var(--muted); font-size: 12px; display: block; }
+.chnav .ch { font-weight: 600; }
+.chnav a.disabled { opacity: .4; pointer-events: none; }
+/* 正文 */
+main { padding: 0 0 20px; }
+main h1 { font-size: 26px; margin: 40px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--h-border); }
+main h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--h-border); }
+main h3 { font-size: 18px; margin: 28px 0 10px; }
+main h4 { font-size: 16px; margin: 22px 0 8px; color: var(--accent); }
+main p { margin: 10px 0; }
+main a { color: var(--link); text-decoration: none; }
+main a:hover { text-decoration: underline; }
+main strong { font-weight: 600; }
+main ul, main ol { padding-left: 26px; }
+main li { margin: 5px 0; }
+main blockquote {
+  margin: 12px 0; padding: 10px 16px; border-left: 4px solid var(--border);
+  background: var(--panel2); color: var(--muted); border-radius: 0 6px 6px 0;
+}
+main hr { border: none; border-top: 1px solid var(--border); margin: 26px 0; }
+main img { max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 6px; }
+main table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+main th { background: var(--table-head); font-weight: 600; }
+main th, main td { border: 1px solid var(--border); padding: 7px 11px; }
+main tr:nth-child(even) td { background: var(--table-row); }
+/* 代码 */
+pre {
+  background: var(--code-bg); color: var(--code-fg);
+  padding: 14px 16px; border-radius: 8px; overflow-x: auto;
+  border: 1px solid var(--border); font-size: 13.5px; line-height: 1.6;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+code {
+  font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+  background: var(--panel2); color: var(--accent);
+  padding: 2px 5px; border-radius: 4px; font-size: 13.5px;
+}
+pre code { background: none; color: var(--code-fg); padding: 0; }
+/* 代码块容器（Quarto 结构） */
+.sourceCode { margin: 14px 0; }
+.sourceCode pre { margin: 0; }
+/* 输出块 */
+.cell { margin: 6px 0; }
+.cell-output { margin: 0 0 6px; }
+.cell-output pre { background: var(--panel2); border-style: dashed; }
+.cell-output-stderr { border-color: #d29922; }
+.cell-output-stdout pre { border-color: var(--border); }
+/* figure */
+figure { margin: 18px 0; text-align: center; }
+figure img { margin: 0 auto; }
+figcaption, .caption { color: var(--muted); font-size: 13px; margin-top: 6px; text-align: center; }
+.quarto-float { margin: 18px 0; }
+.quarto-figure { margin: 18px 0; text-align: center; }
+/* 背景与解释（译者注）框 */
+.bg-note {
+  background: var(--note-bg); border: 1px solid var(--note-border);
+  border-radius: 8px; padding: 14px 18px; margin: 18px 0;
+  font-size: 15px;
+}
+.bg-note p { margin: 6px 0; }
+.bg-note .bg-title { font-weight: 600; color: var(--accent); }
+/* 原书 callout 提示框 */
+.callout {
+  border-radius: 8px; padding: 12px 18px; margin: 16px 0;
+  border-left: 5px solid var(--accent); background: var(--panel2);
+}
+.callout-tip { border-left-color: #6bbf59; }
+.callout-note { border-left-color: var(--accent); }
+.callout-warning { border-left-color: #d29922; }
+.callout-important { border-left-color: #e05d5d; }
+.callout-header { font-weight: 600; margin-bottom: 4px; }
+.callout-title-container { display: inline; }
+.callout-body p { margin: 6px 0; }
+.callout-icon-container { display: none; }
+/* 脚注 */
+.footnote-ref { font-size: 12px; vertical-align: super; }
+/* 页脚 */
+.footer {
+  margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 13px; text-align: center;
+}
+.footer .lic { margin-top: 6px; font-size: 12px; }
+/* 表格滚动 */
+main table { display: block; overflow-x: auto; }
+/* banner 样式（原书 callout 可能以其他名目出现） */
+[class*="callout"] > p:first-child { margin-top: 4px; }
+</style>
+<script>
+function toggleTheme(){
+  var cur = document.documentElement.getAttribute("data-theme");
+  var next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("mlr3-theme", next);
+}
+</script>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <div class="right">
+    <a class="home-link" href="index.html">目录</a>
+    <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
+  </div>
+</div>
+<div class="container">
+  <div class="header-block">
+    <div class="part">第四部分 高级专题</div>
+    <h1>大规模基准测试（Large-Scale Benchmarking）</h1>
+    <div class="subtitle">《Applied Machine Learning Using mlr3 in R》中文翻译 · 章节 第 11 章 大规模基准测试</div>
+  </div>
+  <main>
+<p><strong>Sebastian Fischer</strong> <br><em>慕尼黑路德维希-马克西米利安大学（Ludwig-Maximilians-Universität München）及慕尼黑机器学习中心（Munich Center for Machine Learning, MCML）</em></p>
+<p><strong>Michel Lang</strong> <br><em>可信数据科学与安全研究中心（Research Center Trustworthy Data Science and Security），多特蒙德工业大学（TU Dortmund University）</em></p>
+<p><strong>Marc Becker</strong> <br><em>慕尼黑路德维希-马克西米利安大学（Ludwig-Maximilians-Universität München）及慕尼黑机器学习中心（Munich Center for Machine Learning, MCML）</em> <br><br></p>
+<p>在机器学习中，仅靠数学分析往往难以评估方法。即使形式化分析能够成功应用，真实数据集是否满足定理成立的假设，也常常是一个悬而未决的问题。经验基准（empirical benchmark）实验在广泛的数据集上评估不同算法的性能。这些实证研究对于理解现有方法的能力与局限、以及开发新的改进方法至关重要。可信的基准实验通常是大规模的（large-scale），这意味着它们可能使用大量的数据集、度量与学习器。此外，数据集必须覆盖广泛的领域与问题类型，因为结论只能推广到基准研究所覆盖的那类数据集上。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>机器学习方法的评估很难仅靠数学分析完成——真实数据往往不满足定理所需的严格假设，而经验基准（empirical benchmark）实验通过在多个数据集上比较不同算法的性能，直接回答「在哪些数据上、哪种方法更有效」的问题。这也是 OpenML 这类共享平台存在的根本动机：只有结论覆盖尽可能多样的数据领域与问题类型，研究结论才具有可推广性。</p>
+</div>
+<p>大规模基准实验包含三个主要步骤：获取实验数据、执行实验、分析结果；我们将逐一讨论这些步骤。在<a href="#sec-openml" class="quarto-xref"><span>11.1 节</span></a>中，我们将首先讨论<a href="https://mlr3oml.mlr-org.com"><code>mlr3oml</code></a>，它提供了<a href="https://mlr3.mlr-org.com"><code>mlr3</code></a>与 OpenML <span class="citation" data-cites="openml2013">(<a href="../references.html#ref-openml2013" role="doc-biblioref">Vanschoren et al. 2013</a>)</span>之间的接口，OpenML 是一个流行的数据集上传与下载工具。增加数据集的数量会带来「大规模」实验，可能需要可观的计算资源，因此在<a href="#sec-hpc-exec" class="quarto-xref"><span>11.2 节</span></a>中，我们将介绍<a href="https://mlr3batchmark.mlr-org.com"><code>mlr3batchmark</code></a>，它把 <code>mlr3</code> 与<a href="https://batchtools.mlr-org.com"><code>batchtools</code></a> <span class="citation" data-cites="batchtools">(<a href="../references.html#ref-batchtools" role="doc-biblioref">Lang, Bischl, and Surmann 2017</a>)</span>连接起来，后者提供了在高性能计算（HPC）集群上管理与执行实验的方法。最后，在<a href="#sec-benchmark-analysis" class="quarto-xref"><span>11.3 节</span></a>中，我们将演示如何利用<a href="https://mlr3benchmark.mlr-org.com"><code>mlr3benchmark</code></a>对大规模基准实验的结果进行形式化分析。</p>
+<p>在本章中，我们将沿用 Couronné、Probst 与 Boulesteix <span class="citation" data-cites="couronne2018random">(<a href="../references.html#ref-couronne2018random" role="doc-biblioref">2018</a>)</span>中的贯穿示例，对随机森林模型与逻辑回归进行基准比较。我们还假定你已经阅读过<a href="../chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>和<a href="../chapter10/advanced_technical_aspects_of_mlr3.html" class="quarto-xref"><span>第 10 章</span></a>。我们使用 <code>ppl("robustify")</code>（<a href="../chapter9/preprocessing.html#sec-prepro-robustify" class="quarto-xref"><span>9.4 节</span></a>）来自动化常见的预处理步骤。我们还把无特征（featureless）基线设置为回退学习器（fallback learner）（<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-fallback" class="quarto-xref"><span>10.2.2 节</span></a>），并把 <code>"try"</code> 作为我们的封装（encapsulation）方法（<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-encapsulation" class="quarto-xref"><span>10.2.1 节</span></a>），它会将错误/警告记录到外部文件中，该文件可被 <code>batchtools</code> 读取（我们将在<a href="#sec-batchtools-monitoring" class="quarto-xref"><span>11.2.3 节</span></a>回到这一点）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># 无特征基线（featureless baseline）</span></span>
+<span><span class="va">lrn_baseline</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.featureless"</span>, id <span class="op">=</span> <span class="st">"featureless"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 逻辑回归流水线</span></span>
+<span><span class="va">lrn_lr</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.log_reg"</span><span class="op">)</span></span>
+<span><span class="va">lrn_lr</span> <span class="op">=</span> <span class="fu">as_learner</span><span class="op">(</span><span class="fu">ppl</span><span class="op">(</span><span class="st">"robustify"</span>, learner <span class="op">=</span> <span class="va">lrn_lr</span><span class="op">)</span> <span class="op">%&gt;&gt;%</span> <span class="va">lrn_lr</span><span class="op">)</span></span>
+<span><span class="va">lrn_lr</span><span class="op">$</span><span class="va">id</span> <span class="op">=</span> <span class="st">"logreg"</span></span>
+<span><span class="va">lrn_lr</span><span class="op">$</span><span class="fu">encapsulate</span><span class="op">(</span><span class="st">"try"</span>, fallback <span class="op">=</span> <span class="va">lrn_baseline</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 随机森林流水线</span></span>
+<span><span class="va">lrn_rf</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.ranger"</span><span class="op">)</span></span>
+<span><span class="va">lrn_rf</span> <span class="op">=</span> <span class="fu">as_learner</span><span class="op">(</span><span class="fu">ppl</span><span class="op">(</span><span class="st">"robustify"</span>, learner <span class="op">=</span> <span class="va">lrn_rf</span><span class="op">)</span> <span class="op">%&gt;&gt;%</span> <span class="va">lrn_rf</span><span class="op">)</span></span>
+<span><span class="va">lrn_rf</span><span class="op">$</span><span class="va">id</span> <span class="op">=</span> <span class="st">"ranger"</span></span>
+<span><span class="va">lrn_rf</span><span class="op">$</span><span class="fu">encapsulate</span><span class="op">(</span><span class="st">"try"</span>, fallback <span class="op">=</span> <span class="va">lrn_baseline</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">learners</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">lrn_lr</span>, <span class="va">lrn_rf</span>, <span class="va">lrn_baseline</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>作为起步示例，我们将使用精度（accuracy）与三折交叉验证，在三个分类任务上比较我们的学习器。</p>
+<div class="cell">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">design</span> <span class="op">=</span> <span class="fu">benchmark_grid</span><span class="op">(</span><span class="fu">tsks</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"german_credit"</span>, <span class="st">"sonar"</span>, <span class="st">"diabetes"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="va">learners</span>, <span class="fu">rsmp</span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bmr</span> <span class="op">=</span> <span class="fu">benchmark</span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span>
+<span><span class="va">bmr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="fu">msr</span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span><span class="op">)</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">task_id</span>, <span class="va">learner_id</span>, <span class="va">classif.acc</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>         task_id  learner_id classif.acc
+1: german_credit      logreg      0.7460
+2: german_credit      ranger      0.7630
+3: german_credit featureless      0.7000
+4:         sonar      logreg      0.7162
+5:         sonar      ranger      0.8412
+6:         sonar featureless      0.5329
+7:      diabetes      logreg      0.7461
+8:      diabetes      ranger      0.7448
+9:      diabetes featureless      0.6354</code></pre>
+</div>
+</div>
+<p>在这个小型实验中，随机森林在全部三个数据集上似乎都优于其他学习器。然而，这一分析并不具有决定性，因为我们只考虑了三个任务，而且性能差异可能在统计上并不显著。下面，我们将介绍一些改进该研究的技巧。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>原文此处称「使用精度（accuracy）与三折交叉验证（three-fold CV）」，而下方代码实际使用了 10 折交叉验证（<code>folds = 10</code>），存在笔误，应以代码为准，即对每个数据集使用 10 折交叉验证。此外，仅凭 3 个数据集上的精度差异不足以断言随机森林更优——这既是因为数据集太少、抽样波动大，也是因为需要对多个数据集上的表现做统计检验（见 11.3 节）。这正是本章后续引入 OpenML、大规模基准测试与统计检验的动机。</p>
+</div>
+<section id="sec-openml" class="level2 page-columns page-full" data-number="11.1"><h2 data-number="11.1" class="anchored" data-anchor-id="sec-openml">
+<span class="header-section-number">11.1</span> 用 OpenML 获取数据（Getting Data with OpenML）</h2>
+<p>要从基准实验中得出有意义的结论，数据集与任务的良好选择至关重要。OpenML 是一个开源平台，它以标准化格式促进机器学习研究数据、算法与实验结果的共享与传播，从而支持跨研究的一致比较。OpenML 的设计确保平台上的所有数据都符合「FAIR」原则（<strong>F</strong>indability 可发现性、<strong>A</strong>ccessibility 可访问性、<strong>I</strong>nteroperability 可互操作性、<strong>R</strong>eusability 可复用性），保证数据易于被发现和重用。平台上的所有实体都有唯一标识符和标准化的（元）数据，可通过 REST API 或网页界面访问。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">OpenML</span></div></div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>OpenML 是机器学习领域最早也最著名的数据与实验共享平台之一（2013 年发布），其「FAIR」原则（可发现、可访问、可互操作、可复用）与当前的开放科学运动一脉相承。每个数据集、任务、算法与实验结果都有唯一 ID 与标准化元数据，REST API 使程序化访问成为可能。对于中文研究者而言，OpenML 提供的开源数据集（如 adult、german_credit 等）也常被用来复现论文实验；但需注意部分数据集的元数据由社区维护，使用前应核对数据规模与许可。</p>
+</div>
+<p>在本节中，我们将介绍 OpenML 的一些主要功能，以及如何通过 <a href="https://mlr3oml.mlr-org.com"><code>mlr3oml</code></a> 接口包来使用这些功能。具体来说，我们将讨论 OpenML 的数据集、任务与任务集合，但不会涉及算法或实验结果。</p>
+<section id="sec-openml-dataset" class="level3 page-columns page-full" data-number="11.1.1"><h3 data-number="11.1.1" class="anchored" data-anchor-id="sec-openml-dataset">
+<span class="header-section-number">11.1.1</span> 数据集（Datasets）</h3>
+<p>从 OpenML 查找数据可以通过网站或其 REST API 实现，<code>mlr3oml</code> 正是对这些接口的封装。可以使用 <a href="https://mlr3oml.mlr-org.com/reference/list_oml_collections.html"><code>list_oml_data()</code></a> 按特定属性筛选数据集，例如按特征数量、行数或分类问题中的类别数筛选：</p>
+<div class="cell">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3oml.mlr-org.com">mlr3oml</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">odatasets</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3oml.mlr-org.com/reference/list_oml.html">list_oml_data</a></span><span class="op">(</span></span>
+<span>  number_features <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span><span class="op">)</span>,</span>
+<span>  number_instances <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">45000</span>, <span class="fl">50000</span><span class="op">)</span>,</span>
+<span>  number_classes <span class="op">=</span> <span class="fl">2</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">odatasets</span><span class="op">[</span><span class="va">NumberOfFeatures</span> <span class="op">&lt;</span> <span class="fl">16</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"data_id"</span>, <span class="st">"name"</span>, <span class="st">"NumberOfFeatures"</span>, <span class="st">"NumberOfInstances"</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    data_id                                name NumberOfFeatures
+ 1:     179                               adult               15
+ 2:    1590                               adult               15
+ 3:   43898                               adult               15
+ 4:   45051                          adult-test               15
+ 5:   45068                               adult               15
+---                                                             
+ 8:   46553                         Loan_Status               14
+ 9:   46554                         Loan_Status               14
+10:   46563 Loan_Approval_Status_Classification               14
+11:   46565                Loan_Approval_Status               14
+12:   46910                      bank-marketing               14
+1 variable not shown: [NumberOfInstances]</code></pre>
+</div>
+</div>
+<p>注意 <code><a href="https://mlr3oml.mlr-org.com/reference/list_oml.html">list_oml_data()</a></code> 返回的 <code>data.table</code> 包含的元特征比这里显示的要多得多；这个表本身也可以用于进一步筛选。</p>
+<p>我们可以看到有些数据集名称重复，这就是为什么每个数据集还有一个唯一 ID。例如，让我们考虑 ID 为 1590 的「adult」数据集。数据集的元数据用 <a href="https://mlr3oml.mlr-org.com/reference/odt.html"><code>odt()</code></a> 加载，它返回一个 <a href="https://mlr3oml.mlr-org.com/reference/oml_data.html"><code>OMLData</code></a> 类的对象。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://mlr3oml.mlr-org.com/reference/odt.html">odt()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">odata</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3oml.mlr-org.com/reference/odt.html">odt</a></span><span class="op">(</span>id <span class="op">=</span> <span class="fl">1590</span><span class="op">)</span></span>
+<span><span class="va">odata</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;OMLData:1590:adult&gt; (48842x15)
+ * Default target: class</code></pre>
+</div>
+</div>
+<p><code>OMLData</code> 对象包含关于数据集的元数据，但重要的是它（目前）并不包含数据本身。这意味着无需把整个数据载入内存即可查询数据集的信息，例如许可证与数据维度：</p>
+<div class="cell">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">odata</span><span class="op">$</span><span class="va">license</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Public"</code></pre>
+</div>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>nrow <span class="op">=</span> <span class="va">odata</span><span class="op">$</span><span class="va">nrow</span>, ncol <span class="op">=</span> <span class="va">odata</span><span class="op">$</span><span class="va">ncol</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> nrow  ncol 
+48842    15 </code></pre>
+</div>
+</div>
+<p>如果我们想使用实际数据，那么访问 <code>$data</code> 字段将下载数据、导入到 R 中，然后把 <code>data.frame</code> 存储在 <code>OMLData</code> 对象中：</p>
+<div class="cell">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># 前 5 行与前 5 列</span></span>
+<span><span class="va">odata</span><span class="op">$</span><span class="va">data</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   age workclass fnlwgt    education education.num
+1:  25   Private 226802         11th             7
+2:  38   Private  89814      HS-grad             9
+3:  28 Local-gov 336951   Assoc-acdm            12
+4:  44   Private 160323 Some-college            10
+5:  18      &lt;NA&gt; 103497 Some-college            10</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+mlr3oml 缓存（mlr3oml Cache）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>首次调用 <code>$data</code> 之后，所有后续对 <code>$data</code> 的调用都会被透明地重定向到内存中的 <code>data.frame</code>。此外，许多对象可以通过把选项 <code>mlr3oml.cache</code> 设置为 <code>TRUE</code> 或设置为一个用作缓存文件夹的具体路径，被永久缓存在本地文件系统中。</p>
+</div>
+</div>
+<p>然后可以用 <a href="https://mlr3.mlr-org.com/reference/as_data_backend.html"><code>as_data_backend()</code></a> 函数将数据转换为 <code>mlr3</code> 后端（见<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-backends" class="quarto-xref"><span>10.4 节</span></a>），再转换为任务：</p>
+<div class="cell">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">backend</span> <span class="op">=</span> <span class="fu">as_data_backend</span><span class="op">(</span><span class="va">odata</span><span class="op">)</span></span>
+<span><span class="va">tsk_adult</span> <span class="op">=</span> <span class="fu">as_task_classif</span><span class="op">(</span><span class="va">backend</span>, target <span class="op">=</span> <span class="st">"class"</span><span class="op">)</span></span>
+<span><span class="va">tsk_adult</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;TaskClassif&gt; (48842x15) ─────────────────────────────────────────────
+• Target: class
+• Properties: twoclass
+• Features (14):
+  • fct (8): education, marital.status, native.country, occupation,
+  race, relationship, sex, workclass
+  • int (6): age, capital.gain, capital.loss, education.num, fnlwgt,
+  hours.per.week
+• Target classes: &gt;50K (positive class, 24%), &lt;=50K (76%)</code></pre>
+</div>
+</div>
+<p>OpenML 上有些数据集包含既不应作为特征也不应作为目标变量的列。通常作为特征包含的列名可通过 <code>$feature_names</code> 字段访问，我们将它们相应地赋给 <code>mlr3</code> 任务。注意对于当前这个数据集，这一步其实并非必要，因为所有非目标列都要当作预测变量，但我们为了清晰起见还是包含它。</p>
+<div class="cell">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_adult</span><span class="op">$</span><span class="va">col_roles</span><span class="op">$</span><span class="va">feature</span> <span class="op">=</span> <span class="va">odata</span><span class="op">$</span><span class="va">feature_names</span></span>
+<span><span class="va">tsk_adult</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;TaskClassif&gt; (48842x15) ─────────────────────────────────────────────
+• Target: class
+• Properties: twoclass
+• Features (14):
+  • fct (8): education, marital.status, native.country, occupation,
+  race, relationship, sex, workclass
+  • int (6): age, capital.gain, capital.loss, education.num, fnlwgt,
+  hours.per.week
+• Target classes: &gt;50K (positive class, 24%), &lt;=50K (76%)</code></pre>
+</div>
+</div>
+</section><section id="sec-openml-task" class="level3 page-columns page-full" data-number="11.1.2"><h3 data-number="11.1.2" class="anchored" data-anchor-id="sec-openml-task">
+<span class="header-section-number">11.1.2</span> 任务（Task）</h3>
+<p>OpenML 任务建立在 OpenML 数据集之上，另外还指定了目标变量、用于重采样的训练-测试划分等等。注意这与 <code>mlr3</code> 的 <code>Task</code> 对象不同，后者不包含有关重采样过程的信息。与 <code>mlr3</code> 类似，OpenML 也有不同类型的任务，例如回归与分类。与筛选数据集类似，任务可以用 <a href="https://mlr3oml.mlr-org.com/reference/list_oml_collections.html"><code>list_oml_tasks()</code></a> 筛选。要找到使用我们所用数据的任务，可以把数据 ID 传给 <code>data_id</code> 参数：</p>
+<div class="cell">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># 使用 adult 数据的任务</span></span>
+<span><span class="va">adult_tasks</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3oml.mlr-org.com/reference/list_oml.html">list_oml_tasks</a></span><span class="op">(</span>data_id <span class="op">=</span> <span class="fl">1590</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">adult_tasks</span><span class="op">[</span><span class="va">task_type</span> <span class="op">==</span> <span class="st">"Supervised Classification"</span>, <span class="va">task_id</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1]   7592  14947 126025 146154 146598 168878 233099 359983 361515
+[10] 362136</code></pre>
+</div>
+</div>
+<p>从这些任务中，我们随机选择 ID 为 359983 的任务。我们可以用 <a href="https://mlr3oml.mlr-org.com/reference/otsk.html"><code>otsk()</code></a> 加载该对象，它返回一个 <a href="https://mlr3oml.mlr-org.com/reference/oml_task.html"><code>OMLTask</code></a> 对象。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://mlr3oml.mlr-org.com/reference/otsk.html">otsk()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">otask</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3oml.mlr-org.com/reference/otsk.html">otsk</a></span><span class="op">(</span>id <span class="op">=</span> <span class="fl">359983</span><span class="op">)</span></span>
+<span><span class="va">otask</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;OMLTask:359983&gt;
+ * Type: Supervised Classification
+ * Data: adult (id: 1590; dim: 48842x15)
+ * Target: class
+ * Estimation: crossvalidation (id: 1; repeats: 1, folds: 10)</code></pre>
+</div>
+</div>
+<p>与底层数据集关联的 <code>OMLData</code> 对象可以通过 <code>$data</code> 字段访问。</p>
+<div class="cell">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">otask</span><span class="op">$</span><span class="va">data</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;OMLData:1590:adult&gt; (48842x15)
+ * Default target: class</code></pre>
+</div>
+</div>
+<p>与估计过程关联的数据划分可通过 <code>$task_splits</code> 字段访问。用 <code>mlr3</code> 的术语来说，这些是在特定 <a href="https://mlr3.mlr-org.com/reference/Task.html"><code>Task</code></a> 上实例化（instantiate）的 <a href="https://mlr3.mlr-org.com/reference/Resampling.html"><code>Resampling</code></a>。</p>
+<div class="cell">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">otask</span><span class="op">$</span><span class="va">task_splits</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>         type rowid repeat. fold
+     1: TRAIN 32427       0    0
+     2: TRAIN 13077       0    0
+     3: TRAIN 15902       0    0
+     4: TRAIN 17703       0    0
+     5: TRAIN 35511       0    0
+    ---                         
+488416:  TEST  8048       0    9
+488417:  TEST 12667       0    9
+488418:  TEST 43944       0    9
+488419:  TEST 25263       0    9
+488420:  TEST 43381       0    9</code></pre>
+</div>
+</div>
+<p>OpenML 任务可以分别用 <a href="https://mlr3oml.mlr-org.com/reference/as_task.html"><code>as_task()</code></a> 和 <a href="https://mlr3oml.mlr-org.com/reference/as_resampling.html"><code>as_resampling()</code></a> 转换为 <a href="https://mlr3.mlr-org.com/reference/Task.html"><code>mlr3::Task</code></a> 和在该任务上实例化的 <a href="https://mlr3.mlr-org.com/reference/ResamplingCustom.html"><code>ResamplingCustom</code></a>：</p>
+<div class="cell">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_adult</span> <span class="op">=</span> <span class="fu">as_task</span><span class="op">(</span><span class="va">otask</span><span class="op">)</span></span>
+<span><span class="va">tsk_adult</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;TaskClassif&gt; (48842x15) ─────────────────────────────────────────────
+• Target: class
+• Properties: twoclass
+• Features (14):
+  • fct (8): education, marital.status, native.country, occupation,
+  race, relationship, sex, workclass
+  • int (6): age, capital.gain, capital.loss, education.num, fnlwgt,
+  hours.per.week
+• Target classes: &gt;50K (positive class, 24%), &lt;=50K (76%)</code></pre>
+</div>
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">resampling</span> <span class="op">=</span> <span class="fu">as_resampling</span><span class="op">(</span><span class="va">otask</span><span class="op">)</span></span>
+<span><span class="va">resampling</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;ResamplingCustom&gt; : Custom Splits ───────────────────────────────────
+• Iterations: 10
+• Instantiated: TRUE
+• Parameters: list()</code></pre>
+</div>
+</div>
+<p><code>mlr3oml</code> 还允许用标准的 <a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html"><code>tsk()</code></a> 和 <a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html"><code>rsmp()</code></a> 构造器直接构造 <code>mlr3</code> 任务与重采样，例如：</p>
+<div class="cell">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">tsk</span><span class="op">(</span><span class="st">"oml"</span>, task_id <span class="op">=</span> <span class="fl">359983</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;TaskClassif&gt; (48842x15) ─────────────────────────────────────────────
+• Target: class
+• Properties: twoclass
+• Features (14):
+  • fct (8): education, marital.status, native.country, occupation,
+  race, relationship, sex, workclass
+  • int (6): age, capital.gain, capital.loss, education.num, fnlwgt,
+  hours.per.week
+• Target classes: &gt;50K (positive class, 24%), &lt;=50K (76%)</code></pre>
+</div>
+</div>
+</section><section id="sec-openml-collection" class="level3 page-columns page-full" data-number="11.1.3"><h3 data-number="11.1.3" class="anchored" data-anchor-id="sec-openml-collection">
+<span class="header-section-number">11.1.3</span> 任务集合（Task Collection）</h3>
+<p>OpenML 任务集合是一个打包现有任务的容器对象。这允许创建基准套件（benchmark suite），即满足一定质量标准的精选任务集合。例子包括 OpenML CC-18 基准套件 <span class="citation" data-cites="bischl2021openml">(<a href="../references.html#ref-bischl2021openml" role="doc-biblioref">Bischl et al. 2021</a>)</span>、AutoML 基准 <span class="citation" data-cites="amlb2022">(<a href="../references.html#ref-amlb2022" role="doc-biblioref">Gijsbers et al. 2022</a>)</span>以及表格深度学习基准 <span class="citation" data-cites="grinsztajn2022why">(<a href="../references.html#ref-grinsztajn2022why" role="doc-biblioref">Grinsztajn, Oyallon, and Varoquaux 2022</a>)</span>。<a href="https://mlr3oml.mlr-org.com/reference/oml_collection.html"><code>OMLCollection</code></a> 对象用 <a href="https://mlr3oml.mlr-org.com/reference/ocl.html"><code>ocl()</code></a> 加载，例如我们将查看 ID 为 99 的 CC-18：</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://mlr3oml.mlr-org.com/reference/ocl.html">ocl()</a></code></span></div></div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>基准套件（benchmark suite）是一组经过人工筛选、满足质量门槛（如样本量、缺失率、类别数、元数据完整性）的任务集合。直接使用套件可以避免研究者「挑选」对自己方法有利的数据集——即所谓的选择偏差（selection bias），也让不同论文的实验结果可以横向比较。CC-18 是 OpenML 上最常用的分类基准套件之一；AutoML 基准（AMLB）与表格深度学习基准则分别服务于自动机器学习与深度学习研究。</p>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">otask_collection</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3oml.mlr-org.com/reference/ocl.html">ocl</a></span><span class="op">(</span>id <span class="op">=</span> <span class="fl">99</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">otask_collection</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;OMLCollection: 99&gt; OpenML-CC18 Curated Class[...]
+ * data:  72
+ * tasks: 72</code></pre>
+</div>
+</div>
+<p>该任务集合包括 72 个基于不同数据集的分类任务，可以通过 <code>$task_ids</code> 访问：</p>
+<div class="cell">
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">otask_collection</span><span class="op">$</span><span class="va">task_ids</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span> <span class="co"># 集合中的前 5 个任务</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1]  3  6 11 12 14</code></pre>
+</div>
+</div>
+<p>任务集合可用于在 <code>mlr3</code> 中快速定义基准实验。要方便地从基准套件构造所有任务与重采样，可以分别使用 <a href="https://mlr3.mlr-org.com/reference/as_task.html"><code>as_tasks()</code></a> 和 <a href="https://mlr3.mlr-org.com/reference/as_resampling.html"><code>as_resamplings()</code></a>：</p>
+<div class="cell">
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tasks</span> <span class="op">=</span> <span class="fu">as_tasks</span><span class="op">(</span><span class="va">otask_collection</span><span class="op">)</span></span>
+<span><span class="va">resamplings</span> <span class="op">=</span> <span class="fu">as_resamplings</span><span class="op">(</span><span class="va">otask_collection</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>或者，如果我们想进一步筛选集合，例如筛选到一个包含六个任务的二分类实验，我们可以用 CC-18 集合中的任务 ID 作为 <code>task_id</code> 参数运行 <a href="https://mlr3oml.mlr-org.com/reference/list_oml_collections.html"><code>list_oml_tasks()</code></a>。我们可以使用 <code><a href="https://mlr3oml.mlr-org.com/reference/list_oml.html">list_oml_tasks()</a></code> 的参数来要求类别数为 <code>2</code>，也可以利用 <code><a href="https://mlr3oml.mlr-org.com/reference/list_oml.html">list_oml_tasks()</a></code> 的返回结果是 <code>data.table</code> 这一事实，对结果表取子集。</p>
+<div class="cell">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">binary_cc18</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3oml.mlr-org.com/reference/list_oml.html">list_oml_tasks</a></span><span class="op">(</span></span>
+<span>  limit <span class="op">=</span> <span class="fl">6</span>,</span>
+<span>  task_id <span class="op">=</span> <span class="va">otask_collection</span><span class="op">$</span><span class="va">task_ids</span>,</span>
+<span>  number_classes <span class="op">=</span> <span class="fl">2</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>我们现在定义用于比较逻辑回归与随机森林学习器的任务与重采样。注意该集合中所有重采样都恰好包含 10 次迭代。</p>
+<div class="cell">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># 以列表形式加载任务</span></span>
+<span><span class="va">otasks</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="va">binary_cc18</span><span class="op">$</span><span class="va">task_id</span>, <span class="va">otsk</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 转换为 mlr3 任务与重采样</span></span>
+<span><span class="va">tasks</span> <span class="op">=</span> <span class="fu">as_tasks</span><span class="op">(</span><span class="va">otasks</span><span class="op">)</span></span>
+<span><span class="va">resamplings</span> <span class="op">=</span> <span class="fu">as_resamplings</span><span class="op">(</span><span class="va">otasks</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>为了定义设计表，我们使用 <a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html"><code>benchmark_grid()</code></a> 并把 <code>paired</code> 设为 <code>TRUE</code>，这用于每个重采样都在相应任务上实例化的情形（因此下面的 <code>tasks</code> 与 <code>resamplings</code> 长度必须相同），且每个学习器都应在每个重采样任务上被评估。</p>
+<div class="cell">
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">large_design</span> <span class="op">=</span> <span class="fu">benchmark_grid</span><span class="op">(</span><span class="va">tasks</span>, <span class="va">learners</span>, <span class="va">resamplings</span>,</span>
+<span>  paired <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">large_design</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">]</span> <span class="co"># 前 6 行</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       task     learner resampling
+1: kr-vs-kp      logreg     custom
+2: kr-vs-kp      ranger     custom
+3: kr-vs-kp featureless     custom
+4: breast-w      logreg     custom
+5: breast-w      ranger     custom
+6: breast-w featureless     custom</code></pre>
+</div>
+</div>
+<p>搭建好我们的大型实验之后，现在来看如何在集群上高效地执行它。</p>
+</section></section><section id="sec-hpc-exec" class="level2 page-columns page-full" data-number="11.2"><h2 data-number="11.2" class="anchored" data-anchor-id="sec-hpc-exec">
+<span class="header-section-number">11.2</span> 在 HPC 集群上进行基准测试（Benchmarking on HPC Clusters）</h2>
+<p>正如<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-parallelization" class="quarto-xref"><span>10.1 节</span></a>所讨论的，基准实验的并行化很简单，因为它们是令人尴尬地并行（embarrassingly parallel）的。然而，对于大型实验，在高性能计算（HPC）集群上进行并行化往往更可取。<a href="https://batchtools.mlr-org.com"><code>batchtools</code></a> 提供了一个框架，用于在此类站点上从 R 并行运行大批量计算实验。它非常灵活，适用于广泛的计算实验，包括机器学习、优化、模拟等。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">高性能计算（High-performance Computing）</span></div></div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+<code>"batchtools"</code> 作为 <code>future</code> 的后端
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>在<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-parallel-resample" class="quarto-xref"><span>10.1.2 节</span></a>中我们提到过不同的并行化后端。包 <a href="https://cran.r-project.org/package=future"><code>future</code></a> 包含一个 <code>"batchtools"</code> 计划（plan），但它不提供直接使用 <code>batchtools</code> 所带来的额外控制。</p>
+</div>
+</div>
+<p>HPC 集群是相互连接的计算机或服务器的集合，提供超越单台计算机的计算能力。HPC 集群通常由多个计算节点（compute node）组成，每个节点拥有多个 CPU/GPU 核心、内存和本地存储。这些节点通常通过高速网络与网络文件系统相连，使节点能够通信并协同完成给定任务。HPC 集群与个人计算机（PC）最重要的区别在于：节点往往无法被直接访问，计算作业由调度系统（如 Slurm，Simple Linux Utility for Resource Management，简单 Linux 资源管理工具）排队。调度系统是一种软件工具，负责在集群上把计算资源分配给用户或应用程序。它确保多个用户和应用程序能够公平且高效地访问集群资源，同时也有助于最大化计算资源的利用率。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>高性能计算集群（HPC cluster）由登录节点（head node）、计算节点（compute node）与共享文件系统组成。与个人电脑最大的不同是，用户不能直接「登录」计算节点运行程序，而是把作业（job）提交给调度系统（如 Slurm、PBS/Torque、LSF），由调度系统按公平与效率原则排队分配资源。理解这一「提交-排队-执行」模型，是理解 batchtools 中 registry、cluster function、template 等概念的前提。对于在国内超算中心（如国家超算中心、各高校集群）使用 R 的用户，同样遵循这一模式，只是调度命令不同。</p>
+</div>
+<p><a href="#fig-hpc" class="quarto-xref">图 <span>11.1</span></a> 给出了 HPC 架构的粗略示意图。多个用户可以登录头节点（通常通过 SSH），并通过发送「用资源 Y 执行计算 X，持续 Z 时间」形式的命令把计算作业加入队列。调度系统控制这些计算作业何时执行。</p>
+<p>在本节剩余部分，我们将介绍如何使用 <code>batchtools</code> 和 <a href="https://mlr3batchmark.mlr-org.com"><code>mlr3batchmark</code></a> 来提交作业、让作业适配集群、保证可复现性、查询作业状态以及调试失败。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-hpc" class="quarto-float quarto-figure quarto-figure-center anchored" alt="对象流程图。左侧是一台笔记本电脑，带有一个指向写有「Head Node - Scheduler（头节点-调度器）」对象的箭头，箭头上写着「SSH」。调度器与「Queue（队列）」之间有一条标着「Submit（提交）」的双向箭头，「队列」又有一个指向「Computing Nodes（计算节点）」的箭头。调度器还有一条指向「File System（文件系统）」的箭头，「文件系统」与「Computing Nodes」对象之间用标着「Data（数据）」的双箭头连接。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-hpc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/mlr3book_figures-32.svg" class="img-fluid figure-img" style="width:100.0%" alt="对象流程图。左侧是一台笔记本电脑，带有一个指向写有「Head Node - Scheduler（头节点-调度器）」对象的箭头，箭头上写着「SSH」。调度器与「Queue（队列）」之间有一条标着「Submit（提交）」的双向箭头，「队列」又有一个指向「Computing Nodes（计算节点）」的箭头。调度器还有一条指向「File System（文件系统）」的箭头，「文件系统」与「Computing Nodes」对象之间用标着「Data（数据）」的双箭头连接。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-hpc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 11.1：HPC 集群架构示意图。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<section id="sec-registry" class="level3 page-columns page-full" data-number="11.2.1"><h3 data-number="11.2.1" class="anchored" data-anchor-id="sec-registry">
+<span class="header-section-number">11.2.1</span> 实验注册表设置（Experiment Registry Setup）</h3>
+<p><code>batchtools</code> 围绕实验或「作业（job）」构建。一个作业的重复执行（replication）由把一个（参数化的）算法应用于一个（参数化的）问题来定义。<code>batchtools</code> 中的基准实验由许多这样的实验组成，这些实验使用不同的算法、算法参数、问题与问题参数。每个这样的实验在计算上独立于其他所有实验，构成 <code>batchtools</code> 可以并行化的基本计算层级。在本节中，我们将一个 <code>batchtools</code> 实验定义为一个学习器在一个任务上的一个重采样迭代；在<a href="#sec-custom-experiments" class="quarto-xref"><span>11.2.4 节</span></a>中，我们将考察定义实验的不同方式。</p>
+<p>运行实验的第一步是用 <a href="https://batchtools.mlr-org.com/reference/makeExperimentRegistry.html"><code>makeExperimentRegistry()</code></a> 创建实验注册表，或用 <a href="https://batchtools.mlr-org.com/reference/loadRegistry.html"><code>loadRegistry()</code></a> 加载实验注册表。这构造了 <code>batchtools</code> 中所有函数之间的通信对象，并对应于文件系统上的一个文件夹。除其他内容外，实验注册表存储算法、问题与作业定义；已提交、运行中与已完成作业的日志输出与状态；作业结果；以及「集群函数（cluster function）」，它以一种与调度软件无关的方式定义与调度系统的交互。</p>
+<p>下面，我们在工作目录的子目录中创建一个注册表——在真实的集群上，请确保该文件夹存储在共享网络文件系统上，否则节点无法访问它。我们还将注册表的 <code>seed</code> 设置为 <code>1</code>，把 <code>packages</code> 设置为 <code>"mlr3verse"</code>，这将使这些包在我们所有的实验中可用。</p>
+<div class="cell">
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/mlr-org/batchtools">batchtools</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 创建注册表</span></span>
+<span><span class="va">reg</span> <span class="op">=</span> <span class="fu"><a href="https://batchtools.mlr-org.com/reference/makeExperimentRegistry.html">makeExperimentRegistry</a></span><span class="op">(</span></span>
+<span>  file.dir <span class="op">=</span> <span class="st">"./experiments"</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  packages <span class="op">=</span> <span class="st">"mlr3verse"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>注册表创建完成后，我们需要用问题与算法来填充它以形成作业，这一步用 <code>mlr3batchmark</code> 最容易完成，不过用 <code>batchtools</code> 也可以实现更精细的控制，这将在<a href="#sec-custom-experiments" class="quarto-xref"><span>11.2.4 节</span></a>中探讨。<a href="https://mlr3batchmark.mlr-org.com/reference/batchmark.html"><code>batchmark()</code></a> 把 <code>mlr3</code> 任务与重采样转换为 <code>batchtools</code> 问题，把 <code>mlr3</code> 学习器转换为 <code>batchtools</code> 算法；随后为所有重采样迭代创建作业。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://mlr3batchmark.mlr-org.com/reference/batchmark.html">batchmark()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb45"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3batchmark.mlr-org.com">mlr3batchmark</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://mlr3batchmark.mlr-org.com/reference/batchmark.html">batchmark</a></span><span class="op">(</span><span class="va">large_design</span>, reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>现在注册表包含六个问题，每个重采样任务对应一个，以及由 <span class="math inline">\(3\)</span> 个学习器 <span class="math inline">\(\times\)</span> <span class="math inline">\(6\)</span> 个任务 <span class="math inline">\(\times\)</span> <span class="math inline">\(10\)</span> 次重采样迭代组成的 <span class="math inline">\(180\)</span> 个作业。注册表中只有一个算法，是因为 <code>mlr3batchmark</code> 指定了一个单一的算法，该算法用学习器 ID 参数化。</p>
+<div class="cell">
+<div class="sourceCode" id="cb46"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">reg</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Experiment Registry
+  Backend   : Interactive
+  File dir  : /__w/mlr3book/mlr3book/book/chapters/chapter11/experiments
+  Work dir  : /__w/mlr3book/mlr3book/book/chapters/chapter11
+  Jobs      : 180
+  Problems  : 6
+  Algorithms: 1
+  Seed      : 1
+  Writeable : TRUE</code></pre>
+</div>
+</div>
+<p>默认情况下，使用的是「Interactive（交互式）」集群函数（见 <a href="https://batchtools.mlr-org.com/reference/makeClusterFunctionsInteractive.html"><code>makeClusterFunctionsInteractive()</code></a>）——这是对调度系统的抽象，这里的「交互式」是指不使用真正的调度器，而是使用交互式 R 会话进行顺序计算。<a href="https://batchtools.mlr-org.com/reference/getJobTable.html"><code>getJobTable()</code></a> 可用于获取关于作业的更详细信息。这里为了可读性，我们只展示几个选定的列，并使用 <a href="https://batchtools.mlr-org.com/reference/unwrap.html"><code>unwrap()</code></a> 解包列表列 <code>algo.pars</code> 与 <code>prob.pars</code>。</p>
+<div class="cell">
+<div class="sourceCode" id="cb48"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">job_table</span> <span class="op">=</span> <span class="fu"><a href="https://batchtools.mlr-org.com/reference/getJobTable.html">getJobTable</a></span><span class="op">(</span>reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
+<span><span class="va">job_table</span> <span class="op">=</span> <span class="fu"><a href="https://batchtools.mlr-org.com/reference/unwrap.html">unwrap</a></span><span class="op">(</span><span class="va">job_table</span><span class="op">)</span></span>
+<span><span class="va">job_table</span> <span class="op">=</span> <span class="va">job_table</span><span class="op">[</span>,</span>
+<span>  <span class="fu">.</span><span class="op">(</span><span class="va">job.id</span>, <span class="va">learner_id</span>, <span class="va">task_id</span>, <span class="va">resampling_id</span>, <span class="va">repl</span><span class="op">)</span></span>
+<span><span class="op">]</span></span>
+<span></span>
+<span><span class="va">job_table</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     job.id  learner_id  task_id resampling_id repl
+  1:      1      logreg kr-vs-kp        custom    1
+  2:      2      logreg kr-vs-kp        custom    2
+  3:      3      logreg kr-vs-kp        custom    3
+  4:      4      logreg kr-vs-kp        custom    4
+  5:      5      logreg kr-vs-kp        custom    5
+ ---                                               
+176:    176 featureless spambase        custom    6
+177:    177 featureless spambase        custom    7
+178:    178 featureless spambase        custom    8
+179:    179 featureless spambase        custom    9
+180:    180 featureless spambase        custom   10</code></pre>
+</div>
+</div>
+<p>在这个输出中，我们可以看到每个作业如何被分配一个唯一的 <code>job.id</code>，以及每一行如何对应一个重采样实验的一次迭代（列 <code>repl</code>）。</p>
+</section><section id="sec-batchtools-submission" class="level3 page-columns page-full" data-number="11.2.2"><h3 data-number="11.2.2" class="anchored" data-anchor-id="sec-batchtools-submission">
+<span class="header-section-number">11.2.2</span> 作业提交（Job Submission）</h3>
+<p>定义了实验之后，我们现在可以把它们提交到集群。然而，最佳实践是先用 <a href="https://batchtools.mlr-org.com/reference/testJob.html"><code>testJob()</code></a> 单独测试每个算法。例如，我们只测试第一个作业（<code>id = 1</code>），并使用外部 R 会话（<code>external = TRUE</code>）。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://batchtools.mlr-org.com/reference/testJob.html">testJob()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb50"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">result</span> <span class="op">=</span> <span class="fu"><a href="https://batchtools.mlr-org.com/reference/testJob.html">testJob</a></span><span class="op">(</span><span class="fl">1</span>, external <span class="op">=</span> <span class="cn">TRUE</span>, reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>一旦我们确信作业定义正确（对于出错的作业见<a href="#sec-batchtools-monitoring" class="quarto-xref"><span>11.2.3 节</span></a>），就可以继续提交它们，即为每个计算作业指定资源需求，然后（可选地）对作业进行分组。</p>
+<p>资源的配置取决于注册表中设置的集群函数。我们将假设在一个 Slurm 集群上工作，并相应地用 <a href="https://batchtools.mlr-org.com/reference/makeClusterFunctionsSlurm.html"><code>makeClusterFunctionsSlurm()</code></a> 初始化集群函数，同时使用 <code>slurm-simple.tml</code> 模板文件，该文件可以在 <code>batchtools</code> 包自身的子目录中找到（确切位置可通过运行 <code>system.file("templates", package = "batchtools")</code> 获得），也可以在 <code>batchtools</code> 的 GitHub 仓库中找到。模板文件（template file）是一个带占位符的 Shell 脚本，由 <code>batchtools</code> 填入内容，其中包含通过 <code>Rscript</code> 或 <code>R CMD batch</code> 启动计算的命令，以及作为调度器注释的注释行，例如用于传达资源或文件系统上的路径。</p>
+<p>这个示例模板在许多 Slurm 安装上开箱即用，但你可能需要根据自己的集群进行修改——它可以被定制以适配更高级的配置。</p>
+<div class="cell">
+<div class="sourceCode" id="cb51"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">cf</span> <span class="op">=</span> <span class="fu"><a href="https://batchtools.mlr-org.com/reference/makeClusterFunctionsSlurm.html">makeClusterFunctionsSlurm</a></span><span class="op">(</span>template <span class="op">=</span> <span class="st">"slurm-simple"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>为了在本地机器上继续示例，我们建议用 <a href="https://batchtools.mlr-org.com/reference/makeClusterFunctionsSocket.html"><code>makeClusterFunctionsSocket()</code></a> 把集群函数设置为 Socket 后端。选定的集群函数可以通过传给 <code>$cluster.functions</code> 字段保存到注册表中。</p>
+<div class="cell">
+<div class="sourceCode" id="cb52"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">reg</span><span class="op">$</span><span class="va">cluster.functions</span> <span class="op">=</span> <span class="va">cf</span></span>
+<span><span class="fu"><a href="https://batchtools.mlr-org.com/reference/saveRegistry.html">saveRegistry</a></span><span class="op">(</span>reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>注册表设置好之后，我们现在可以决定是否要分块运行实验（<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-parallelization" class="quarto-xref"><span>10.1 节</span></a>），然后为提交的作业指定资源需求。</p>
+<p>对于这个例子，我们将使用 <a href="https://batchtools.mlr-org.com/reference/chunk.html"><code>chunk()</code></a> 对作业进行分块，使得一个重采样实验的五次迭代在一个计算作业中顺序运行——在实践中，最优分组高度依赖于你的实验（<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-parallelization" class="quarto-xref"><span>10.1 节</span></a>）。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://batchtools.mlr-org.com/reference/chunk.html">chunk()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb53"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ids</span> <span class="op">=</span> <span class="va">job_table</span><span class="op">$</span><span class="va">job.id</span></span>
+<span><span class="va">chunks</span> <span class="op">=</span> <span class="fu">data.table</span><span class="op">(</span></span>
+<span>  job.id <span class="op">=</span> <span class="va">ids</span>, chunk <span class="op">=</span> <span class="fu"><a href="https://batchtools.mlr-org.com/reference/chunk.html">chunk</a></span><span class="op">(</span><span class="va">ids</span>, chunk.size <span class="op">=</span> <span class="fl">5</span>, shuffle <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">chunks</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">]</span> <span class="co"># 前 6 个作业</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   job.id chunk
+1:      1     1
+2:      2     1
+3:      3     1
+4:      4     1
+5:      5     1
+6:      6     2</code></pre>
+</div>
+</div>
+<p>最后一步是决定每个作业的资源需求。资源集合取决于你的集群与相应的模板文件。如果你不确定资源需求，可以用宽松的资源约束启动一部分作业，例如你的计算站点允许的最大运行时间。测得的运行时间与内存使用随后可用 <a href="https://batchtools.mlr-org.com/reference/getJobTable.html"><code>getJobTable()</code></a> 查询，并用于更好地估计剩余作业所需的资源。在本例中，我们将每个作业的 CPU 数设置为 <code>1</code>，墙钟时间（walltime，即调度器停止作业前的时间限制）设置为 1 小时（<code>3600</code> 秒），内存限制（调度器停止作业前的内存上限）设置为 <code>8000</code> 兆字节。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>把多个小的重采样迭代「打包」成一个集群作业（chunking）能显著降低调度开销——调度系统对每个作业都有排队与启动成本，作业数量越少、粒度越粗，吞吐越高；但代价是单个作业的运行时间变长、失败后重算的粒度变大。最优 chunk 大小取决于单次迭代耗时、队列限制与节点资源，实践中需要权衡。模板文件（template）是 batchtools 与调度系统之间的「翻译层」：它本质上是一段带占位符的 Shell 脚本，batchtools 会填入作业参数后交给调度系统执行。</p>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb55"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">resources</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>ncpus <span class="op">=</span> <span class="fl">1</span>, walltime <span class="op">=</span> <span class="fl">3600</span>, memory <span class="op">=</span> <span class="fl">8000</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>所有要素就绪后，我们现在可以提交作业了。</p>
+<!-- 关闭输出，否则我们会看到交互式集群函数 -->
+<div class="cell">
+<div class="sourceCode" id="cb56"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://batchtools.mlr-org.com/reference/submitJobs.html">submitJobs</a></span><span class="op">(</span>ids <span class="op">=</span> <span class="va">chunks</span>, resources <span class="op">=</span> <span class="va">resources</span>, reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 等待所有作业结束</span></span>
+<span><span class="fu"><a href="https://batchtools.mlr-org.com/reference/waitForJobs.html">waitForJobs</a></span><span class="op">(</span>reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+提交作业（Submitting Jobs）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>提交计算作业的一个好方法，是在头节点上使用一个持久的 R 会话（例如使用终端复用器 Terminal Multiplexer, TMUX）在后台持续提交作业（或进行计算，取决于集群函数）。</p>
+<p>然而，<code>batchtools</code> 注册表保存在文件系统上，因此在 R 会话终止时仍然持久存在。这意味着你也可以从交互式 R 会话提交作业、终止会话，然后在新的会话中稍后分析结果。</p>
+</div>
+</div>
+</section><section id="sec-batchtools-monitoring" class="level3 page-columns page-full" data-number="11.2.3"><h3 data-number="11.2.3" class="anchored" data-anchor-id="sec-batchtools-monitoring">
+<span class="header-section-number">11.2.3</span> 作业监控、错误处理与结果收集（Job Monitoring, Error Handling, and Result Collection）</h3>
+<p>作业提交后，可以用 <a href="https://batchtools.mlr-org.com/reference/getStatus.html"><code>getStatus()</code></a> 查询它们以了解当前状态，并可调查结果（或错误）。如果你在作业提交后终止了 R 会话，可以用 <a href="https://batchtools.mlr-org.com/reference/loadRegistry.html"><code>loadRegistry()</code></a> 加载实验注册表。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://batchtools.mlr-org.com/reference/getStatus.html">getStatus()</a></code></span><span class="margin-aside"><code><a href="https://batchtools.mlr-org.com/reference/loadRegistry.html">loadRegistry()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb57"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://batchtools.mlr-org.com/reference/getStatus.html">getStatus</a></span><span class="op">(</span>reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Status for 180 jobs at 2026-09-24 12:02:04:
+  Submitted    : 180 (100.0%)
+  -- Queued    :   0 (  0.0%)
+  -- Started   : 180 (100.0%)
+  ---- Running :   0 (  0.0%)
+  ---- Done    : 180 (100.0%)
+  ---- Error   :   0 (  0.0%)
+  ---- Expired :   0 (  0.0%)</code></pre>
+</div>
+</div>
+<p>要查询各类别下作业的 ID，请参见 <a href="https://batchtools.mlr-org.com/reference/findJobs.html"><code>findJobs()</code></a>，例如 <a href="https://batchtools.mlr-org.com/reference/findJobs.html"><code>findNotSubmitted()</code></a> 或 <a href="https://batchtools.mlr-org.com/reference/findJobs.html"><code>findDone()</code></a>。在我们的例子中，可以看到所有实验都已结束，没有过期的（expired，即从未开始就被移出队列，<code>Expired : 0</code>）或崩溃的（<code>Error : 0</code>）。在继续分析结果之前，用 <a href="https://batchtools.mlr-org.com/reference/grepLogs.html"><code>grepLogs()</code></a> 检查日志中的可疑消息与警告仍然是明智的。</p>
+<p>在任何大规模实验中，很多事情都可能出错、也一定会出错，例如集群可能停机、作业可能触及资源限制或崩溃，或者你的代码中可能有 bug。在这些情况下，重要的是快速确定出了什么问题，并且只重算所需的最少作业数量。</p>
+<p>为了看到实际的调试过程，我们将使用调试学习器（debug learner）（见<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-error-handling" class="quarto-xref"><span>10.2 节</span></a>），其训练时有 50% 的概率出错。再次调用 <a href="https://mlr3batchmark.mlr-org.com/reference/batchmark.html"><code>batchmark()</code></a> 时，新实验将被添加到注册表中现有作业之上。</p>
+<div class="cell">
+<div class="sourceCode" id="cb59"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">extra_design</span> <span class="op">=</span> <span class="fu">benchmark_grid</span><span class="op">(</span><span class="va">tasks</span>,</span>
+<span>  <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.debug"</span>, error_train <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>, <span class="va">resamplings</span>, paired <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://mlr3batchmark.mlr-org.com/reference/batchmark.html">batchmark</a></span><span class="op">(</span><span class="va">extra_design</span>, reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+注册表（Registry）参数
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>所有与注册表交互的 <code>batchtools</code> 函数都把注册表作为参数。默认情况下，该参数被设置为最后创建的注册表，也就是前面定义的 <code>reg</code> 对象。为了清晰起见，我们在本节中显式传入它。</p>
+</div>
+</div>
+<p>现在我们可以获取新作业的 ID（这些作业尚未提交），并通过传入它们的 ID 来提交它们。</p>
+<div class="cell">
+<div class="sourceCode" id="cb60"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ids</span> <span class="op">=</span> <span class="fu"><a href="https://batchtools.mlr-org.com/reference/findJobs.html">findNotSubmitted</a></span><span class="op">(</span>reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://batchtools.mlr-org.com/reference/submitJobs.html">submitJobs</a></span><span class="op">(</span><span class="va">ids</span>, reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>这些作业结束后，我们可以获得失败作业的摘要：</p>
+<div class="cell">
+<div class="sourceCode" id="cb61"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://batchtools.mlr-org.com/reference/getStatus.html">getStatus</a></span><span class="op">(</span>reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Status for 240 jobs at 2026-09-24 12:02:06:
+  Submitted    : 240 (100.0%)
+  -- Queued    :   0 (  0.0%)
+  -- Started   : 240 (100.0%)
+  ---- Running :   0 (  0.0%)
+  ---- Done    : 213 ( 88.8%)
+  ---- Error   :  27 ( 11.2%)
+  ---- Expired :   0 (  0.0%)</code></pre>
+</div>
+<div class="sourceCode" id="cb63"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">error_ids</span> <span class="op">=</span> <span class="fu"><a href="https://batchtools.mlr-org.com/reference/findJobs.html">findErrors</a></span><span class="op">(</span>reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://batchtools.mlr-org.com/reference/summarizeExperiments.html">summarizeExperiments</a></span><span class="op">(</span><span class="va">error_ids</span>, by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"task_id"</span>, <span class="st">"learner_id"</span><span class="op">)</span>,</span>
+<span>  reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           task_id    learner_id .count
+1:        kr-vs-kp classif.debug      6
+2:        breast-w classif.debug      3
+3: credit-approval classif.debug      5
+4:        credit-g classif.debug      6
+5:        diabetes classif.debug      5
+6:        spambase classif.debug      2</code></pre>
+</div>
+</div>
+<p>在真实的实验中，我们现在会进一步调查调试学习器，理解它为何出错、尝试修复这些 bug，然后可能只重新运行这些实验。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>在大规模实验中，错误几乎是必然发生的：集群故障、资源超限（内存/时间）、代码 bug、数据异常都会导致部分作业失败。工程上的应对思路是：1）用封装（encapsulation）把错误记录到外部日志，让训练失败不致中断整个实验；2）只重新计算失败的最小作业集合，而非全部重跑。这正是第 10 章 <code>encapsulate("try", fallback = ...)</code> 的意义所在。`classif.debug` 是 mlr3 自带的调试学习器，可人为制造训练/预测错误，用于演练上述流程。</p>
+</div>
+<p>假定学习器已被调试（或者我们愿意忽略它们），我们就可以用 <a href="https://mlr3batchmark.mlr-org.com/reference/reduceResultsBatchmark.html"><code>reduceResultsBatchmark()</code></a> 收集实验的结果，它会从结果中构造一个 <a href="https://mlr3.mlr-org.com/reference/BenchmarkResult.html"><code>BenchmarkResult</code></a>。下面我们过滤掉来自调试学习器的结果。</p>
+<div class="cell">
+<div class="sourceCode" id="cb65"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ids</span> <span class="op">=</span> <span class="fu"><a href="https://batchtools.mlr-org.com/reference/findJobs.html">findExperiments</a></span><span class="op">(</span>algo.pars <span class="op">=</span> <span class="va">learner_id</span> <span class="op">!=</span> <span class="st">"classif.debug"</span>,</span>
+<span>  reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
+<span><span class="va">bmr</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3batchmark.mlr-org.com/reference/reduceResultsBatchmark.html">reduceResultsBatchmark</a></span><span class="op">(</span><span class="va">ids</span>, reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
+<span><span class="va">bmr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   nr  task_id  learner_id resampling_id iters classif.ce
+1:  1 kr-vs-kp      logreg        custom    10    0.02566
+2:  2 kr-vs-kp      ranger        custom    10    0.01377
+3:  3 kr-vs-kp featureless        custom    10    0.47778
+4:  4 breast-w      logreg        custom    10    0.03578
+5:  5 breast-w      ranger        custom    10    0.02861
+Hidden columns: resample_result</code></pre>
+</div>
+</div>
+</section><section id="sec-custom-experiments" class="level3" data-number="11.2.4"><h3 data-number="11.2.4" class="anchored" data-anchor-id="sec-custom-experiments">
+<span class="header-section-number">11.2.4</span> 用 batchtools 实现自定义实验（Custom Experiments with batchtools）</h3>
+<div class="callout callout-style-simple callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+本节涵盖高级机器学习或技术细节。
+</div>
+</div>
+<div class="callout-body-container callout-body">
+
+</div>
+</div>
+<p>一般来说，我们建议使用 <code>mlr3batchmark</code> 在 HPC 上调度较简单的 <code>mlr3</code> 作业，不过我们也会简要展示如何在不使用 <code>mlr3batchmark</code> 的情况下使用 <code>batchtools</code>，以便对你的实验进行更精细的控制。同样，我们首先创建实验注册表。</p>
+<div class="cell">
+<div class="sourceCode" id="cb67"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">reg</span> <span class="op">=</span> <span class="fu"><a href="https://batchtools.mlr-org.com/reference/makeExperimentRegistry.html">makeExperimentRegistry</a></span><span class="op">(</span></span>
+<span>  file.dir <span class="op">=</span> <span class="st">"./experiments-custom"</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  packages <span class="op">=</span> <span class="st">"mlr3verse"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>然后「问题（Problem）」用 <a href="https://batchtools.mlr-org.com/reference/addProblem.html"><code>addProblem()</code></a> 手动注册。在这个例子中，我们将注册上面 <code>large_design</code> 的所有任务-重采样组合，以任务 ID 作为唯一名称。我们指定问题的 <code>data</code>（即学习器训练/测试的静态数据）为任务/重采样对。最后，我们传入一个函数（<code>fun</code>，动态问题部分），它接收静态问题的 <code>data</code> 并原样返回，作为问题的 <code>instance</code> 而不做任何改动（<a href="#fig-batchtools-illustration" class="quarto-xref">图 <span>11.2</span></a>）。下面显示的 <code>fun</code> 是默认行为，本可省略，我们为了清晰起见展示它。这个函数可以更复杂，并接受更多参数来动态修改问题实例。</p>
+<div class="cell">
+<div class="sourceCode" id="cb68"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_along</a></span><span class="op">(</span><span class="va">tasks</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://batchtools.mlr-org.com/reference/addProblem.html">addProblem</a></span><span class="op">(</span></span>
+<span>    name <span class="op">=</span> <span class="va">tasks</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">id</span>,</span>
+<span>    data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>task <span class="op">=</span> <span class="va">tasks</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span>, resampling <span class="op">=</span> <span class="va">resamplings</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    fun <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">job</span>, <span class="va">...</span><span class="op">)</span> <span class="va">data</span>,</span>
+<span>    reg <span class="op">=</span> <span class="va">reg</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-batchtools-illustration" class="quarto-float quarto-figure quarto-figure-center anchored" alt="该图显示一个写着「static problem part, data（静态问题部分，data）」的矩形，有一条箭头指向「dynamic problem function, fun(data, ...)（动态问题函数，fun(data, ...)）」和「algorithm function, fun(data, instance, ...)（算法函数，fun(data, instance, ...)）」。一个写着「problem design, (addExperiments)（问题设计）」的方框也有一条箭头指向「动态…」方框。「动态…」方框随后有一条标着「instance」的箭头指向「算法函数」方框。一个写着「algorithm design, (addExperiments)（算法设计）」的方框也指向「算法函数」方框。最后，「算法函数」方框指向「result（结果）」。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-batchtools-illustration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/mlr3book_figures-31.svg" class="img-fluid figure-img" style="width:100.0%" alt="该图显示一个写着「static problem part, data（静态问题部分，data）」的矩形，有一条箭头指向「dynamic problem function, fun(data, ...)（动态问题函数，fun(data, ...)）」和「algorithm function, fun(data, instance, ...)（算法函数，fun(data, instance, ...)）」。一个写着「problem design, (addExperiments)（问题设计）」的方框也有一条箭头指向「动态…」方框。「动态…」方框随后有一条标着「instance」的箭头指向「算法函数」方框。一个写着「algorithm design, (addExperiments)（算法设计）」的方框也指向「算法函数」方框。最后，「算法函数」方框指向「result（结果）」。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-batchtools-illustration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 11.2：batchtools 的问题、算法与实验示意图。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>接下来，我们需要用 <a href="https://batchtools.mlr-org.com/reference/addAlgorithm.html"><code>addAlgorithm()</code></a> 指定要运行的算法。算法同样用一个唯一的 <code>name</code> 指定，以及一个定义实验计算步骤并返回结果的函数。</p>
+<p>在这里，我们定义一个作业来代表一个完整的重采样实验。一般来说，<code>batchtools</code> 中的算法可以返回任意对象——这些对象就存储在文件系统上，可以在收集结果时用自定义函数处理。</p>
+<div class="cell">
+<div class="sourceCode" id="cb69"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://batchtools.mlr-org.com/reference/addAlgorithm.html">addAlgorithm</a></span><span class="op">(</span></span>
+<span>  <span class="st">"run_learner"</span>,</span>
+<span>  fun <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">instance</span>, <span class="va">learner</span>, <span class="va">job</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu">resample</span><span class="op">(</span><span class="va">instance</span><span class="op">$</span><span class="va">task</span>, <span class="va">learner</span>, <span class="va">instance</span><span class="op">$</span><span class="va">resampling</span><span class="op">)</span></span>
+<span>  <span class="op">}</span>,</span>
+<span>  reg <span class="op">=</span> <span class="va">reg</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>最后，我们将用 <a href="https://batchtools.mlr-org.com/reference/addExperiments.html"><code>addExperiments()</code></a> 定义具体的实验，传入问题设计（<code>prob.designs</code>）与算法设计（<code>algo.designs</code>），分别给问题与算法分配参数（<a href="#fig-batchtools-illustration" class="quarto-xref">图 <span>11.2</span></a>）。</p>
+<p>在下面的代码中，我们为六个任务的所有重采样迭代添加实验。通过不指定 <code>prob.designs</code>，默认会为所有现有问题创建实验。我们把算法的 <code>learner</code> 参数（<code>"run_learner"</code>）设置为 <code>large_design</code> 对象中的三个学习器。注意每当添加一个实验时，当前种子会被分配给该实验，然后递增。</p>
+<div class="cell">
+<div class="sourceCode" id="cb70"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">alg_des</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>run_learner <span class="op">=</span> <span class="fu">data.table</span><span class="op">(</span>learner <span class="op">=</span> <span class="va">learners</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://batchtools.mlr-org.com/reference/addExperiments.html">addExperiments</a></span><span class="op">(</span>algo.designs <span class="op">=</span> <span class="va">alg_des</span>, reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://batchtools.mlr-org.com/reference/summarizeExperiments.html">summarizeExperiments</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>我们的作业现在可以提交到集群了；通过不指定具体的作业 ID，<em>所有</em>实验都会被提交。</p>
+<div class="cell">
+<div class="sourceCode" id="cb71"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://batchtools.mlr-org.com/reference/submitJobs.html">submitJobs</a></span><span class="op">(</span>reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>我们可以用 <a href="https://batchtools.mlr-org.com/reference/loadResult.html"><code>loadResult()</code></a> 取回作业结果，它输出算法函数返回的对象，在我们的例子中是一个 <a href="https://mlr3.mlr-org.com/reference/ResampleResult.html"><code>ResampleResult</code></a>。要一次性取回所有结果，我们可以用 <a href="https://batchtools.mlr-org.com/reference/reduceResults.html"><code>reduceResults()</code></a> 创建一个单一的 <a href="https://mlr3.mlr-org.com/reference/BenchmarkResult.html"><code>BenchmarkResult</code></a>。为此，我们使用组合函数 <code><a href="https://rdrr.io/r/base/c.html">c()</a></code>，它可以把多个 <code>ResampleResult</code> 或 <code>BenchmarkResult</code> 类型的对象组合成单一的 <code>BenchmarkResult</code>。</p>
+<div class="cell">
+<div class="sourceCode" id="cb72"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rr</span> <span class="op">=</span> <span class="fu"><a href="https://batchtools.mlr-org.com/reference/loadResult.html">loadResult</a></span><span class="op">(</span><span class="fl">1</span>, reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
+<span><span class="fu">as.data.table</span><span class="op">(</span><span class="va">rr</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                     task               learner         resampling
+1: &lt;TaskClassif:kr-vs-kp&gt; &lt;GraphLearner:logreg&gt; &lt;ResamplingCustom&gt;
+2: &lt;TaskClassif:kr-vs-kp&gt; &lt;GraphLearner:logreg&gt; &lt;ResamplingCustom&gt;
+3: &lt;TaskClassif:kr-vs-kp&gt; &lt;GraphLearner:logreg&gt; &lt;ResamplingCustom&gt;
+4: &lt;TaskClassif:kr-vs-kp&gt; &lt;GraphLearner:logreg&gt; &lt;ResamplingCustom&gt;
+5: &lt;TaskClassif:kr-vs-kp&gt; &lt;GraphLearner:logreg&gt; &lt;ResamplingCustom&gt;
+2 variables not shown: [iteration, prediction]</code></pre>
+</div>
+<div class="sourceCode" id="cb74"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">bmr</span> <span class="op">=</span> <span class="fu"><a href="https://batchtools.mlr-org.com/reference/reduceResults.html">reduceResults</a></span><span class="op">(</span><span class="va">c</span>, reg <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
+<span><span class="va">bmr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   nr  task_id  learner_id resampling_id iters classif.ce
+1:  1 kr-vs-kp      logreg        custom    10    0.02566
+2:  2 kr-vs-kp      ranger        custom    10    0.01283
+3:  3 kr-vs-kp featureless        custom    10    0.47778
+4:  4 breast-w      logreg        custom    10    0.03578
+5:  5 breast-w      ranger        custom    10    0.03004
+Hidden columns: resample_result</code></pre>
+</div>
+</div>
+</section></section><section id="sec-benchmark-analysis" class="level2 page-columns page-full" data-number="11.3"><h2 data-number="11.3" class="anchored" data-anchor-id="sec-benchmark-analysis">
+<span class="header-section-number">11.3</span> 统计分析（Statistical Analysis）</h2>
+<p>基准实验的最后一步是使用统计检验来确定哪个（如果有的话）学习器表现最好。<a href="https://mlr3benchmark.mlr-org.com/reference/mlr3benchmark-package.html"><code>mlr3benchmark</code></a> 为对 <a href="https://mlr3.mlr-org.com/reference/BenchmarkResult.html"><code>BenchmarkResult</code></a> 对象应用统计显著性检验提供了基础设施。</p>
+<p>目前支持 Friedman 检验与两两配对 Friedman-Nemenyi 检验 <span class="citation" data-cites="demsar2006">(<a href="../references.html#ref-demsar2006" role="doc-biblioref">Demšar 2006</a>)</span>，用于分析至少包含两个独立任务与至少两个学习器的基准实验。作为第一步，我们建议用 <code>$friedman_posthoc()</code> 进行学习器之间的两两配对 Friedman-Nemenyi 检验。该方法首先执行一次全局比较，看是否有学习器在统计上优于另一个。要使用这些方法，我们首先用 <a href="https://mlr3benchmark.mlr-org.com/reference/as_benchmark_aggr.html"><code>as_benchmark_aggr()</code></a> 把基准结果转换为 <a href="https://mlr3benchmark.mlr-org.com/reference/BenchmarkAggr.html"><code>BenchmarkAggr</code></a> 对象。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://mlr3benchmark.mlr-org.com/reference/as_benchmark_aggr.html">as_benchmark_aggr()</a></code></span></div></div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>当在多个数据集上比较多个算法时，不能简单地按「胜出数据集个数」或逐数据集做 t 检验下结论——这会引入多重比较问题与对「算法整体排名」缺乏形式化。Demšar（2006）提出的方案是：先对每个数据集上各算法的性能排序，再在「平均秩（mean rank）」上进行 Friedman 检验（全局是否至少有一对算法显著不同），若有显著性再作 Nemenyi 两两事后检验。与之对应的图是临界差异图（critical difference diagram）：图中一条水平线把「两两差异不显著」的算法连在一起，显著不同的算法之间不连线。需要注意的是，以平均秩为依据的检验对「差值大小」不敏感，只看排序，这是它与以原始性能值为输入的检验（如配对 t 检验）的一个关键区别。</p>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb76"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3benchmark.mlr-org.com">mlr3benchmark</a></span><span class="op">)</span></span>
+<span><span class="va">bma</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3benchmark.mlr-org.com/reference/as_benchmark_aggr.html">as_benchmark_aggr</a></span><span class="op">(</span><span class="va">bmr</span>, measures <span class="op">=</span> <span class="fu">msr</span><span class="op">(</span><span class="st">"classif.ce"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bma</span><span class="op">$</span><span class="fu">friedman_posthoc</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+    Pairwise comparisons using Nemenyi-Wilcoxon-Wilcox all-pairs test for a two-way balanced complete block design</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>data: ce and learner_id and task_id</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>            logreg ranger
+ranger      0.4804 -     
+featureless 0.1072 0.0043</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+P value adjustment method: single-step</code></pre>
+</div>
+</div>
+<p>这些结果表明 <code>"featureless"</code> 学习器与 <code>"ranger"</code> 之间存在统计上显著的差异（假设 <span class="math inline">\(p\leq0.05\)</span> 为显著）。这个表格可以用临界差异图（critical difference plot）可视化（<a href="#fig-lsb-cd" class="quarto-xref">图 <span>11.3</span></a>），它通常在 x 轴上显示学习算法的平均秩，并带有一条粗水平线，把两两之间没有显著差异的学习器连接起来（同时对多重检验进行校正）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb81"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">autoplot</span><span class="op">(</span><span class="va">bma</span>, type <span class="op">=</span> <span class="st">"cd"</span>, ratio <span class="op">=</span> <span class="fl">1</span><span class="op">/</span><span class="fl">5</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in geom_segment(aes(x = 0, xend = max(rank) + 1, y = 0, yend = 0)): All aesthetics have length 1, but the data has 3 rows.
+ℹ Please consider using `annotate()` or provide this layer with data
+  containing a single row.</code></pre>
+</div>
+<div class="cell-output-display">
+<div id="fig-lsb-cd" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图显示一个范围从 0 到 4 的单轴图，图上方是一条粗黑线，文字为「Critical Difference = 1.35（临界差异 = 1.35）」。图中「ranger」在最左侧、略靠 1 的右边，「logreg」略靠 2 的左边，「featureless」在 3 的下方。有一条粗黑线连接「ranger」与「logreg」，还有一条粗黑线连接「logreg」与「featureless」。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-lsb-cd-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/large-scale_benchmarking_files/figure-html/fig-lsb-cd-1.png" class="img-fluid figure-img" style="width:100.0%" alt="图显示一个范围从 0 到 4 的单轴图，图上方是一条粗黑线，文字为「Critical Difference = 1.35（临界差异 = 1.35）」。图中「ranger」在最左侧、略靠 1 的右边，「logreg」略靠 2 的左边，「featureless」在 3 的下方。有一条粗黑线连接「ranger」与「logreg」，还有一条粗黑线连接「logreg」与「featureless」。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lsb-cd-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图 11.3：比较随机森林、逻辑回归与无特征基线的临界差异图。标题中的临界差异 1.35 指的是判定一个学习器的表现与另一个在统计上不同所需的平均秩差异。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>利用<a href="#fig-lsb-cd" class="quarto-xref">图 <span>11.3</span></a>，我们可以得出结论：平均而言随机森林的秩最低（即最好），其次是逻辑回归，然后是无特征基线。虽然随机森林在统计上优于基线（<a href="#fig-lsb-cd" class="quarto-xref">图 <span>11.3</span></a>中两者之间没有连线），但它在统计上并不优于逻辑回归（<a href="#fig-lsb-cd" class="quarto-xref">图 <span>11.3</span></a>中两者之间有连线）。我们现在还可以把它与 Couronné、Probst 与 Boulesteix <span class="citation" data-cites="couronne2018random">(<a href="../references.html#ref-couronne2018random" role="doc-biblioref">2018</a>)</span>开展的大型基准研究进行比较，在那项研究中随机森林在 243 个真实数据集的 69% 上优于逻辑回归。</p>
+</section><section id="conclusion" class="level2" data-number="11.4"><h2 data-number="11.4" class="anchored" data-anchor-id="conclusion">
+<span class="header-section-number">11.4</span> 结论（Conclusion）</h2>
+<p>在本章中，我们探讨了如何使用 <code>mlr3</code> 开展大规模机器学习实验。我们展示了如何通过 <a href="https://mlr3oml.mlr-org.com"><code>mlr3oml</code></a> 接口包从 OpenML 获取多样化的数据集，如何通过 <code>batchtools</code> 与 <a href="https://mlr3batchmark.mlr-org.com"><code>mlr3batchmark</code></a> 的集成执行大规模实验，以及最后如何用 <a href="https://mlr3benchmark.mlr-org.com"><code>mlr3benchmark</code></a> 分析这些实验的结果。关于 <a href="https://batchtools.mlr-org.com"><code>batchtools</code></a> 的进一步阅读，我们推荐 <span class="citation" data-cites="batchtools">Lang, Bischl, and Surmann (<a href="../references.html#ref-batchtools" role="doc-biblioref">2017</a>)</span> 与 <span class="citation" data-cites="JSSv064i11">Bischl et al. (<a href="../references.html#ref-JSSv064i11" role="doc-biblioref">2015</a>)</span>。</p>
+<div id="tbl-api-large-benchmarking" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-api-large-benchmarking-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+表 11.1：本章涉及的重要类与函数，及其底层类（如适用）、类构造器或函数，以及重要的类字段与方法（如适用）。
+</figcaption><div aria-describedby="tbl-api-large-benchmarking-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead><tr class="header">
+<th>类（Class）</th>
+<th>构造器/函数（Constructor/Function）</th>
+<th>字段/方法（Fields/Methods）</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://mlr3oml.mlr-org.com/reference/oml_data.html"><code>OMLData</code></a></td>
+<td><a href="https://mlr3oml.mlr-org.com/reference/odt.html"><code>odt()</code></a></td>
+<td>
+<code>$data</code>；<code>$feature_names</code>
+</td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3oml.mlr-org.com/reference/oml_task.html"><code>OMLTask</code></a></td>
+<td><a href="https://mlr3oml.mlr-org.com/reference/otsk.html"><code>otsk()</code></a></td>
+<td>
+<code>$data</code>；<code>$task_splits</code>
+</td>
+</tr>
+<tr class="odd">
+<td><a href="https://mlr3oml.mlr-org.com/reference/oml_collection.html"><code>OMLCollection</code></a></td>
+<td><a href="https://mlr3oml.mlr-org.com/reference/ocl.html"><code>ocl()</code></a></td>
+<td><code>$task_ids</code></td>
+</tr>
+<tr class="even">
+<td><code>Registry</code></td>
+<td><a href="https://batchtools.mlr-org.com/reference/makeExperimentRegistry.html"><code>makeExperimentRegistry()</code></a></td>
+<td>
+<a href="https://batchtools.mlr-org.com/reference/submitJobs.html"><code>submitJobs()</code></a>；<a href="https://batchtools.mlr-org.com/reference/getStatus.html"><code>getStatus()</code></a>；<a href="https://mlr3batchmark.mlr-org.com/reference/reduceResultsBatchmark.html"><code>reduceResultsBatchmark</code></a>；<a href="https://batchtools.mlr-org.com/reference/getJobTable.html"><code>getJobTable</code></a>
+</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td><a href="https://mlr3batchmark.mlr-org.com/reference/batchmark.html"><code>batchmark()</code></a></td>
+<td>-</td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3benchmark.mlr-org.com/reference/BenchmarkAggr.html"><code>BenchmarkAggr()</code></a></td>
+<td><a href="https://mlr3benchmark.mlr-org.com/reference/as_benchmark_aggr.html"><code>as_benchmark_aggr()</code></a></td>
+<td><code>$friedman_posthoc()</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section><section id="exercises" class="level2" data-number="11.5"><h2 data-number="11.5" class="anchored" data-anchor-id="exercises">
+<span class="header-section-number">11.5</span> 练习（Exercises）</h2>
+<p>在这些练习中，我们将开展一项实证研究，分析随机森林是否比单一决策树具有更强的预测能力。我们的零假设（null hypothesis）是两者性能没有显著差异。</p>
+<ol type="1">
+<li>加载 ID 为 269 的 OpenML 集合，它包含来自 AutoML 基准 <span class="citation" data-cites="amlb2022">(<a href="../references.html#ref-amlb2022" role="doc-biblioref">Gijsbers et al. 2022</a>)</span>的回归任务。浏览这个套件，研究其中包含的数据集及其特征。然后找出所有观测数少于 4000 的任务，并把它们转换为 <code>mlr3</code> 任务。</li>
+<li>创建一个实验设计，在这些任务上比较 <code>lrn("regr.ranger")</code> 与 <code>lrn("regr.rpart")</code>。对两个学习器都使用 robustify 流水线，并使用无特征回退学习器。为节省时间，可以使用三折交叉验证来代替 OpenML 重采样。用 <code>batchtools</code> 运行比较实验。使用默认超参数设置，不做任何调优，以保持实验简单。</li>
+<li>进行全局 Friedman 检验，并在适当情况下进行事后 Friedman-Nemenyi 检验，解释结果。使用 MSE 作为评估度量。</li>
+</ol></section><section id="citation" class="level2" data-number="11.6"><h2 data-number="11.6" class="anchored" data-anchor-id="citation">
+<span class="header-section-number">11.6</span> 引用（Citation）</h2>
+<p>请按如下方式引用本章：</p>
+<p>Fischer S, Lang M, Becker M. (2024). Large-Scale Benchmarking. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/large-scale_benchmarking.html.</p>
+<div class="sourceCode" id="cb83"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a><span class="va">@incollection</span>{<span class="ot">citekey</span>,</span>
+<span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span> = "<span class="st">Sebastian Fischer and Michel Lang and Marc Becker</span>",</span>
+<span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span> = "<span class="st">Large-Scale Benchmarking</span>",</span>
+<span id="cb83-4"><a href="#cb83-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">booktitle</span> = "<span class="st">Applied Machine Learning Using {m}lr3 in {R}</span>",</span>
+<span id="cb83-5"><a href="#cb83-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">publisher</span> = "<span class="st">CRC Press</span>", <span class="st">year</span> = "<span class="st">2024</span>",</span>
+<span id="cb83-6"><a href="#cb83-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">editor</span> = "<span class="st">Bernd Bischl and Raphael Sonabend and Lars Kotthoff and Michel Lang</span>",</span>
+<span id="cb83-7"><a href="#cb83-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">url</span> = "<span class="st">https://mlr3book.mlr-org.com/large-scale_benchmarking.html</span>"</span>
+<span id="cb83-8"><a href="#cb83-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-bischl2021openml" class="csl-entry" role="listitem">
+Bischl, Bernd, Giuseppe Casalicchio, Matthias Feurer, Pieter Gijsbers, Frank Hutter, Michel Lang, Rafael Gomes Mantovani, Jan N. van Rijn, and Joaquin Vanschoren. 2021. <span>“Open<span>ML</span> Benchmarking Suites.”</span> In <em>Thirty-Fifth Conference on Neural Information Processing Systems Datasets and Benchmarks Track (Round 2)</em>. <a href="https://openreview.net/forum?id=OCrD8ycKjG">https://openreview.net/forum?id=OCrD8ycKjG</a>.
+</div>
+<div id="ref-JSSv064i11" class="csl-entry" role="listitem">
+Bischl, Bernd, Michel Lang, Olaf Mersmann, Jörg Rahnenführer, and Claus Weihs. 2015. <span>“BatchJobs and BatchExperiments: Abstraction Mechanisms for Using r in Batch Environments.”</span> <em>Journal of Statistical Software</em> 64 (11): 1–25. <a href="https://doi.org/10.18637/jss.v064.i11">https://doi.org/10.18637/jss.v064.i11</a>.
+</div>
+<div id="ref-couronne2018random" class="csl-entry" role="listitem">
+Couronné, Raphael, Philipp Probst, and Anne-Laure Boulesteix. 2018. <span>“Random Forest Versus Logistic Regression: A Large-Scale Benchmark Experiment.”</span> <em>BMC Bioinformatics</em> 19: 1–14. <a href="https://doi.org/10.1186/s12859-018-2264-5">https://doi.org/10.1186/s12859-018-2264-5</a>.
+</div>
+<div id="ref-demsar2006" class="csl-entry" role="listitem">
+Demšar, Janez. 2006. <span>“Statistical Comparisons of Classifiers over Multiple Data Sets.”</span> <em>Journal of Machine Learning Research</em> 7 (1): 1–30. <a href="https://jmlr.org/papers/v7/demsar06a.html">https://jmlr.org/papers/v7/demsar06a.html</a>.
+</div>
+<div id="ref-amlb2022" class="csl-entry" role="listitem">
+Gijsbers, Pieter, Marcos L. P. Bueno, Stefan Coors, Erin LeDell, Sébastien Poirier, Janek Thomas, Bernd Bischl, and Joaquin Vanschoren. 2022. <span>“AMLB: An AutoML Benchmark.”</span> arXiv. <a href="https://doi.org/10.48550/ARXIV.2207.12560">https://doi.org/10.48550/ARXIV.2207.12560</a>.
+</div>
+<div id="ref-grinsztajn2022why" class="csl-entry" role="listitem">
+Grinsztajn, Leo, Edouard Oyallon, and Gael Varoquaux. 2022. <span>“Why Do Tree-Based Models Still Outperform Deep Learning on Typical Tabular Data?”</span> In <em>Thirty-Sixth Conference on Neural Information Processing Systems Datasets and Benchmarks Track</em>. <a href="https://openreview.net/forum?id=Fp7__phQszn">https://openreview.net/forum?id=Fp7__phQszn</a>.
+</div>
+<div id="ref-batchtools" class="csl-entry" role="listitem">
+Lang, Michel, Bernd Bischl, and Dirk Surmann. 2017. <span>“<span class="nocase">batchtools</span>: Tools for <span>R</span> to Work on Batch Systems.”</span> <em>The Journal of Open Source Software</em> 2 (10). <a href="https://doi.org/10.21105/joss.00135">https://doi.org/10.21105/joss.00135</a>.
+</div>
+<div id="ref-openml2013" class="csl-entry" role="listitem">
+Vanschoren, Joaquin, Jan N. van Rijn, Bernd Bischl, and Luis Torgo. 2013. <span>“OpenML: Networked Science in Machine Learning.”</span> <em>SIGKDD Explorations</em> 15 (2): 49–60. <a href="https://doi.org/10.1145/2641190.2641198">https://doi.org/10.1145/2641190.2641198</a>.
+</div>
+</div>
+</section>
+
+  </main>
+  <nav class="chnav">
+    <a class="" href="ch10-advanced-technical.html"><span class="dir">上一章</span><span class="ch">第 10 章 mlr3 高级技术方面</span></a>
+    <a class="" href="ch12-model-interpretation.html"><span class="dir">下一章</span><span class="ch">第 12 章 模型解释</span></a>
+  </nav>
+  <div class="footer">
+    <div>《Applied Machine Learning Using mlr3 in R》中文译本 · 非官方翻译</div>
+    <div class="lic">原文 © 2024 CRC Press（Bischl, Sonabend, Kotthoff &amp; Lang 主编，CC BY-NC-SA 4.0）· 本站由志愿翻译，仅供学习交流</div>
+  </div>
+</div>
+<script>
+MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] } };
+</script>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
+</body>
+</html>

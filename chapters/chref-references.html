@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>参考文献（References）</title>
+<script>
+(function(){
+  var saved = localStorage.getItem("mlr3-theme");
+  if (saved === null) saved = "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+})();
+</script>
+<style>
+:root {
+  --bg: #1e2228; --fg: #d8dee4; --muted: #9aa4b0;
+  --panel: #262c34; --panel2: #2e3540; --border: #3a4350;
+  --accent: #4ea1ff; --accent2: #8f7ae6;
+  --code-bg: #161a20; --code-fg: #d8dee4;
+  --note-bg: #2a3450; --note-border: #5a7fff;
+  --callout-bg: #2b3826; --callout-border: #6bbf59;
+  --table-head: #2e3540; --table-row: #262c34; --link: #6cb0ff;
+  --h-border: #3a4350;
+}
+[data-theme="light"] {
+  --bg: #f7f8fa; --fg: #24292f; --muted: #57606a;
+  --panel: #ffffff; --panel2: #f0f2f5; --border: #d9dee3;
+  --accent: #0969da; --accent2: #8250df;
+  --code-bg: #f3f4f6; --code-fg: #24292f;
+  --note-bg: #eef2ff; --note-border: #5a7fff;
+  --callout-bg: #eff7ec; --callout-border: #6bbf59;
+  --table-head: #eef1f4; --table-row: #ffffff; --link: #0969da;
+  --h-border: #d9dee3;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  line-height: 1.78; font-size: 16px;
+  transition: background .2s, color .2s;
+}
+.container { max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+/* 顶栏 */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+}
+.topbar .brand { font-weight: 600; font-size: 15px; color: var(--fg); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+.topbar .brand .logo { color: var(--accent); }
+.topbar .right { display: flex; align-items: center; gap: 10px; }
+.topbar .home-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+.topbar .home-link:hover { color: var(--accent); }
+.theme-toggle {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+/* 章头 */
+.header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
+.header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
+.header-block h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.35; }
+.header-block .subtitle { color: var(--muted); font-size: 14px; }
+/* 章节导航 */
+.chnav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0 6px; flex-wrap: wrap; }
+.chnav a {
+  background: var(--panel); border: 1px solid var(--border); color: var(--fg);
+  text-decoration: none; font-size: 14px; padding: 10px 16px; border-radius: 8px;
+  max-width: 46%; display: block;
+}
+.chnav a:hover { border-color: var(--accent); color: var(--accent); }
+.chnav .dir { color: var(--muted); font-size: 12px; display: block; }
+.chnav .ch { font-weight: 600; }
+.chnav a.disabled { opacity: .4; pointer-events: none; }
+/* 正文 */
+main { padding: 0 0 20px; }
+main h1 { font-size: 26px; margin: 40px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--h-border); }
+main h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--h-border); }
+main h3 { font-size: 18px; margin: 28px 0 10px; }
+main h4 { font-size: 16px; margin: 22px 0 8px; color: var(--accent); }
+main p { margin: 10px 0; }
+main a { color: var(--link); text-decoration: none; }
+main a:hover { text-decoration: underline; }
+main strong { font-weight: 600; }
+main ul, main ol { padding-left: 26px; }
+main li { margin: 5px 0; }
+main blockquote {
+  margin: 12px 0; padding: 10px 16px; border-left: 4px solid var(--border);
+  background: var(--panel2); color: var(--muted); border-radius: 0 6px 6px 0;
+}
+main hr { border: none; border-top: 1px solid var(--border); margin: 26px 0; }
+main img { max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 6px; }
+main table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+main th { background: var(--table-head); font-weight: 600; }
+main th, main td { border: 1px solid var(--border); padding: 7px 11px; }
+main tr:nth-child(even) td { background: var(--table-row); }
+/* 代码 */
+pre {
+  background: var(--code-bg); color: var(--code-fg);
+  padding: 14px 16px; border-radius: 8px; overflow-x: auto;
+  border: 1px solid var(--border); font-size: 13.5px; line-height: 1.6;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+code {
+  font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+  background: var(--panel2); color: var(--accent);
+  padding: 2px 5px; border-radius: 4px; font-size: 13.5px;
+}
+pre code { background: none; color: var(--code-fg); padding: 0; }
+/* 代码块容器（Quarto 结构） */
+.sourceCode { margin: 14px 0; }
+.sourceCode pre { margin: 0; }
+/* 输出块 */
+.cell { margin: 6px 0; }
+.cell-output { margin: 0 0 6px; }
+.cell-output pre { background: var(--panel2); border-style: dashed; }
+.cell-output-stderr { border-color: #d29922; }
+.cell-output-stdout pre { border-color: var(--border); }
+/* figure */
+figure { margin: 18px 0; text-align: center; }
+figure img { margin: 0 auto; }
+figcaption, .caption { color: var(--muted); font-size: 13px; margin-top: 6px; text-align: center; }
+.quarto-float { margin: 18px 0; }
+.quarto-figure { margin: 18px 0; text-align: center; }
+/* 背景与解释（译者注）框 */
+.bg-note {
+  background: var(--note-bg); border: 1px solid var(--note-border);
+  border-radius: 8px; padding: 14px 18px; margin: 18px 0;
+  font-size: 15px;
+}
+.bg-note p { margin: 6px 0; }
+.bg-note .bg-title { font-weight: 600; color: var(--accent); }
+/* 原书 callout 提示框 */
+.callout {
+  border-radius: 8px; padding: 12px 18px; margin: 16px 0;
+  border-left: 5px solid var(--accent); background: var(--panel2);
+}
+.callout-tip { border-left-color: #6bbf59; }
+.callout-note { border-left-color: var(--accent); }
+.callout-warning { border-left-color: #d29922; }
+.callout-important { border-left-color: #e05d5d; }
+.callout-header { font-weight: 600; margin-bottom: 4px; }
+.callout-title-container { display: inline; }
+.callout-body p { margin: 6px 0; }
+.callout-icon-container { display: none; }
+/* 脚注 */
+.footnote-ref { font-size: 12px; vertical-align: super; }
+/* 页脚 */
+.footer {
+  margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 13px; text-align: center;
+}
+.footer .lic { margin-top: 6px; font-size: 12px; }
+/* 表格滚动 */
+main table { display: block; overflow-x: auto; }
+/* banner 样式（原书 callout 可能以其他名目出现） */
+[class*="callout"] > p:first-child { margin-top: 4px; }
+</style>
+<script>
+function toggleTheme(){
+  var cur = document.documentElement.getAttribute("data-theme");
+  var next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("mlr3-theme", next);
+}
+</script>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <div class="right">
+    <a class="home-link" href="index.html">目录</a>
+    <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
+  </div>
+</div>
+<div class="container">
+  <div class="header-block">
+    <div class="part">附录</div>
+    <h1>参考文献（References）</h1>
+    <div class="subtitle">《Applied Machine Learning Using mlr3 in R》中文翻译 · 章节 参考文献</div>
+  </div>
+  <main>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-Apley2020" class="csl-entry" role="listitem">
+Apley, Daniel W., and Jingyu Zhu. 2020. <span>“Visualizing the Effects
+of Predictor Variables in Black Box Supervised Learning Models.”</span>
+<em>Journal of the Royal Statistical Society Series B: Statistical
+Methodology</em> 82 (4): 1059–86. <a href="https://doi.org/10.1111/rssb.12377">https://doi.org/10.1111/rssb.12377</a>.
+</div>
+<div id="ref-Au2022" class="csl-entry" role="listitem">
+Au, Quay, Julia Herbinger, Clemens Stachl, Bernd Bischl, and Giuseppe
+Casalicchio. 2022. <span>“Grouped Feature Importance and Combined
+Features Effect Plot.”</span> <em>Data Mining and Knowledge
+Discovery</em> 36 (4): 1401–50. <a href="https://doi.org/10.1007/s10618-022-00840-5">https://doi.org/10.1007/s10618-022-00840-5</a>.
+</div>
+<div id="ref-bagnall2017great" class="csl-entry" role="listitem">
+Bagnall, Anthony, Jason Lines, Aaron Bostrom, James Large, and Eamonn
+Keogh. 2017. <span>“The Great Time Series Classification Bake Off: A
+Review and Experimental Evaluation of Recent Algorithmic
+Advances.”</span> <em>Data Mining and Knowledge Discovery</em> 31:
+606–60. <a href="https://doi.org/10.1007/s10618-016-0483-9">https://doi.org/10.1007/s10618-016-0483-9</a>.
+</div>
+<div id="ref-Baniecki2019" class="csl-entry" role="listitem">
+Baniecki, Hubert, and Przemyslaw Biecek. 2019. <span>“<span class="nocase">modelStudio</span>: Interactive Studio with Explanations
+for ML Predictive Models.”</span> <em>Journal of Open Source
+Software</em> 4 (43): 1798. <a href="https://doi.org/10.21105/joss.01798">https://doi.org/10.21105/joss.01798</a>.
+</div>
+<div id="ref-Baniecki2023" class="csl-entry" role="listitem">
+Baniecki, Hubert, Dariusz Parzych, and Przemyslaw Biecek. 2023.
+<span>“The Grammar of Interactive Explanatory Model Analysis.”</span>
+<em>Data Mining and Knowledge Discovery</em>, 1573–756X. <a href="https://doi.org/10.1007/s10618-023-00924-w">https://doi.org/10.1007/s10618-023-00924-w</a>.
+</div>
+<div id="ref-fairmlbook" class="csl-entry" role="listitem">
+Barocas, Solon, Moritz Hardt, and Arvind Narayanan. 2019. <em>Fairness
+and Machine Learning: Limitations and Opportunities</em>.
+fairmlbook.org.
+</div>
+<div id="ref-bayle2020cross" class="csl-entry" role="listitem">
+Bayle, Pierre, Alexandre Bayle, Lucas Janson, and Lester Mackey. 2020.
+<span>“Cross-Validation Confidence Intervals for Test Error.”</span>
+<em>Advances in Neural Information Processing Systems</em> 33: 16339–50.
+</div>
+<div id="ref-future119" class="csl-entry" role="listitem">
+Bengtsson, Henrik. 2020. <span>“Future 1.19.1 - Making Sure Proper
+Random Numbers Are Produced in Parallel Processing.”</span> <a href="https://www.jottr.org/2020/09/22/push-for-statistical-sound-rng/" class="uri">https://www.jottr.org/2020/09/22/push-for-statistical-sound-rng/</a>.
+</div>
+<div id="ref-avoiddetect" class="csl-entry" role="listitem">
+———. 2022. <span>“Please Avoid detectCores() in Your <span>R</span>
+Packages.”</span> <a href="https://www.jottr.org/2022/12/05/avoid-detectcores/" class="uri">https://www.jottr.org/2022/12/05/avoid-detectcores/</a>.
+</div>
+<div id="ref-bergstra2012" class="csl-entry" role="listitem">
+Bergstra, James, and Yoshua Bengio. 2012. <span>“Random Search for
+Hyper-Parameter Optimization.”</span> <em>Journal of Machine Learning
+Research</em> 13: 281–305. <a href="https://jmlr.org/papers/v13/bergstra12a.html">https://jmlr.org/papers/v13/bergstra12a.html</a>.
+</div>
+<div id="ref-Biecek2018" class="csl-entry" role="listitem">
+Biecek, Przemyslaw. 2018. <span>“<span>DALEX</span>: Explainers for
+Complex Predictive Models in <span>R</span>.”</span> <em>Journal of
+Machine Learning Research</em> 19 (84): 1–5. <a href="https://jmlr.org/papers/v19/18-416.html">https://jmlr.org/papers/v19/18-416.html</a>.
+</div>
+<div id="ref-biecek_burzykowski_2021" class="csl-entry" role="listitem">
+Biecek, Przemyslaw, and Tomasz Burzykowski. 2021. <em>Explanatory Model
+Analysis</em>. Chapman; Hall/CRC, New York. <a href="https://ema.drwhy.ai/">https://ema.drwhy.ai/</a>.
+</div>
+<div id="ref-binder2020" class="csl-entry" role="listitem">
+Binder, Martin, Florian Pfisterer, and Bernd Bischl. 2020.
+<span>“Collecting Empirical Data about Hyperparameters for Data Driven
+AutoML.”</span> In <em>Proceedings of the 7th ICML Workshop on Automated
+Machine Learning (AutoML 2020)</em>. <a href="https://web.archive.org/web/20260210233404/https://www.automl.org/wp-content/uploads/2020/07/AutoML_2020_paper_63.pdf">https://web.archive.org/web/20260210233404/https://www.automl.org/wp-content/uploads/2020/07/AutoML_2020_paper_63.pdf</a>.
+</div>
+<div id="ref-mlr3pipelines" class="csl-entry" role="listitem">
+Binder, Martin, Florian Pfisterer, Michel Lang, Lennart Schneider, Lars
+Kotthoff, and Bernd Bischl. 2021. <span>“<span class="nocase">mlr3pipelines</span> - Flexible Machine Learning
+Pipelines in <span>R</span>.”</span> <em>Journal of Machine Learning
+Research</em> 22 (184): 1–7. <a href="https://jmlr.org/papers/v22/21-0281.html">https://jmlr.org/papers/v22/21-0281.html</a>.
+</div>
+<div id="ref-hpo_practical" class="csl-entry" role="listitem">
+Bischl, Bernd, Martin Binder, Michel Lang, Tobias Pielok, Jakob Richter,
+Stefan Coors, Janek Thomas, et al. 2023. <span>“Hyperparameter
+Optimization: Foundations, Algorithms, Best Practices, and Open
+Challenges.”</span> <em>Wiley Interdisciplinary Reviews: Data Mining and
+Knowledge Discovery</em>, e1484. <a href="https://doi.org/10.1002/widm.1484">https://doi.org/10.1002/widm.1484</a>.
+</div>
+<div id="ref-bischl2021openml" class="csl-entry" role="listitem">
+Bischl, Bernd, Giuseppe Casalicchio, Matthias Feurer, Pieter Gijsbers,
+Frank Hutter, Michel Lang, Rafael Gomes Mantovani, Jan N. van Rijn, and
+Joaquin Vanschoren. 2021. <span>“Open<span>ML</span> Benchmarking
+Suites.”</span> In <em>Thirty-Fifth Conference on Neural Information
+Processing Systems Datasets and Benchmarks Track (Round 2)</em>. <a href="https://openreview.net/forum?id=OCrD8ycKjG">https://openreview.net/forum?id=OCrD8ycKjG</a>.
+</div>
+<div id="ref-JSSv064i11" class="csl-entry" role="listitem">
+Bischl, Bernd, Michel Lang, Olaf Mersmann, Jörg Rahnenführer, and Claus
+Weihs. 2015. <span>“BatchJobs and BatchExperiments: Abstraction
+Mechanisms for Using r in Batch Environments.”</span> <em>Journal of
+Statistical Software</em> 64 (11): 1–25. <a href="https://doi.org/10.18637/jss.v064.i11">https://doi.org/10.18637/jss.v064.i11</a>.
+</div>
+<div id="ref-bischl2012resampling" class="csl-entry" role="listitem">
+Bischl, Bernd, Olaf Mersmann, Heike Trautmann, and Claus Weihs. 2012.
+<span>“Resampling Methods for Meta-Model Validation with Recommendations
+for Evolutionary Computation.”</span> <em>Evolutionary Computation</em>
+20 (2): 249–75. <a href="https://doi.org/10.1162/EVCO_a_00069 ">https://doi.org/10.1162/EVCO_a_00069
+</a>.
+</div>
+<div id="ref-bishop_2006" class="csl-entry" role="listitem">
+Bishop, Christopher M. 2006. <em>Pattern Recognition and Machine
+Learning</em>. Springer.
+</div>
+<div id="ref-bommert2020" class="csl-entry" role="listitem">
+Bommert, Andrea, Xudong Sun, Bernd Bischl, Jörg Rahnenführer, and Michel
+Lang. 2020. <span>“Benchmark for Filter Methods for Feature Selection in
+High-Dimensional Classification Data.”</span> <em>Computational
+Statistics &amp; Data Analysis</em> 143: 106839. <a href="https://doi.org/10.1016/j.csda.2019.106839">https://doi.org/10.1016/j.csda.2019.106839</a>.
+</div>
+<div id="ref-Breiman1996" class="csl-entry" role="listitem">
+Breiman, Leo. 1996. <span>“Bagging Predictors.”</span> <em>Machine
+Learning</em> 24 (2): 123–40. <a href="https://doi.org/10.1007/BF00058655">https://doi.org/10.1007/BF00058655</a>.
+</div>
+<div id="ref-breiman2001random" class="csl-entry" role="listitem">
+———. 2001a. <span>“Random Forests.”</span> <em>Machine Learning</em> 45:
+5–32. <a href="https://doi.org/10.1023/A:1010933404324">https://doi.org/10.1023/A:1010933404324</a>.
+</div>
+<div id="ref-Breiman2001" class="csl-entry" role="listitem">
+———. 2001b. <span>“Statistical Modeling: The Two Cultures (with Comments
+and a Rejoinder by the Author).”</span> <em>Statistical Science</em> 16
+(3). <a href="https://doi.org/10.1214/ss/1009213726">https://doi.org/10.1214/ss/1009213726</a>.
+</div>
+<div id="ref-Bucker2022" class="csl-entry" role="listitem">
+Bücker, Michael, Gero Szepannek, Alicja Gosiewska, and Przemyslaw
+Biecek. 2022. <span>“Transparency, Auditability, and Explainability of
+Machine Learning Models in Credit Scoring.”</span> <em>Journal of the
+Operational Research Society</em> 73 (1): 70–90. <a href="https://doi.org/10.1080/01605682.2021.1922098">https://doi.org/10.1080/01605682.2021.1922098</a>.
+</div>
+<div id="ref-byrd1995limited" class="csl-entry" role="listitem">
+Byrd, Richard H., Peihuang Lu, Jorge Nocedal, and Ciyou Zhu. 1995.
+<span>“A Limited Memory Algorithm for Bound Constrained
+Optimization.”</span> <em>SIAM Journal on Scientific Computing</em> 16
+(5): 1190–1208. <a href="https://doi.org/10.1137/0916069">https://doi.org/10.1137/0916069</a>.
+</div>
+<div id="ref-caton-arxiv20a" class="csl-entry" role="listitem">
+Caton, S., and C. Haas. 2020. <span>“Fairness in Machine Learning: A
+Survey.”</span> <em>Arxiv</em> 2010.04053 <span>[cs.LG]</span>. <a href="https://doi.org/10.48550/arXiv.2010.04053">https://doi.org/10.48550/arXiv.2010.04053</a>.
+</div>
+<div id="ref-chandrashekar2014" class="csl-entry" role="listitem">
+Chandrashekar, Girish, and Ferat Sahin. 2014. <span>“A Survey on Feature
+Selection Methods.”</span> <em>Computers and Electrical Engineering</em>
+40 (1): 16–28. <a href="https://doi.org/10.1016/j.compeleceng.2013.11.024">https://doi.org/10.1016/j.compeleceng.2013.11.024</a>.
+</div>
+<div id="ref-chen2016xgboost" class="csl-entry" role="listitem">
+Chen, Tianqi, and Carlos Guestrin. 2016. <span>“<span>XGB</span>oost: A
+Scalable Tree Boosting System.”</span> In <em>Proceedings of the 22nd
+<span>ACM SIGKDD</span> International Conference on Knowledge Discovery
+and Data Mining</em>, 785–94. <a href="https://doi.org/10.1145/2939672.2939785">https://doi.org/10.1145/2939672.2939785</a>.
+</div>
+<div id="ref-Collett2014" class="csl-entry" role="listitem">
+Collett, David. 2014. <em>Modelling Survival Data in Medical
+Research</em>. 3rd ed. CRC. <a href="https://doi.org/10.1201/b18041">https://doi.org/10.1201/b18041</a>.
+</div>
+<div id="ref-couronne2018random" class="csl-entry" role="listitem">
+Couronné, Raphael, Philipp Probst, and Anne-Laure Boulesteix. 2018.
+<span>“Random Forest Versus Logistic Regression: A Large-Scale Benchmark
+Experiment.”</span> <em>BMC Bioinformatics</em> 19: 1–14. <a href="https://doi.org/10.1186/s12859-018-2264-5">https://doi.org/10.1186/s12859-018-2264-5</a>.
+</div>
+<div id="ref-Dandl2020" class="csl-entry" role="listitem">
+Dandl, Susanne, Christoph Molnar, Martin Binder, and Bernd Bischl. 2020.
+<span>“Multi-Objective Counterfactual Explanations.”</span> In
+<em>Parallel Problem Solving from Nature <span>PPSN</span>
+<span>XVI</span></em>, 448–69. Springer International Publishing. <a href="https://doi.org/10.1007/978-3-030-58112-1_31">https://doi.org/10.1007/978-3-030-58112-1_31</a>.
+</div>
+<div id="ref-davis2006relationship" class="csl-entry" role="listitem">
+Davis, Jesse, and Mark Goadrich. 2006. <span>“The Relationship Between
+Precision-Recall and ROC Curves.”</span> In <em>Proceedings of the 23rd
+International Conference on Machine Learning</em>, 233–40. <a href="https://doi.org/10.1145/1143844.1143874">https://doi.org/10.1145/1143844.1143874</a>.
+</div>
+<div id="ref-de2011ames" class="csl-entry" role="listitem">
+De Cock, Dean. 2011. <span>“Ames, Iowa: Alternative to the Boston
+Housing Data as an End of Semester Regression Project.”</span>
+<em>Journal of Statistics Education</em> 19 (3). <a href="https://doi.org/10.1080/10691898.2011.11889627">https://doi.org/10.1080/10691898.2011.11889627</a>.
+</div>
+<div id="ref-demsar2006" class="csl-entry" role="listitem">
+Demšar, Janez. 2006. <span>“Statistical Comparisons of Classifiers over
+Multiple Data Sets.”</span> <em>Journal of Machine Learning
+Research</em> 7 (1): 1–30. <a href="https://jmlr.org/papers/v7/demsar06a.html">https://jmlr.org/papers/v7/demsar06a.html</a>.
+</div>
+<div id="ref-ding2010investigation" class="csl-entry" role="listitem">
+Ding, Yufeng, and Jeffrey S Simonoff. 2010. <span>“An Investigation of
+Missing Data Methods for Classification Trees Applied to Binary Response
+Data.”</span> <em>Journal of Machine Learning Research</em> 11 (6):
+131–70. <a href="https://www.jmlr.org/papers/v11/ding10a.html">https://www.jmlr.org/papers/v11/ding10a.html</a>.
+</div>
+<div id="ref-dobbin2011" class="csl-entry" role="listitem">
+Dobbin, Kevin K., and Richard M. Simon. 2011. <span>“Optimally Splitting
+Cases for Training and Testing High Dimensional Classifiers.”</span>
+<em>BMC Medical Genomics</em> 4 (1): 31. <a href="https://doi.org/10.1186/1755-8794-4-31">https://doi.org/10.1186/1755-8794-4-31</a>.
+</div>
+<div id="ref-uci" class="csl-entry" role="listitem">
+Dua, Dheeru, and Casey Graff. 2017. <span>“<span>UCI</span> Machine
+Learning Repository.”</span> University of California, Irvine, School of
+Information; Computer Sciences. <a href="https://archive.ics.uci.edu/ml">https://archive.ics.uci.edu/ml</a>.
+</div>
+<div id="ref-Eddelbuettel2020" class="csl-entry" role="listitem">
+Eddelbuettel, Dirk. 2020. <span>“Parallel Computing with <span>R</span>:
+A Brief Review.”</span> <em><span>WIREs</span> Computational
+Statistics</em> 13 (2). <a href="https://doi.org/10.1002/wics.1515">https://doi.org/10.1002/wics.1515</a>.
+</div>
+<div id="ref-hpo_automl" class="csl-entry" role="listitem">
+Feurer, Matthias, and Frank Hutter. 2019. <span>“Hyperparameter
+Optimization.”</span> In <em>Automated Machine Learning: Methods,
+Systems, Challenges</em>, edited by Frank Hutter, Lars Kotthoff, and
+Joaquin Vanschoren, 3–33. Cham: Springer International Publishing. <a href="https://doi.org/10.1007/978-3-030-05318-5_1">https://doi.org/10.1007/978-3-030-05318-5_1</a>.
+</div>
+<div id="ref-feurer2015initializing" class="csl-entry" role="listitem">
+Feurer, Matthias, Jost Springenberg, and Frank Hutter. 2015.
+<span>“Initializing <span>B</span>ayesian Hyperparameter Optimization
+via Meta-Learning.”</span> In <em>Proceedings of the AAAI Conference on
+Artificial Intelligence</em>. Vol. 29. 1. <a href="https://doi.org/10.1609/aaai.v29i1.9354">https://doi.org/10.1609/aaai.v29i1.9354</a>.
+</div>
+<div id="ref-Fisher2019pfi" class="csl-entry" role="listitem">
+Fisher, Aaron, Cynthia Rudin, and Francesca Dominici. 2019. <span>“All
+Models Are Wrong, but Many Are Useful: Learning a Variable’s Importance
+by Studying an Entire Class of Prediction Models Simultaneously.”</span>
+<a href="https://doi.org/10.48550/arxiv.1801.01489">https://doi.org/10.48550/arxiv.1801.01489</a>.
+</div>
+<div id="ref-Friedman2001pdp" class="csl-entry" role="listitem">
+Friedman, Jerome H. 2001. <span>“Greedy Function Approximation: A
+Gradient Boosting Machine.”</span> <em>The Annals of Statistics</em> 29
+(5). <a href="https://doi.org/10.1214/aos/1013203451">https://doi.org/10.1214/aos/1013203451</a>.
+</div>
+<div id="ref-garnett_2022" class="csl-entry" role="listitem">
+Garnett, Roman. 2022. <em>Bayesian Optimization</em>. Cambridge
+University Press. <a href="https://bayesoptbook.com/">https://bayesoptbook.com/</a>.
+</div>
+<div id="ref-amlb2022" class="csl-entry" role="listitem">
+Gijsbers, Pieter, Marcos L. P. Bueno, Stefan Coors, Erin LeDell,
+Sébastien Poirier, Janek Thomas, Bernd Bischl, and Joaquin Vanschoren.
+2022. <span>“AMLB: An AutoML Benchmark.”</span> arXiv. <a href="https://doi.org/10.48550/ARXIV.2207.12560">https://doi.org/10.48550/ARXIV.2207.12560</a>.
+</div>
+<div id="ref-Goldstein2015ice" class="csl-entry" role="listitem">
+Goldstein, Alex, Adam Kapelner, Justin Bleich, and Emil Pitkin. 2015.
+<span>“Peeking Inside the Black Box: Visualizing Statistical Learning
+with Plots of Individual Conditional Expectation.”</span> <em>Journal of
+Computational and Graphical Statistics</em> 24 (1): 44–65. <a href="https://doi.org/10.1080/10618600.2014.907095">https://doi.org/10.1080/10618600.2014.907095</a>.
+</div>
+<div id="ref-gower1971general" class="csl-entry" role="listitem">
+Gower, John C. 1971. <span>“A General Coefficient of Similarity and Some
+of Its Properties.”</span> <em>Biometrics</em>, 857–71. <a href="https://doi.org/10.2307/2528823">https://doi.org/10.2307/2528823</a>.
+</div>
+<div id="ref-grinsztajn2022why" class="csl-entry" role="listitem">
+Grinsztajn, Leo, Edouard Oyallon, and Gael Varoquaux. 2022. <span>“Why
+Do Tree-Based Models Still Outperform Deep Learning on Typical Tabular
+Data?”</span> In <em>Thirty-Sixth Conference on Neural Information
+Processing Systems Datasets and Benchmarks Track</em>. <a href="https://openreview.net/forum?id=Fp7__phQszn">https://openreview.net/forum?id=Fp7__phQszn</a>.
+</div>
+<div id="ref-guidotti2022counterfactual" class="csl-entry" role="listitem">
+Guidotti, Riccardo. 2022. <span>“Counterfactual Explanations and How to
+Find Them: Literature Review and Benchmarking.”</span> <em>Data Mining
+and Knowledge Discovery</em>, 1–55. <a href="https://doi.org/10.1007/s10618-022-00831-6">https://doi.org/10.1007/s10618-022-00831-6</a>.
+</div>
+<div id="ref-guidotti2018survey" class="csl-entry" role="listitem">
+Guidotti, Riccardo, Anna Monreale, Salvatore Ruggieri, Franco Turini,
+Fosca Giannotti, and Dino Pedreschi. 2018. <span>“A Survey of Methods
+for Explaining Black Box Models.”</span> <em>ACM Computing Surveys
+(CSUR)</em> 51 (5): 1–42. <a href="https://doi.org/10.1145/3236009">https://doi.org/10.1145/3236009</a>.
+</div>
+<div id="ref-guyon2003" class="csl-entry" role="listitem">
+Guyon, Isabelle, and André Elisseeff. 2003. <span>“An Introduction to
+Variable and Feature Selection.”</span> <em>Journal of Machine Learning
+Research</em> 3 (Mar): 1157–82. <a href="https://www.jmlr.org/papers/v3/guyon03a.html">https://www.jmlr.org/papers/v3/guyon03a.html</a>.
+</div>
+<div id="ref-hand2001simple" class="csl-entry" role="listitem">
+Hand, David J, and Robert J Till. 2001. <span>“A Simple Generalisation
+of the Area Under the ROC Curve for Multiple Class Classification
+Problems.”</span> <em>Machine Learning</em> 45: 171–86. <a href="https://doi.org/10.1023/A:1010920819831">https://doi.org/10.1023/A:1010920819831</a>.
+</div>
+<div id="ref-hansen2011" class="csl-entry" role="listitem">
+Hansen, Nikolaus, and Anne Auger. 2011. <span>“CMA-ES: Evolution
+Strategies and Covariance Matrix Adaptation.”</span> In <em>Proceedings
+of the 13th Annual Conference Companion on Genetic and Evolutionary
+Computation</em>, 991–1010. <a href="https://doi.org/10.1145/2001858.2002123">https://doi.org/10.1145/2001858.2002123</a>.
+</div>
+<div id="ref-hastie2001" class="csl-entry" role="listitem">
+Hastie, Trevor, Jerome Friedman, and Robert Tibshirani. 2001. <em>The
+Elements of Statistical Learning</em>. Springer New York. <a href="https://doi.org/10.1007/978-0-387-21606-5">https://doi.org/10.1007/978-0-387-21606-5</a>.
+</div>
+<div id="ref-Hooker2019PleaseSP" class="csl-entry" role="listitem">
+Hooker, Giles, and Lucas K. Mentch. 2019. <span>“Please Stop Permuting
+Features: An Explanation and Alternatives.”</span> <a href="https://doi.org/10.48550/arxiv.1905.03151">https://doi.org/10.48550/arxiv.1905.03151</a>.
+</div>
+<div id="ref-Horn2015" class="csl-entry" role="listitem">
+Horn, Daniel, Tobias Wagner, Dirk Biermann, Claus Weihs, and Bernd
+Bischl. 2015. <span>“Model-Based Multi-Objective Optimization: Taxonomy,
+Multi-Point Proposal, Toolbox and Benchmark.”</span> In <em>Evolutionary
+Multi-Criterion Optimization</em>, edited by António Gaspar-Cunha,
+Carlos Henggeler Antunes, and Carlos Coello Coello, 64–78. <a href="https://doi.org/10.1007/978-3-319-15934-8_5">https://doi.org/10.1007/978-3-319-15934-8_5</a>.
+</div>
+<div id="ref-huang_2012" class="csl-entry" role="listitem">
+Huang, D., T. T. Allen, W. I. Notz, and N. Zheng. 2012. <span>“Erratum
+to: Global Optimization of Stochastic Black-Box Systems via Sequential
+Kriging Meta-Models.”</span> <em>Journal of Global Optimization</em> 54
+(2): 431–31. <a href="https://doi.org/10.1007/s10898-011-9821-z">https://doi.org/10.1007/s10898-011-9821-z</a>.
+</div>
+<div id="ref-Huang2022" class="csl-entry" role="listitem">
+Huang, Jonathan, Galal Galal, Mozziyar Etemadi, and Mahesh Vaidyanathan.
+2022. <span>“Evaluation and Mitigation of Racial Bias in Clinical
+Machine Learning Models: Scoping Review.”</span> <em>JMIR Med
+Inform</em> 10 (5). <a href="https://doi.org/10.2196/36388">https://doi.org/10.2196/36388</a>.
+</div>
+<div id="ref-hutter2019automated" class="csl-entry" role="listitem">
+Hutter, Frank, Lars Kotthoff, and Joaquin Vanschoren, eds. 2019.
+<em>Automated Machine Learning - Methods, Systems, Challenges</em>.
+Springer.
+</div>
+<div id="ref-datatable" class="csl-entry" role="listitem">
+<span>“Introduction to Data.table.”</span> 2023. <a href="https://cran.r-project.org/web/packages/data.table/vignettes/datatable-intro.html" class="uri">https://cran.r-project.org/web/packages/data.table/vignettes/datatable-intro.html</a>.
+</div>
+<div id="ref-james_introduction_2014" class="csl-entry" role="listitem">
+James, Gareth, Daniela Witten, Trevor Hastie, and Robert Tibshirani.
+2014. <em>An Introduction to Statistical Learning: With Applications in
+<span>R</span></em>. Springer Publishing Company, Incorporated. <a href="https://doi.org/10.1007/978-1-4614-7138-7">https://doi.org/10.1007/978-1-4614-7138-7</a>.
+</div>
+<div id="ref-jamieson_2016" class="csl-entry" role="listitem">
+Jamieson, Kevin, and Ameet Talwalkar. 2016. <span>“Non-Stochastic Best
+Arm Identification and Hyperparameter Optimization.”</span> In
+<em>Proceedings of the 19th International Conference on Artificial
+Intelligence and Statistics</em>, edited by Arthur Gretton and Christian
+C. Robert, 51:240–48. Proceedings of Machine Learning Research. Cadiz,
+Spain: PMLR. <a href="https://proceedings.mlr.press/v51/jamieson16.html">https://proceedings.mlr.press/v51/jamieson16.html</a>.
+</div>
+<div id="ref-japkowicz2011evaluating" class="csl-entry" role="listitem">
+Japkowicz, Nathalie, and Mohak Shah. 2011. <em>Evaluating Learning
+Algorithms: A Classification Perspective</em>. Cambridge University
+Press. <a href="https://doi.org/10.1017/CBO9780511921803">https://doi.org/10.1017/CBO9780511921803</a>.
+</div>
+<div id="ref-jones_1993_lipschitzian" class="csl-entry" role="listitem">
+Jones, Donald R., Cary D. Perttunen, and Bruce E. Stuckman. 1993.
+<span>“Lipschitzian Optimization Without the <span>L</span>ipschitz
+Constant.”</span> <em>Journal of Optimization Theory and
+Applications</em> 79 (1): 157–81. <a href="https://doi.org/10.1007/BF00941892">https://doi.org/10.1007/BF00941892</a>.
+</div>
+<div id="ref-jones_1998" class="csl-entry" role="listitem">
+Jones, Donald R., Matthias Schonlau, and William J. Welch. 1998.
+<span>“Efficient Global Optimization of Expensive Black-Box
+Functions.”</span> <em>Journal of Global Optimization</em> 13 (4):
+455–92. <a href="https://doi.org/10.1023/A:1008306431147">https://doi.org/10.1023/A:1008306431147</a>.
+</div>
+<div id="ref-Kalbfleisch2011" class="csl-entry" role="listitem">
+Kalbfleisch, John D, and Ross L Prentice. 2011. <em>The Statistical
+Analysis of Failure Time Data</em>. Vol. 360. John Wiley &amp; Sons. <a href="https://doi.org/10.1002/9781118032985">https://doi.org/10.1002/9781118032985</a>.
+</div>
+<div id="ref-karl2022" class="csl-entry" role="listitem">
+Karl, Florian, Tobias Pielok, Julia Moosbauer, Florian Pfisterer, Stefan
+Coors, Martin Binder, Lennart Schneider, et al. 2022.
+<span>“Multi-Objective Hyperparameter Optimization–an Overview.”</span>
+<em>arXiv Preprint arXiv:2206.07438</em>. <a href="https://doi.org/10.48550/arXiv.2206.07438">https://doi.org/10.48550/arXiv.2206.07438</a>.
+</div>
+<div id="ref-kim2009estimating" class="csl-entry" role="listitem">
+Kim, Ji-Hyun. 2009. <span>“Estimating Classification Error Rate:
+Repeated Cross-Validation, Repeated Hold-Out and Bootstrap.”</span>
+<em>Computational Statistics &amp; Data Analysis</em> 53 (11): 3735–45.
+<a href="https://doi.org/10.1016/j.csda.2009.04.009">https://doi.org/10.1016/j.csda.2009.04.009</a>.
+</div>
+<div id="ref-kim_2021" class="csl-entry" role="listitem">
+Kim, Jungtaek, and Seungjin Choi. 2021. <span>“On Local Optimizers of
+Acquisition Functions in Bayesian Optimization.”</span> In <em>Machine
+Learning and Knowledge Discovery in Databases</em>, edited by Frank
+Hutter, Kristian Kersting, Jefrey Lijffijt, and Isabel Valera, 675–90.
+<a href="https://doi.org/10.1007/978-3-030-67661-2_40">https://doi.org/10.1007/978-3-030-67661-2_40</a>.
+</div>
+<div id="ref-knowles_2006" class="csl-entry" role="listitem">
+Knowles, Joshua. 2006. <span>“ParEGO: A Hybrid Algorithm with on-Line
+Landscape Approximation for Expensive Multiobjective Optimization
+Problems.”</span> <em>IEEE Transactions on Evolutionary Computation</em>
+10 (1): 50–66. <a href="https://doi.org/10.1109/TEVC.2005.851274">https://doi.org/10.1109/TEVC.2005.851274</a>.
+</div>
+<div id="ref-koenker_quantile_2005" class="csl-entry" role="listitem">
+Koenker, Roger. 2005. <em>Quantile Regression</em>. Econometric Society
+Monographs. Cambridge: Cambridge University Press. <a href="https://doi.org/10.1017/CBO9780511754098">https://doi.org/10.1017/CBO9780511754098</a>.
+</div>
+<div id="ref-kohavi1995" class="csl-entry" role="listitem">
+Kohavi, Ron. 1995. <span>“A Study of Cross-Validation and Bootstrap for
+Accuracy Estimation and Model Selection.”</span> In <em>Proceedings of
+the 14th International Joint Conference on <span>Artificial</span>
+Intelligence - <span>Volume</span> 2</em>, 1137–43.
+<span>IJCAI</span>’95. <span>San Francisco, CA, USA</span>: <span>Morgan
+Kaufmann Publishers Inc.</span>
+</div>
+<div id="ref-Kohavi1997" class="csl-entry" role="listitem">
+Kohavi, Ron, and George H. John. 1997. <span>“Wrappers for Feature
+Subset Selection.”</span> <em>Artificial Intelligence</em> 97 (1):
+273–324. <a href="https://doi.org/10.1016/S0004-3702(97)00043-X">https://doi.org/10.1016/S0004-3702(97)00043-X</a>.
+</div>
+<div id="ref-Krzyzinski2023" class="csl-entry" role="listitem">
+Krzyziński, Mateusz, Mikołaj Spytek, Hubert Baniecki, and Przemysław
+Biecek. 2023. <span>“<span class="nocase">SurvSHAP(t)</span>:
+Time-Dependent Explanations of Machine Learning Survival Models.”</span>
+<em>Knowledge-Based Systems</em> 262: 110234. <a href="https://doi.org/10.1016/j.knosys.2022.110234">https://doi.org/10.1016/j.knosys.2022.110234</a>.
+</div>
+<div id="ref-kuehn_2018" class="csl-entry" role="listitem">
+Kuehn, Daniel, Philipp Probst, Janek Thomas, and Bernd Bischl. 2018.
+<span>“Automatic Exploration of Machine Learning Experiments on
+OpenML.”</span> <a href="https://arxiv.org/abs/1806.10961">https://arxiv.org/abs/1806.10961</a>.
+</div>
+<div id="ref-checkmate" class="csl-entry" role="listitem">
+Lang, Michel. 2017. <span>“<span class="nocase">checkmate</span>: Fast
+Argument Checks for Defensive <span>R</span> Programming.”</span>
+<em>The <span>R</span> Journal</em> 9 (1): 437–45. <a href="https://doi.org/10.32614/RJ-2017-028">https://doi.org/10.32614/RJ-2017-028</a>.
+</div>
+<div id="ref-mlr3" class="csl-entry" role="listitem">
+Lang, Michel, Martin Binder, Jakob Richter, Patrick Schratz, Florian
+Pfisterer, Stefan Coors, Quay Au, Giuseppe Casalicchio, Lars Kotthoff,
+and Bernd Bischl. 2019. <span>“<span class="nocase">mlr3</span>: A
+Modern Object-Oriented Machine Learning Framework in
+<span>R</span>.”</span> <em>Journal of Open Source Software</em>,
+December. <a href="https://doi.org/10.21105/joss.01903">https://doi.org/10.21105/joss.01903</a>.
+</div>
+<div id="ref-batchtools" class="csl-entry" role="listitem">
+Lang, Michel, Bernd Bischl, and Dirk Surmann. 2017. <span>“<span class="nocase">batchtools</span>: Tools for <span>R</span> to Work on
+Batch Systems.”</span> <em>The Journal of Open Source Software</em> 2
+(10). <a href="https://doi.org/10.21105/joss.00135">https://doi.org/10.21105/joss.00135</a>.
+</div>
+<div id="ref-lecun1998gradient" class="csl-entry" role="listitem">
+LeCun, Yann, Léon Bottou, Yoshua Bengio, and Patrick Haffner. 1998.
+<span>“Gradient-Based Learning Applied to Document Recognition.”</span>
+<em>Proceedings of the IEEE</em> 86 (11): 2278–2324. <a href="https://doi.org/10.1109/5.726791">https://doi.org/10.1109/5.726791</a>.
+</div>
+<div id="ref-li_2018" class="csl-entry" role="listitem">
+Li, Lisha, Kevin Jamieson, Giulia DeSalvo, Afshin Rostamizadeh, and
+Ameet Talwalkar. 2018. <span>“Hyperband: A Novel Bandit-Based Approach
+to Hyperparameter Optimization.”</span> <em>Journal of Machine Learning
+Research</em> 18 (185): 1–52. <a href="https://jmlr.org/papers/v18/16-558.html">https://jmlr.org/papers/v18/16-558.html</a>.
+</div>
+<div id="ref-Lindauer2022" class="csl-entry" role="listitem">
+Lindauer, Marius, Katharina Eggensperger, Matthias Feurer, André
+Biedenkapp, Difan Deng, Carolin Benjamins, Tim Ruhkopf, René Sass, and
+Frank Hutter. 2022. <span>“<span>SMAC3</span>: A Versatile Bayesian
+Optimization Package for Hyperparameter Optimization.”</span>
+<em>Journal of Machine Learning Research</em> 23 (54): 1–9. <a href="https://www.jmlr.org/papers/v23/21-0888.html">https://www.jmlr.org/papers/v23/21-0888.html</a>.
+</div>
+<div id="ref-lipton2018mythos" class="csl-entry" role="listitem">
+Lipton, Zachary C. 2018. <span>“The Mythos of Model Interpretability: In
+Machine Learning, the Concept of Interpretability Is Both Important and
+Slippery.”</span> <em>Queue</em> 16 (3): 31–57. <a href="https://doi.org/10.1145/3236386.3241340">https://doi.org/10.1145/3236386.3241340</a>.
+</div>
+<div id="ref-lopez2016" class="csl-entry" role="listitem">
+López-Ibáñez, Manuel, Jérémie Dubois-Lacoste, Leslie Pérez Cáceres,
+Mauro Birattari, and Thomas Stützle. 2016. <span>“The <span class="nocase">irace</span> Package: Iterated Racing for Automatic
+Algorithm Configuration.”</span> <em>Operations Research
+Perspectives</em> 3: 43–58. <a href="https://doi.org/10.1016/j.orp.2016.09.002">https://doi.org/10.1016/j.orp.2016.09.002</a>.
+</div>
+<div id="ref-Lundberg2019" class="csl-entry" role="listitem">
+Lundberg, Scott M., Gabriel G. Erion, and Su-In Lee. 2019.
+<span>“Consistent Individualized Feature Attribution for Tree
+Ensembles.”</span> arXiv. <a href="https://doi.org/10.48550/arxiv.1802.03888">https://doi.org/10.48550/arxiv.1802.03888</a>.
+</div>
+<div id="ref-Mehrabi2021" class="csl-entry" role="listitem">
+Mehrabi, Ninareh, Fred Morstatter, Nripsuta Saxena, Kristina Lerman, and
+Aram Galstyan. 2021. <span>“A Survey on Bias and Fairness in Machine
+Learning.”</span> <em>ACM Comput. Surv.</em> 54 (6). <a href="https://doi.org/10.1145/3457607">https://doi.org/10.1145/3457607</a>.
+</div>
+<div id="ref-MicciBarreca2001" class="csl-entry" role="listitem">
+Micci-Barreca, Daniele. 2001. <span>“A Preprocessing Scheme for
+High-Cardinality Categorical Attributes in Classification and Prediction
+Problems.”</span> <em><span>ACM</span> <span>SIGKDD</span> Explorations
+Newsletter</em> 3 (1): 27–32. <a href="https://doi.org/10.1145/507533.507538">https://doi.org/10.1145/507533.507538</a>.
+</div>
+<div id="ref-mitchell21" class="csl-entry" role="listitem">
+Mitchell, Shira, Eric Potash, Solon Barocas, Alexander D’Amour, and
+Kristian Lum. 2021. <span>“Algorithmic Fairness: Choices, Assumptions,
+and Definitions.”</span> <em>Annual Review of Statistics and Its
+Application</em> 8: 141–63. <a href="https://doi.org/10.1146/annurev-statistics-042720-125902">https://doi.org/10.1146/annurev-statistics-042720-125902</a>.
+</div>
+<div id="ref-molinaro2005prediction" class="csl-entry" role="listitem">
+Molinaro, Annette M, Richard Simon, and Ruth M Pfeiffer. 2005.
+<span>“Prediction Error Estimation: A Comparison of Resampling
+Methods.”</span> <em>Bioinformatics</em> 21 (15): 3301–7. <a href="https://doi.org/10.1093/bioinformatics/bti499">https://doi.org/10.1093/bioinformatics/bti499</a>.
+</div>
+<div id="ref-Molnar2022" class="csl-entry" role="listitem">
+Molnar, Christoph. 2022. <em>Interpretable Machine Learning: A Guide for
+Making Black Box Models Explainable</em>. 2nd ed. <a href="https://christophm.github.io/interpretable-ml-book">https://christophm.github.io/interpretable-ml-book</a>.
+</div>
+<div id="ref-Molnar2018" class="csl-entry" role="listitem">
+Molnar, Christoph, Bernd Bischl, and Giuseppe Casalicchio. 2018.
+<span>“<span class="nocase">iml</span>: An <span>R</span> Package for
+Interpretable Machine Learning.”</span> <em>JOSS</em> 3 (26): 786. <a href="https://doi.org/10.21105/joss.00786">https://doi.org/10.21105/joss.00786</a>.
+</div>
+<div id="ref-Molnar2022pitfalls" class="csl-entry" role="listitem">
+Molnar, Christoph, Gunnar König, Julia Herbinger, Timo Freiesleben,
+Susanne Dandl, Christian A. Scholbeck, Giuseppe Casalicchio, Moritz
+Grosse-Wentrup, and Bernd Bischl. 2022. <span>“General Pitfalls
+of&nbsp;Model-Agnostic Interpretation Methods for&nbsp;Machine Learning
+Models.”</span> In <em>xxAI - Beyond Explainable AI: International
+Workshop, Held in Conjunction with ICML 2020, July 18, 2020, Vienna,
+Austria, Revised and Extended Papers</em>, edited by Andreas Holzinger,
+Randy Goebel, Ruth Fong, Taesup Moon, Klaus-Robert Müller, and Wojciech
+Samek, 39–68. Cham: Springer International Publishing. <a href="https://doi.org/10.1007/978-3-031-04083-2_4">https://doi.org/10.1007/978-3-031-04083-2_4</a>.
+</div>
+<div id="ref-Morales2022" class="csl-entry" role="listitem">
+Morales-Hernández, Alejandro, Inneke Van Nieuwenhuyse, and Sebastian
+Rojas Gonzalez. 2022. <span>“A Survey on Multi-Objective Hyperparameter
+Optimization Algorithms for Machine Learning.”</span> <em>Artificial
+Intelligence Review</em>, 1–51. <a href="https://doi.org/10.1007/s10462-022-10359-2">https://doi.org/10.1007/s10462-022-10359-2</a>.
+</div>
+<div id="ref-Niederreiter1988" class="csl-entry" role="listitem">
+Niederreiter, Harald. 1988. <span>“Low-Discrepancy and Low-Dispersion
+Sequences.”</span> <em>Journal of Number Theory</em> 30 (1): 51–70. <a href="https://doi.org/10.1016/0022-314X(88)90025-X">https://doi.org/10.1016/0022-314X(88)90025-X</a>.
+</div>
+<div id="ref-pargent2022regularized" class="csl-entry" role="listitem">
+Pargent, Florian, Florian Pfisterer, Janek Thomas, and Bernd Bischl.
+2022. <span>“Regularized Target Encoding Outperforms Traditional Methods
+in Supervised Machine Learning with High Cardinality Features.”</span>
+<em>Computational Statistics</em> 37 (5): 2671–92. <a href="https://doi.org/10.1007/s00180-022-01207-6">https://doi.org/10.1007/s00180-022-01207-6</a>.
+</div>
+<div id="ref-Poulos2018" class="csl-entry" role="listitem">
+Poulos, Jason, and Rafael Valle. 2018. <span>“Missing Data Imputation
+for Supervised Learning.”</span> <em>Applied Artificial
+Intelligence</em> 32 (2): 186–96. <a href="https://doi.org/10.1080/08839514.2018.1448143">https://doi.org/10.1080/08839514.2018.1448143</a>.
+</div>
+<div id="ref-provost2013" class="csl-entry" role="listitem">
+Provost, Foster, and Tom Fawcett. 2013. <em>Data Science for Business:
+What You Need to Know about Data Mining and Data-Analytic Thinking</em>.
+O’Reilly Media.
+</div>
+<div id="ref-R" class="csl-entry" role="listitem">
+R Core Team. 2019. <em>R: A Language and Environment for Statistical
+Computing</em>. Vienna, Austria: <span>R</span> Foundation for
+Statistical Computing. <a href="https://www.R-project.org/">https://www.R-project.org/</a>.
+</div>
+<div id="ref-Ribeiro2016lime" class="csl-entry" role="listitem">
+Ribeiro, Marco, Sameer Singh, and Carlos Guestrin. 2016.
+<span>“<span>“</span>Why Should <span>I</span> Trust You?<span>”</span>:
+Explaining the Predictions of Any Classifier.”</span> In <em>Proceedings
+of the 2016 Conference of the North <span>A</span>merican Chapter of the
+Association for Computational Linguistics: Demonstrations</em>, 97–101.
+San Diego, California: Association for Computational Linguistics. <a href="https://doi.org/10.18653/v1/N16-3020">https://doi.org/10.18653/v1/N16-3020</a>.
+</div>
+<div id="ref-Romaszko2019" class="csl-entry" role="listitem">
+Romaszko, Kamil, Magda Tatarynowicz, Mateusz Urbański, and Przemysław
+Biecek. 2019. <span>“modelDown: Automated Website Generator with
+Interpretable Documentation for Predictive Machine Learning
+Models.”</span> <em>Journal of Open Source Software</em> 4 (38): 1444.
+<a href="https://doi.org/10.21105/joss.01444">https://doi.org/10.21105/joss.01444</a>.
+</div>
+<div id="ref-Ruspini1970" class="csl-entry" role="listitem">
+Ruspini, Enrique H. 1970. <span>“Numerical Methods for Fuzzy
+Clustering.”</span> <em>Information Sciences</em> 2 (3): 319–50. <a href="https://doi.org/10.1016/S0020-0255(70)80056-1">https://doi.org/10.1016/S0020-0255(70)80056-1</a>.
+</div>
+<div id="ref-2018aequitas" class="csl-entry" role="listitem">
+Saleiro, Pedro, Benedict Kuester, Abby Stevens, Ari Anisfeld, Loren
+Hinkson, Jesse London, and Rayid Ghani. 2018. <span>“Aequitas: A Bias
+and Fairness Audit Toolkit.”</span> <em>arXiv Preprint
+arXiv:1811.05577</em>. <a href="https://doi.org/10.48550/arXiv.1811.05577">https://doi.org/10.48550/arXiv.1811.05577</a>.
+</div>
+<div id="ref-Schmidberger2009" class="csl-entry" role="listitem">
+Schmidberger, Markus, Martin Morgan, Dirk Eddelbuettel, Hao Yu, Luke
+Tierney, and Ulrich Mansmann. 2009. <span>“State of the Art in Parallel
+Computing with <span>R</span>.”</span> <em>Journal of Statistical
+Software</em> 31 (1). <a href="https://doi.org/10.18637/jss.v031.i01">https://doi.org/10.18637/jss.v031.i01</a>.
+</div>
+<div id="ref-Schratz2021" class="csl-entry" role="listitem">
+Schratz, Patrick, Marc Becker, Michel Lang, and Alexander Brenning.
+2021. <span>“<span class="nocase">mlr3spatiotempcv</span>:
+Spatiotemporal Resampling Methods for Machine Learning in
+<span>R</span>,”</span> October. <a href="https://arxiv.org/abs/2110.12674">https://arxiv.org/abs/2110.12674</a>.
+</div>
+<div id="ref-kuempelfischer2024ciforge" class="csl-entry" role="listitem">
+Schulz-Kümpel, Hannah, Sebastian Fischer, Thomas Nagler, Anne-Laure
+Boulesteix, Bernd Bischl, and Roman Hornung. 2024. <span>“Constructing
+Confidence Intervals for ’the’ Generalization Error – a Comprehensive
+Benchmark Study.”</span> <a href="https://arxiv.org/abs/2409.18836">https://arxiv.org/abs/2409.18836</a>.
+</div>
+<div id="ref-Silverman1986" class="csl-entry" role="listitem">
+Silverman, Bernard W. 1986. <em>Density Estimation for Statistics and
+Data Analysis</em>. Vol. 26. CRC press.
+</div>
+<div id="ref-Simon2007" class="csl-entry" role="listitem">
+Simon, Richard. 2007. <span>“Resampling Strategies for Model Assessment
+and Selection.”</span> In <em>Fundamentals of Data Mining in Genomics
+and Proteomics</em>, edited by Werner Dubitzky, Martin Granzow, and
+Daniel Berrar, 173–86. <span>Boston, MA</span>: <span>Springer
+US</span>. <a href="https://doi.org/10.1007/978-0-387-47509-7_8">https://doi.org/10.1007/978-0-387-47509-7_8</a>.
+</div>
+<div id="ref-Snoek2012" class="csl-entry" role="listitem">
+Snoek, Jasper, Hugo Larochelle, and Ryan P Adams. 2012. <span>“Practical
+Bayesian Optimization of Machine Learning Algorithms.”</span> In
+<em>Advances in Neural Information Processing Systems</em>, edited by F.
+Pereira, C. J. Burges, L. Bottou, and K. Q. Weinberger. Vol. 25. <a href="https://proceedings.neurips.cc/paper_files/paper/2012/file/05311655a15b75fab86956663e1819cd-Paper.pdf">https://proceedings.neurips.cc/paper_files/paper/2012/file/05311655a15b75fab86956663e1819cd-Paper.pdf</a>.
+</div>
+<div id="ref-Sonabend2021b" class="csl-entry" role="listitem">
+Sonabend, Raphael Edward Benjamin. 2021. <span>“A Theoretical and
+Methodological Framework for Machine Learning in Survival Analysis:
+Enabling Transparent and Accessible Predictive Modelling on
+Right-Censored Time-to-Event Data.”</span> PhD, University College
+London (UCL). <a href="https://discovery.ucl.ac.uk/id/eprint/10129352/">https://discovery.ucl.ac.uk/id/eprint/10129352/</a>.
+</div>
+<div id="ref-MLSA" class="csl-entry" role="listitem">
+Sonabend, Raphael, and Andreas Bender. 2023. <em>Machine Learning in
+Survival Analysis</em>. <a href="https://www.mlsabook.com">https://www.mlsabook.com</a>.
+</div>
+<div id="ref-Sonabend2022" class="csl-entry" role="listitem">
+Sonabend, Raphael, Andreas Bender, and Sebastian Vollmer. 2022.
+<span>“Avoiding <span>C</span>-Hacking When Evaluating Survival
+Distribution Predictions with Discrimination Measures.”</span> Edited by
+Zhiyong Lu. <em>Bioinformatics</em> 38 (17): 4178–84. <a href="https://doi.org/10.1093/bioinformatics/btac451">https://doi.org/10.1093/bioinformatics/btac451</a>.
+</div>
+<div id="ref-mlr3proba" class="csl-entry" role="listitem">
+Sonabend, Raphael, Franz J Király, Andreas Bender, Bernd Bischl, and
+Michel Lang. 2021. <span>“<span class="nocase">mlr3proba</span>: An
+<span>R</span> Package for Machine Learning in Survival
+Analysis.”</span> <em>Bioinformatics</em>, February. <a href="https://doi.org/10.1093/bioinformatics/btab039">https://doi.org/10.1093/bioinformatics/btab039</a>.
+</div>
+<div id="ref-Sonabend2022a" class="csl-entry" role="listitem">
+Sonabend, Raphael, Florian Pfisterer, Alan Mishler, Moritz Schauer,
+Lukas Burk, Sumantrak Mukherjee, and Sebastian Vollmer. 2022.
+<span>“Flexible Group Fairness Metrics for Survival Analysis.”</span> In
+<em>DSHealth 2022 Workshop on Applied Data Science for Healthcare at
+KDD2022</em>. <a href="https://arxiv.org/abs/2206.03256">https://arxiv.org/abs/2206.03256</a>.
+</div>
+<div id="ref-Stein1987" class="csl-entry" role="listitem">
+Stein, Michael. 1987. <span>“Large Sample Properties of Simulations
+Using Latin Hypercube Sampling.”</span> <em>Technometrics</em> 29 (2):
+143–51. <a href="https://doi.org/10.2307/1269769">https://doi.org/10.2307/1269769</a>.
+</div>
+<div id="ref-Strobl2008" class="csl-entry" role="listitem">
+Strobl, Carolin, Anne-Laure Boulesteix, Thomas Kneib, Thomas Augustin,
+and Achim Zeileis. 2008. <span>“Conditional Variable Importance for
+Random Forests.”</span> <em><span>BMC</span> Bioinformatics</em> 9 (1).
+<a href="https://doi.org/10.1186/1471-2105-9-307">https://doi.org/10.1186/1471-2105-9-307</a>.
+</div>
+<div id="ref-Trumbelj2013Shapley" class="csl-entry" role="listitem">
+Štrumbelj, Erik, and Igor Kononenko. 2013. <span>“Explaining Prediction
+Models and Individual Predictions with Feature Contributions.”</span>
+<em>Knowledge and Information Systems</em> 41 (3): 647–65. <a href="https://doi.org/10.1007/s10115-013-0679-x">https://doi.org/10.1007/s10115-013-0679-x</a>.
+</div>
+<div id="ref-Thornton2013" class="csl-entry" role="listitem">
+Thornton, Chris, Frank Hutter, Holger H. Hoos, and Kevin Leyton-Brown.
+2013. <span>“Auto-<span>WEKA</span>.”</span> In <em>Proceedings of the
+19th <span>ACM</span> <span>SIGKDD</span> International Conference on
+Knowledge Discovery and Data Mining</em>. <span>ACM</span>. <a href="https://doi.org/10.1145/2487575.2487629">https://doi.org/10.1145/2487575.2487629</a>.
+</div>
+<div id="ref-tsallis1996" class="csl-entry" role="listitem">
+Tsallis, Constantino, and Daniel A Stariolo. 1996. <span>“Generalized
+Simulated Annealing.”</span> <em>Physica A: Statistical Mechanics and
+Its Applications</em> 233 (1-2): 395–406. <a href="https://doi.org/10.1016/S0378-4371(96)00271-3">https://doi.org/10.1016/S0378-4371(96)00271-3</a>.
+</div>
+<div id="ref-openml2013" class="csl-entry" role="listitem">
+Vanschoren, Joaquin, Jan N. van Rijn, Bernd Bischl, and Luis Torgo.
+2013. <span>“OpenML: Networked Science in Machine Learning.”</span>
+<em>SIGKDD Explorations</em> 15 (2): 49–60. <a href="https://doi.org/10.1145/2641190.2641198">https://doi.org/10.1145/2641190.2641198</a>.
+</div>
+<div id="ref-Wachter2017" class="csl-entry" role="listitem">
+Wachter, Sandra, Brent Mittelstadt, and Chris Russell. 2017.
+<span>“Counterfactual Explanations Without Opening the Black Box:
+Automated Decisions and the <span>GDPR</span>.”</span>
+<em><span>SSRN</span> Electronic Journal</em>. <a href="https://doi.org/10.2139/ssrn.3063289">https://doi.org/10.2139/ssrn.3063289</a>.
+</div>
+<div id="ref-Wachter2021" class="csl-entry" role="listitem">
+———. 2021. <span>“Why Fairness Cannot Be Automated: Bridging the Gap
+Between EU Non-Discrimination Law and AI.”</span> <em>Computer Law &amp;
+Security Review</em> 41: 105567. https://doi.org/<a href="https://doi.org/10.1016/j.clsr.2021.105567">https://doi.org/10.1016/j.clsr.2021.105567</a>.
+</div>
+<div id="ref-Watson2021" class="csl-entry" role="listitem">
+Watson, David S, and Marvin N Wright. 2021. <span>“Testing Conditional
+Independence in Supervised Learning Algorithms.”</span> <em>Machine
+Learning</em> 110 (8): 2107–29. <a href="https://doi.org/10.1007/s10994-021-06030-6">https://doi.org/10.1007/s10994-021-06030-6</a>.
+</div>
+<div id="ref-Wexler2019" class="csl-entry" role="listitem">
+Wexler, James, Mahima Pushkarna, Tolga Bolukbasi, Martin Wattenberg,
+Fernanda Viégas, and Jimbo Wilson. 2019. <span>“The What-If Tool:
+Interactive Probing of Machine Learning Models.”</span> <em>IEEE
+Transactions on Visualization and Computer Graphics</em> 26 (1): 56–65.
+<a href="https://doi.org/10.1109/TVCG.2019.2934619">https://doi.org/10.1109/TVCG.2019.2934619</a>.
+</div>
+<div id="ref-Wickham2017R" class="csl-entry" role="listitem">
+Wickham, Hadley, and Garrett Grolemund. 2017. <em><span>R</span> for
+Data Science: Import, Tidy, Transform, Visualize, and Model Data</em>.
+1st ed. O’Reilly Media. <a href="https://r4ds.had.co.nz/">https://r4ds.had.co.nz/</a>.
+</div>
+<div id="ref-williams_2006" class="csl-entry" role="listitem">
+Williams, Christopher KI, and Carl Edward Rasmussen. 2006. <em>Gaussian
+Processes for Machine Learning</em>. Vol. 2. 3. MIT press Cambridge, MA.
+</div>
+<div id="ref-Wisniewski2022" class="csl-entry" role="listitem">
+Wiśniewski, Jakub, and Przemysław Biecek. 2022. <span>“The
+<span>R</span> Journal: Fairmodels: A Flexible Tool for Bias Detection,
+Visualization, and Mitigation in Binary Classification Models.”</span>
+<em>The <span>R</span> Journal</em> 14: 227–43. <a href="https://doi.org/10.32614/RJ-2022-019">https://doi.org/10.32614/RJ-2022-019</a>.
+</div>
+<div id="ref-Wolpert1992" class="csl-entry" role="listitem">
+Wolpert, David H. 1992. <span>“Stacked Generalization.”</span>
+<em>Neural Networks</em> 5 (2): 241–59. <a href="https://doi.org/10.1016/S0893-6080(05)80023-1">https://doi.org/10.1016/S0893-6080(05)80023-1</a>.
+</div>
+<div id="ref-xiang2013" class="csl-entry" role="listitem">
+Xiang, Yang, Sylvain Gubian, Brian Suomela, and Julia Hoeng. 2013.
+<span>“Generalized Simulated Annealing for Global Optimization: The
+GenSA Package.”</span> <em><span>R</span> Journal</em> 5 (1): 13. <a href="https://doi.org/10.32614/RJ-2013-002">https://doi.org/10.32614/RJ-2013-002</a>.
+</div>
+<div id="ref-yu_quantile_2003" class="csl-entry" role="listitem">
+Yu, Keming, Zudi Lu, and Julian Stander. 2003. <span>“Quantile
+Regression: Applications and Current Research Areas.”</span> <em>Journal
+of the Royal Statistical Society: Series D (The Statistician)</em> 52
+(3): 331–50. <a href="https://doi.org/10.1111/1467-9884.00363">https://doi.org/10.1111/1467-9884.00363</a>.
+</div>
+</div>
+
+
+<!-- -->
+
+
+
+  </main>
+  <nav class="chnav">
+    <a class="" href="ch16-paradox-hyperparameter.html"><span class="dir">上一章</span><span class="ch">第 16 章 使用 paradox 的高级超参数规范</span></a>
+    <a class="" href="appsol-solutions.html"><span class="dir">下一章</span><span class="ch">附录 A 习题解答</span></a>
+  </nav>
+  <div class="footer">
+    <div>《Applied Machine Learning Using mlr3 in R》中文译本 · 非官方翻译</div>
+    <div class="lic">原文 © 2024 CRC Press（Bischl, Sonabend, Kotthoff &amp; Lang 主编，CC BY-NC-SA 4.0）· 本站由志愿翻译，仅供学习交流</div>
+  </div>
+</div>
+<script>
+MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] } };
+</script>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
+</body>
+</html>

@@ -17,11 +17,41 @@
 .brand .logo{color:var(--accent)}
 .theme-toggle{background:var(--panel2);border:1px solid var(--border);color:var(--fg);border-radius:6px;padding:4px 12px;font-size:13px;cursor:pointer}
 .theme-toggle:hover{border-color:var(--accent)}
+.search-box{position:relative;display:flex;align-items:center}
+.search-box input{background:var(--panel2);border:1px solid var(--border);color:var(--fg);border-radius:6px;padding:5px 10px 5px 28px;font-size:13px;width:200px;font-family:inherit;outline:none}
+.search-box input:focus{border-color:var(--accent);width:250px}
+.search-box .ico{position:absolute;left:9px;color:var(--muted);font-size:12px;pointer-events:none}
+.search-panel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:460px;max-width:90vw;max-height:66vh;overflow-y:auto;z-index:200;background:var(--panel);border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.42);padding:6px}
+.search-panel.open{display:block}
+.search-panel .s-head{padding:8px 11px 7px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:5px;display:flex;justify-content:space-between;align-items:center}
+.search-panel .s-hint{font-size:12px;color:var(--muted);padding:18px 12px;text-align:center}
+.s-item{display:block;padding:8px 11px;border-radius:7px;text-decoration:none;color:var(--fg)}
+.s-item:hover,.s-item.sel{background:var(--panel2)}
+.s-item .s-ch{font-size:11px;color:var(--accent2);margin-bottom:2px}
+.s-item .s-sec{font-size:12px;color:var(--accent);margin-bottom:3px}
+.s-item .s-txt{font-size:13px;line-height:1.6;color:var(--fg);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.s-item mark{background:rgba(255,200,0,.32);color:inherit;border-radius:2px;padding:0 1px}
+[data-theme="light"] .s-item mark{background:rgba(255,200,0,.45)}
+.search-page-box{margin:26px 0 0}
+.search-page-box input{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--fg);border-radius:8px;padding:12px 15px;font-size:15px;font-family:inherit;outline:none}
+.search-page-box input:focus{border-color:var(--accent)}
+.s-meta{color:var(--muted);font-size:13px;margin:14px 0 8px}
+.s-list{list-style:none;margin:0;padding:0}
+.s-list .s-item{border:1px solid var(--border);margin:8px 0}
+.search-hero{padding:34px 0 6px}
+.search-hero h1{font-size:27px;margin:0 0 6px}
+.search-hero .sub{color:var(--muted);font-size:14px;margin-bottom:4px}
+.search-tips{margin:20px 0 0;color:var(--muted);font-size:13px}
+.search-tips kbd{background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:monospace;font-size:12px}
+@media (max-width:640px){.search-box input{width:130px}.search-box input:focus{width:170px}.search-panel{width:84vw}}
 .hero{text-align:center;padding:40px 0 10px}
 .hero h1{font-size:30px;margin:0 0 10px}
 .hero .sub{color:var(--muted);font-size:15px}
 .hero .src{color:var(--muted);font-size:13px;margin-top:6px}
 .hero .src a{color:var(--link)}
+.hero-search{margin-top:20px}
+.hero-search a{display:inline-block;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 18px;color:var(--fg);text-decoration:none;font-size:14px}
+.hero-search a:hover{border-color:var(--accent);color:var(--accent)}
 .parts{margin-top:36px}
 .part-title{color:var(--accent2);font-weight:600;font-size:15px;margin:26px 0 10px;letter-spacing:.05em}
 .chapter-list{list-style:none;margin:0;padding:0}
@@ -35,20 +65,31 @@
 <script>
 function toggleTheme(){var c=document.documentElement.getAttribute("data-theme");var n=c==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);localStorage.setItem("mlr3-theme",n)}
 </script>
+<script src="search.js"></script>
 </head>
 <body>
 <div class="topbar">
 <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
-<div class="right"><button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button></div>
+<div class="right">
+<div class="search-box">
+<span class="ico">&#128269;</span>
+<input type="search" id="mlr3-search" placeholder="搜索全书…（按 /）" autocomplete="off" aria-label="全书搜索">
+<div class="search-panel" id="mlr3-search-panel"></div>
+</div>
+<button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
+</div>
 </div>
 <div class="container">
 <div class="hero">
 <h1>机器学习应用：基于 mlr3 的 R 实现</h1>
 <div class="sub">《Applied Machine Learning Using mlr3 in R》中文翻译版（非官方）</div>
 <div class="src">原文：<a href="https://mlr3book.mlr-org.com/">https://mlr3book.mlr-org.com/</a> · CRC Press 2024 · 为学习交流而译</div>
+<div class="hero-search">
+<a href="search.html">&#128269; 全书全文搜索 —— 检索 16 章正文与附录的全部文字内容</a>
+</div>
 </div>
 <div class="parts">
-<div class="part-title">前言</div><ul class="chapter-list"><li><a href="ch01-introduction-overview.html"><span class="num">1</span>第 1 章 绪论与概览</a></li></ul><div class="part-title">第一部分 基础</div><ul class="chapter-list"><li><a href="ch02-data-basic-modeling.html"><span class="num">2</span>第 2 章 数据与基础建模</a></li><li><a href="ch03-evaluation-benchmarking.html"><span class="num">3</span>第 3 章 评估与基准测试</a></li></ul><div class="part-title">第二部分 调优与特征选择</div><ul class="chapter-list"><li><a href="ch04-hyperparameter-optimization.html"><span class="num">4</span>第 4 章 超参数优化</a></li><li><a href="ch05-advanced-tuning-bbo.html"><span class="num">5</span>第 5 章 高级调优方法与黑箱优化</a></li><li><a href="ch06-feature-selection.html"><span class="num">6</span>第 6 章 特征选择</a></li></ul><div class="part-title">第三部分 管道与预处理</div><ul class="chapter-list"><li><a href="ch07-sequential-pipelines.html"><span class="num">7</span>第 7 章 顺序管道</a></li><li><a href="ch08-nonseq-pipelines-tuning.html"><span class="num">8</span>第 8 章 非顺序管道与调优</a></li><li><a href="ch09-preprocessing.html"><span class="num">9</span>第 9 章 预处理</a></li></ul><div class="part-title">第四部分 高级专题</div><ul class="chapter-list"><li><a href="ch10-advanced-technical.html"><span class="num">10</span>第 10 章 mlr3 高级技术方面</a></li><li><a href="ch11-large-scale-benchmarking.html"><span class="num">11</span>第 11 章 大规模基准测试</a></li><li><a href="ch12-model-interpretation.html"><span class="num">12</span>第 12 章 模型解释</a></li><li><a href="ch13-beyond-regression-classification.html"><span class="num">13</span>第 13 章 回归与分类之外</a></li><li><a href="ch14-algorithmic-fairness.html"><span class="num">14</span>第 14 章 算法公平性</a></li><li><a href="ch15-predsets-validation-inttune.html"><span class="num">15</span>第 15 章 预测集、验证与内部调优</a></li><li><a href="ch16-paradox-hyperparameter.html"><span class="num">16</span>第 16 章 使用 paradox 的高级超参数规范</a></li></ul><div class="part-title">附录</div><ul class="chapter-list"><li><a href="chref-references.html"><span class="num"></span>参考文献</a></li><li><a href="appsol-solutions.html"><span class="num"></span>附录 A 习题解答</a></li><li><a href="apptab-overview-tables.html"><span class="num"></span>附录 B 概览表</a></li><li><a href="apptask-tasks.html"><span class="num"></span>附录 C 任务列表</a></li><li><a href="apperr-errata.html"><span class="num"></span>附录 D 勘误</a></li><li><a href="appses-session-info.html"><span class="num"></span>附录 E 会话信息</a></li></ul>
+<div class="part-title">前言</div><ul class="chapter-list"><li><a href="chapters/ch01-introduction-overview.html"><span class="num">1</span>第 1 章 绪论与概览</a></li></ul><div class="part-title">第一部分 基础</div><ul class="chapter-list"><li><a href="chapters/ch02-data-basic-modeling.html"><span class="num">2</span>第 2 章 数据与基础建模</a></li><li><a href="chapters/ch03-evaluation-benchmarking.html"><span class="num">3</span>第 3 章 评估与基准测试</a></li></ul><div class="part-title">第二部分 调优与特征选择</div><ul class="chapter-list"><li><a href="chapters/ch04-hyperparameter-optimization.html"><span class="num">4</span>第 4 章 超参数优化</a></li><li><a href="chapters/ch05-advanced-tuning-bbo.html"><span class="num">5</span>第 5 章 高级调优方法与黑箱优化</a></li><li><a href="chapters/ch06-feature-selection.html"><span class="num">6</span>第 6 章 特征选择</a></li></ul><div class="part-title">第三部分 管道与预处理</div><ul class="chapter-list"><li><a href="chapters/ch07-sequential-pipelines.html"><span class="num">7</span>第 7 章 顺序管道</a></li><li><a href="chapters/ch08-nonseq-pipelines-tuning.html"><span class="num">8</span>第 8 章 非顺序管道与调优</a></li><li><a href="chapters/ch09-preprocessing.html"><span class="num">9</span>第 9 章 预处理</a></li></ul><div class="part-title">第四部分 高级专题</div><ul class="chapter-list"><li><a href="chapters/ch10-advanced-technical.html"><span class="num">10</span>第 10 章 mlr3 高级技术方面</a></li><li><a href="chapters/ch11-large-scale-benchmarking.html"><span class="num">11</span>第 11 章 大规模基准测试</a></li><li><a href="chapters/ch12-model-interpretation.html"><span class="num">12</span>第 12 章 模型解释</a></li><li><a href="chapters/ch13-beyond-regression-classification.html"><span class="num">13</span>第 13 章 回归与分类之外</a></li><li><a href="chapters/ch14-algorithmic-fairness.html"><span class="num">14</span>第 14 章 算法公平性</a></li><li><a href="chapters/ch15-predsets-validation-inttune.html"><span class="num">15</span>第 15 章 预测集、验证与内部调优</a></li><li><a href="chapters/ch16-paradox-hyperparameter.html"><span class="num">16</span>第 16 章 使用 paradox 的高级超参数规范</a></li></ul><div class="part-title">附录</div><ul class="chapter-list"><li><a href="chapters/chref-references.html"><span class="num"></span>参考文献</a></li><li><a href="chapters/appsol-solutions.html"><span class="num"></span>附录 A 习题解答</a></li><li><a href="chapters/apptab-overview-tables.html"><span class="num"></span>附录 B 概览表</a></li><li><a href="chapters/apptask-tasks.html"><span class="num"></span>附录 C 任务列表</a></li><li><a href="chapters/apperr-errata.html"><span class="num"></span>附录 D 勘误</a></li><li><a href="chapters/appses-session-info.html"><span class="num"></span>附录 E 会话信息</a></li></ul>
 </div>
 <div class="footer">
 <div>《Applied Machine Learning Using mlr3 in R》中文译本 · 未取得官方授权，仅供学习交流</div>

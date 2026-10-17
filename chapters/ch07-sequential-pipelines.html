@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>顺序管道（Sequential Pipelines）</title>
+<script>
+(function(){
+  var saved = localStorage.getItem("mlr3-theme");
+  if (saved === null) saved = "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+})();
+</script>
+<style>
+:root {
+  --bg: #1e2228; --fg: #d8dee4; --muted: #9aa4b0;
+  --panel: #262c34; --panel2: #2e3540; --border: #3a4350;
+  --accent: #4ea1ff; --accent2: #8f7ae6;
+  --code-bg: #161a20; --code-fg: #d8dee4;
+  --note-bg: #2a3450; --note-border: #5a7fff;
+  --callout-bg: #2b3826; --callout-border: #6bbf59;
+  --table-head: #2e3540; --table-row: #262c34; --link: #6cb0ff;
+  --h-border: #3a4350;
+}
+[data-theme="light"] {
+  --bg: #f7f8fa; --fg: #24292f; --muted: #57606a;
+  --panel: #ffffff; --panel2: #f0f2f5; --border: #d9dee3;
+  --accent: #0969da; --accent2: #8250df;
+  --code-bg: #f3f4f6; --code-fg: #24292f;
+  --note-bg: #eef2ff; --note-border: #5a7fff;
+  --callout-bg: #eff7ec; --callout-border: #6bbf59;
+  --table-head: #eef1f4; --table-row: #ffffff; --link: #0969da;
+  --h-border: #d9dee3;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  line-height: 1.78; font-size: 16px;
+  transition: background .2s, color .2s;
+}
+.container { max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+/* 顶栏 */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+}
+.topbar .brand { font-weight: 600; font-size: 15px; color: var(--fg); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+.topbar .brand .logo { color: var(--accent); }
+.topbar .right { display: flex; align-items: center; gap: 10px; }
+.topbar .home-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+.topbar .home-link:hover { color: var(--accent); }
+.theme-toggle {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+/* 章头 */
+.header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
+.header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
+.header-block h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.35; }
+.header-block .subtitle { color: var(--muted); font-size: 14px; }
+/* 章节导航 */
+.chnav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0 6px; flex-wrap: wrap; }
+.chnav a {
+  background: var(--panel); border: 1px solid var(--border); color: var(--fg);
+  text-decoration: none; font-size: 14px; padding: 10px 16px; border-radius: 8px;
+  max-width: 46%; display: block;
+}
+.chnav a:hover { border-color: var(--accent); color: var(--accent); }
+.chnav .dir { color: var(--muted); font-size: 12px; display: block; }
+.chnav .ch { font-weight: 600; }
+.chnav a.disabled { opacity: .4; pointer-events: none; }
+/* 正文 */
+main { padding: 0 0 20px; }
+main h1 { font-size: 26px; margin: 40px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--h-border); }
+main h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--h-border); }
+main h3 { font-size: 18px; margin: 28px 0 10px; }
+main h4 { font-size: 16px; margin: 22px 0 8px; color: var(--accent); }
+main p { margin: 10px 0; }
+main a { color: var(--link); text-decoration: none; }
+main a:hover { text-decoration: underline; }
+main strong { font-weight: 600; }
+main ul, main ol { padding-left: 26px; }
+main li { margin: 5px 0; }
+main blockquote {
+  margin: 12px 0; padding: 10px 16px; border-left: 4px solid var(--border);
+  background: var(--panel2); color: var(--muted); border-radius: 0 6px 6px 0;
+}
+main hr { border: none; border-top: 1px solid var(--border); margin: 26px 0; }
+main img { max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 6px; }
+main table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+main th { background: var(--table-head); font-weight: 600; }
+main th, main td { border: 1px solid var(--border); padding: 7px 11px; }
+main tr:nth-child(even) td { background: var(--table-row); }
+/* 代码 */
+pre {
+  background: var(--code-bg); color: var(--code-fg);
+  padding: 14px 16px; border-radius: 8px; overflow-x: auto;
+  border: 1px solid var(--border); font-size: 13.5px; line-height: 1.6;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+code {
+  font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+  background: var(--panel2); color: var(--accent);
+  padding: 2px 5px; border-radius: 4px; font-size: 13.5px;
+}
+pre code { background: none; color: var(--code-fg); padding: 0; }
+/* 代码块容器（Quarto 结构） */
+.sourceCode { margin: 14px 0; }
+.sourceCode pre { margin: 0; }
+/* 输出块 */
+.cell { margin: 6px 0; }
+.cell-output { margin: 0 0 6px; }
+.cell-output pre { background: var(--panel2); border-style: dashed; }
+.cell-output-stderr { border-color: #d29922; }
+.cell-output-stdout pre { border-color: var(--border); }
+/* figure */
+figure { margin: 18px 0; text-align: center; }
+figure img { margin: 0 auto; }
+figcaption, .caption { color: var(--muted); font-size: 13px; margin-top: 6px; text-align: center; }
+.quarto-float { margin: 18px 0; }
+.quarto-figure { margin: 18px 0; text-align: center; }
+/* 背景与解释（译者注）框 */
+.bg-note {
+  background: var(--note-bg); border: 1px solid var(--note-border);
+  border-radius: 8px; padding: 14px 18px; margin: 18px 0;
+  font-size: 15px;
+}
+.bg-note p { margin: 6px 0; }
+.bg-note .bg-title { font-weight: 600; color: var(--accent); }
+/* 原书 callout 提示框 */
+.callout {
+  border-radius: 8px; padding: 12px 18px; margin: 16px 0;
+  border-left: 5px solid var(--accent); background: var(--panel2);
+}
+.callout-tip { border-left-color: #6bbf59; }
+.callout-note { border-left-color: var(--accent); }
+.callout-warning { border-left-color: #d29922; }
+.callout-important { border-left-color: #e05d5d; }
+.callout-header { font-weight: 600; margin-bottom: 4px; }
+.callout-title-container { display: inline; }
+.callout-body p { margin: 6px 0; }
+.callout-icon-container { display: none; }
+/* 脚注 */
+.footnote-ref { font-size: 12px; vertical-align: super; }
+/* 页脚 */
+.footer {
+  margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 13px; text-align: center;
+}
+.footer .lic { margin-top: 6px; font-size: 12px; }
+/* 表格滚动 */
+main table { display: block; overflow-x: auto; }
+/* banner 样式（原书 callout 可能以其他名目出现） */
+[class*="callout"] > p:first-child { margin-top: 4px; }
+</style>
+<script>
+function toggleTheme(){
+  var cur = document.documentElement.getAttribute("data-theme");
+  var next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("mlr3-theme", next);
+}
+</script>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <div class="right">
+    <a class="home-link" href="index.html">目录</a>
+    <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
+  </div>
+</div>
+<div class="container">
+  <div class="header-block">
+    <div class="part">第三部分 管道与预处理</div>
+    <h1>顺序管道（Sequential Pipelines）</h1>
+    <div class="subtitle">《Applied Machine Learning Using mlr3 in R》中文翻译 · 章节 第 7 章 顺序管道</div>
+  </div>
+  <main>
+<p><strong>Martin Binder</strong> <br><em>慕尼黑大学（Ludwig-Maximilians-Universität München）与慕尼黑机器学习中心（MCML）</em></p>
+<p><strong>Florian Pfisterer</strong> <br><em>慕尼黑大学（Ludwig-Maximilians-Universität München）</em> <br><br></p>
+<p><a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 旨在为机器学习从业者提供一个抽象层，让用户可以快速将一个算法替换为另一个，而无需具备底层实现的专业知识。<a href="https://mlr3.mlr-org.com/reference/Task.html"><code>Task</code></a>、<a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 与 <a href="https://mlr3.mlr-org.com/reference/Measure.html"><code>Measure</code></a> 对象的统一接口意味着，对于任何开箱即用的模型，只需几行代码就可以运行复杂的基准测试（benchmark）与调优（tuning）实验；也就是说，如果你只是想用底层算法的基础实现来运行一个实验，我们希望这已经足够简单易行。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>本章是连接「基础建模」与「预处理实战（第 9 章）」的桥梁。mlr3 生态的核心理念是「一切皆对象」：任务（Task）描述数据、学习器（Learner）描述算法、度量（Measure）描述目标、重采样（Resampling）描述评估方案。而 mlr3pipelines 进一步把「数据预处理 + 建模」这一整套流水线（Pipeline）也对象化，从而可以在整个流程层面做基准测试与调优。这种模块化思想与 scikit-learn 的 <code>Pipeline</code>、tidymodels 的 <code>workflow</code> 一脉相承，熟悉任一框架的读者都能很快迁移。</p>
+</div>
+<p><a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> <span class="citation" data-cites="mlr3pipelines">(<a href="../references.html#ref-mlr3pipelines" role="doc-biblioref">Binder et al. 2021</a>)</span> 将这种模块化再推进一步，把它扩展到可能包含数据预处理（<a href="../chapter9/preprocessing.html" class="quarto-xref"><span>第 9 章</span></a>）、构建集成（ensemble）模型、乃至更复杂的元模型的工作流中。<code>mlr3pipelines</code> 使得我们能够用一些积木式的构建块来搭建 <code>Learner</code> 内部的各个步骤，这些构建块继承自 <a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a> 类。<code>PipeOp</code> 之间可以用有向边（directed edges）连接，形成一个 <a href="https://mlr3pipelines.mlr-org.com/reference/Graph.html"><code>Graph</code></a> 即「管道（pipeline）」，它表示的是数据在这些操作之间流动的路径。在模型训练阶段，<code>Graph</code> 中的各个 <code>PipeOp</code> 对给定的 <code>Task</code> 进行变换，随后的 <code>PipeOp</code> 接收变换后的 <code>Task</code> 作为输入。除了变换数据之外，<code>PipeOp</code> 还会生成一个<em>状态（state）</em>，该状态用于在预测阶段指导 <code>PipeOp</code> 的操作，这与学习器在训练时学习并存储模型参数/权重、进而在预测时使用这些参数/权重的方式类似。<a href="#fig-pipelines-state" class="quarto-xref">图&nbsp;<span>7.1</span></a> 用「Scaling」<code>PipeOp</code> 展示了这一过程：它在训练时对特征做缩放，并把缩放因子保存为一个状态，供预测时使用。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-pipelines-state" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图示显示一个写着&quot;Dtrain&quot;的方框，箭头指向&quot;Scaling&quot;，而&quot;Scaling&quot;又有一个箭头指向&quot;Transformed Data&quot;。在&quot;Dtrain&quot;下方是一个写着&quot;Dtest&quot;的方框，箭头指向&quot;Scaling; Scaling Factors&quot;，而该方框又有一个箭头指向&quot;Transformed Data&quot;。有一个箭头从上面一行的缩放方框指向下面一行的缩放方框。还有一个箭头从上面一行的缩放方框指向&quot;Scaling Factors&quot;，其含义是上面一行创建了供下面一行使用的缩放因子。最后，在&quot;Scaling Factors&quot;旁边有一个花括号，上面写着&quot;State (learned parameters)&quot;。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pipelines-state-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/mlr3book_figures-23.svg" class="img-fluid figure-img" style="width:70.0%" alt="图示显示一个写着&quot;Dtrain&quot;的方框，箭头指向&quot;Scaling&quot;，而&quot;Scaling&quot;又有一个箭头指向&quot;Transformed Data&quot;。在&quot;Dtrain&quot;下方是一个写着&quot;Dtest&quot;的方框，箭头指向&quot;Scaling; Scaling Factors&quot;，而该方框又有一个箭头指向&quot;Transformed Data&quot;。有一个箭头从上面一行的缩放方框指向下面一行的缩放方框。还有一个箭头从上面一行的缩放方框指向&quot;Scaling Factors&quot;，其含义是上面一行创建了供下面一行使用的缩放因子。最后，在&quot;Scaling Factors&quot;旁边有一个花括号，上面写着&quot;State (learned parameters)&quot;。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipelines-state-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;7.1： "Scaling" <code>PipeOp</code> 的 <code>$train()</code> 方法既变换数据（矩形），也创建一个状态，即预测时变换数据所需的缩放因子。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>「状态（state）」是理解 <code>mlr3pipelines</code> 的关键概念。它与学习器的「模型」是同构的：训练阶段从数据中「学到的」东西（如 PCA 的旋转矩阵、缩放因子的均值与标准差、缺失值填补中的中位数等）被存入 <code>$state</code>，预测阶段只用这个状态去变换新数据，绝不用测试数据重新估计这些参数。这一点恰好对应机器学习中最重要的「数据泄漏（data leakage）」防范原则：预处理也必须严格在「训练集上拟合、测试集上应用」的流程中完成。若违规地在全数据上拟合缩放后再划分训练/测试，评估结果会被严重高估。</p>
+</div>
+<p>我们把管道分为顺序管道（sequential）与非顺序管道（non-sequential）。这两个术语不应与「串行（sequential）」与「并行（parallel）处理」相混淆。在管道的语境中，「顺序」指的是数据沿管道从一个 <code>PipeOp</code> 直接流向下一个 <code>PipeOp</code>、从头到尾的移动方式。顺序管道可以用一条直线来可视化——正如下面本章即将看到的。相比之下，非顺序管道中数据经过的是可能有多个输入和/或多个输出的 <code>PipeOp</code>。非顺序管道的特征是存在多个分支，因此数据可能在不同时间被不同的 <code>PipeOp</code> 处理。从视觉上看，非顺序管道从起点到终点不是一条直线，而是一个更复杂的图。在本章中，我们考察顺序管道，下一章则聚焦非顺序管道。</p>
+<section id="sec-pipelines-pipeops" class="level2 page-columns page-full" data-number="7.1"><h2 data-number="7.1" class="anchored" data-anchor-id="sec-pipelines-pipeops">
+<span class="header-section-number">7.1</span> PipeOp：管道算子</h2>
+<p><code>mlr3pipelines</code> 的基础类是 <a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a>，即「管道算子（pipeline operator）」的简称。它表示对输入（例如，一个训练用 <a href="https://mlr3.mlr-org.com/reference/Task.html"><code>Task</code></a>）所做的某种变换操作，并产生若干输出。与学习器类似，它包含 <code>$train()</code> 与 <code>$predict()</code> 方法。训练阶段通常会生成一个关于数据的特定模型，并把它保存为内部状态。在预测阶段，<code>PipeOp</code> 利用所保存状态中的信息对预测 <code>Task</code> 进行操作。因此，与学习器一样，一个 <code>PipeOp</code> 也有「参数」——即那个被训练的状态。除了「参数」之外，<code>PipeOp</code> 还有可由用户在构造 <code>PipeOp</code> 时或通过访问其 <code>$param_set</code> 来设置的超参数。与其他类一样，<code>PipeOp</code> 可以用便捷函数 <a href="https://mlr3pipelines.mlr-org.com/reference/po.html"><code>po()</code></a> 构造，多个 <code>PipeOp</code> 可以用 <code><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">pos()</a></code> 构造，所有可用的 <code>PipeOp</code> 都注册在字典 <a href="https://mlr3pipelines.mlr-org.com/reference/mlr_pipeops.html"><code>mlr_pipeops</code></a> 中。<code>mlr3pipelines</code> 中包含的 <code>PipeOp</code> 的完整最新列表及其文档链接可以在 <a href="https://mlr-org.com/pipeops.html">https://mlr-org.com/pipeops.html</a> 找到，下面是其中一小部分。如果你想用某个尚未实现的 <code>PipeOp</code> 扩展 <code>mlr3pipelines</code>，可以运行 <code><a href="https://mlr3pipelines.mlr-org.com/articles/extending.html">vignette("extending", package = "mlr3pipelines")</a></code> 查看我们关于扩展 <code>PipeOp</code> 的 vignette。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>PipeOp</code></span><span class="margin-aside">State</span><span class="margin-aside"><code><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po()</a></code></span><span class="margin-aside"><code>mlr_pipeops</code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">as.data.table</span><span class="op">(</span><span class="fu">po</span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">6</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                    key                        label
+1:                  EOd     Equalized Odds Debiasing
+2:                 adas               ADAS Balancing
+3:  augment_center_crop     Center Crop Augmentation
+4: augment_color_jitter    Color Jitter Augmentation
+5:         augment_crop            Crop Augmentation
+6:        augment_hflip Horizontal Flip Augmentation</code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong><code>po()</code> 无参数调用会返回一个 <code>PipeOp</code> 的字典表，从中可以看到 <code>mlr3pipelines</code> 提供的前缀为 <code>augment_</code> 的图像增广算子（图像旋转、裁剪、颜色抖动等），以及用于「均衡几率去偏（Equalized Odds Debiasing）」等公平性处理的算子。这说明 <code>mlr3pipelines</code> 的处理范围远超传统表格数据预处理，已覆盖图像、类别不平衡、公平性等场景。查找完整算子列表时，官方还提供了 <a href="https://mlr-org.com/pipeops.html">https://mlr-org.com/pipeops.html</a> 这个可视化速查页。</p>
+</div>
+<p>下面我们以主成分分析（principal component analysis, PCA）为例实际考察一个 <code>PipeOp</code>，它实现在 <a href="https://mlr3pipelines.mlr-org.com/reference/mlr_pipeops_pca.html"><code>PipeOpPCA</code></a> 中。我们用它的 ID <code>"pca"</code> 来构造这个 <code>PipeOp</code> 并检查它。</p>
+<div class="cell">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3pipelines.mlr-org.com">mlr3pipelines</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">po_pca</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"pca"</span>, center <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">po_pca</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── PipeOp &lt;pca&gt;: not trained ────────────────────────────────────────────
+Values: center=TRUE
+
+── Input channels: 
+  name train predict
+ input  Task    Task
+
+── Output channels: 
+   name train predict
+ output  Task    Task</code></pre>
+</div>
+</div>
+<p>打印后可以看到，该 <code>PipeOp</code> 尚未训练，而且我们把某些超参数从默认值改掉了。<code>Input channels</code>（输入通道）与 <code>Output channels</code>（输出通道）两行提供了该 <code>PipeOp</code> 的输入和输出类型信息。PCA 这个 <code>PipeOp</code> 在训练和预测阶段都接收一个类型为 &quot;<code>Task</code>&quot; 的输入（名为 &quot;input&quot;；即 &quot;<code>input [Task,Task]</code>&quot;），并产生一个在两个阶段也都是 &quot;<code>Task</code>&quot; 类型的输出（名为 &quot;output&quot;；即 &quot;<code>output [Task,Task]</code>&quot;）。这里凸显了与 <code>Learner</code> 类的一个关键区别：<code>PipeOp</code> 在训练阶段之后还可以返回结果。</p>
+<p>一个 <code>PipeOp</code> 可以用 <code>$train()</code> 进行训练，它可能有多个输入和多个输出。输入和输出都以单个 <code>list</code> 中的元素形式传入与返回。<code>"pca"</code> <code>PipeOp</code> 以原始任务作为输入，训练后返回一个特征被主成分替换后的任务。</p>
+<div class="cell">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_small</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"penguins_simple"</span><span class="op">)</span><span class="op">$</span><span class="fu">select</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"bill_depth"</span>, <span class="st">"bill_length"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">poin</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">tsk_small</span><span class="op">$</span><span class="fu">clone</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">poout</span> <span class="op">=</span> <span class="va">po_pca</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">poin</span><span class="op">)</span> <span class="co"># poin: Task in a list</span></span>
+<span><span class="va">poout</span> <span class="co"># list with a single element 'output'</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$output
+
+── &lt;TaskClassif&gt; (5x3): Simplified Palmer Penguins ──────────────────────
+• Target: species
+• Properties: multiclass
+• Features (2):
+  • dbl (2): PC1, PC2
+• Target classes: Adelie (100%), Chinstrap (0%), Gentoo (0%)</code></pre>
+</div>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">poout</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="fu">head</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   species     PC1       PC2
+1:  Adelie  0.1561  0.005716
+2:  Adelie  1.2677  0.789534
+3:  Adelie  1.5336 -0.174460
+4:  Adelie -2.1096  0.998977
+5:  Adelie -0.8478 -1.619768</code></pre>
+</div>
+</div>
+<p>在训练阶段，PCA 通过对传入数据进行旋转来变换数据，使得特征变得不相关，并按它们对总方差的贡献大小排序。旋转矩阵也会在训练时保存到内部 <code>$state</code> 字段中（见 <a href="#fig-pipelines-state" class="quarto-xref">图&nbsp;<span>7.1</span></a>），该状态随后被用于预测并应用到新数据上。</p>
+<div class="cell">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">po_pca</span><span class="op">$</span><span class="va">state</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Standard deviations (1, .., p=2):
+[1] 1.513 1.034
+
+Rotation (n x k) = (2 x 2):
+                PC1     PC2
+bill_depth  -0.6116 -0.7911
+bill_length  0.7911 -0.6116</code></pre>
+</div>
+</div>
+<p>训练完成后，<code>$predict()</code> 函数就可以访问所保存的状态来对测试数据操作，测试数据同样以 <code>list</code> 的形式传入：</p>
+<div class="cell">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_onepenguin</span> <span class="op">=</span> <span class="va">tsk_small</span><span class="op">$</span><span class="fu">clone</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
+<span><span class="va">poin</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">tsk_onepenguin</span><span class="op">)</span></span>
+<span><span class="va">poout</span> <span class="op">=</span> <span class="va">po_pca</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">poin</span><span class="op">)</span></span>
+<span><span class="va">poout</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   species   PC1    PC2
+1:  Adelie 1.555 -1.455</code></pre>
+</div>
+</div>
+</section><section id="sec-pipelines-graphs" class="level2 page-columns page-full" data-number="7.2"><h2 data-number="7.2" class="anchored" data-anchor-id="sec-pipelines-graphs">
+<span class="header-section-number">7.2</span> Graph：PipeOp 的网络</h2>
+<p><code>PipeOp</code> 表示机器学习管道中的各个计算步骤。而这些管道本身由 <a href="https://mlr3pipelines.mlr-org.com/reference/Graph.html"><code>Graph</code></a> 对象定义。一个 <code>Graph</code> 是一系列 <code>PipeOp</code> 的集合，其中的「边（edges）」引导着数据的流向。</p>
+<p>构建 <code>Graph</code> 最便捷的方式是用 <code>%&gt;&gt;%</code> 运算符（读作「双箭头（double-arrow）」）把一串 <code>PipeOp</code> 连接起来。给定两个 <code>PipeOp</code> 时，该运算符会创建一个 <code>Graph</code>，先执行左侧的 <code>PipeOp</code>，再执行右侧的。它也可以用来把 <code>Graph</code> 与 <code>PipeOp</code> 连接，或把两个 <code>Graph</code> 连接起来。下面的例子用 <code>po("mutate")</code> 为任务添加一个新特征，然后用 <code>po("scale")</code> 对所有数值特征做缩放和中心化。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>%&gt;&gt;%</code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">po_mutate</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"mutate"</span>,</span>
+<span>  mutation <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>bill_ratio <span class="op">=</span> <span class="op">~</span><span class="va">bill_length</span> <span class="op">/</span> <span class="va">bill_depth</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">po_scale</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"scale"</span><span class="op">)</span></span>
+<span><span class="va">graph</span> <span class="op">=</span> <span class="va">po_mutate</span> <span class="op"><a href="https://mlr3pipelines.mlr-org.com/reference/grapes-greater-than-greater-than-grapes.html">%&gt;&gt;%</a></span> <span class="va">po_scale</span></span>
+<span><span class="va">graph</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── Graph with 2 PipeOps: ────────────────────────────────────────────────
+     ID         State sccssors prdcssors
+ mutate &lt;&lt;UNTRAINED&gt;&gt;    scale          
+  scale &lt;&lt;UNTRAINED&gt;&gt;             mutate
+
+── Pipeline: &lt;INPUT&gt; -&gt; mutate -&gt; scale -&gt; &lt;OUTPUT&gt; </code></pre>
+</div>
+</div>
+<p>输出提供了关于 <code>Graph</code> 布局的信息。对每个 <code>PipOp</code>（<code>ID</code>），我们能看到状态（<code>State</code>）的信息，以及它的后继者（<code>sccssors</code>）列表——即紧跟在该 <code>PipeOp</code> 之后的 <code>PipeOp</code>——和它的前驱者（<code>prdcssors</code>），即连接到其输入上的 <code>PipeOp</code>。在这个简单的 <code>Graph</code> 中，<code>"mutate"</code> <code>PipeOp</code> 的输出被直接传递给 <code>"scale"</code> <code>PipeOp</code>，两者都不接收或输出来自其他 <code>PipeOp</code> 的数据。使用 <code>$plot()</code> 方法可以将图可视化。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">$plot()</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">graph</span><span class="op">$</span><span class="fu">plot</span><span class="op">(</span>horizontal <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-pipelines-basic-plot" class="quarto-float quarto-figure quarto-figure-center anchored" alt="四个方框排成一条直线，用箭头连接：&quot;<INPUT> -> mutate -> scale -> <OUTPUT>&quot;。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pipelines-basic-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/sequential_pipelines_files/figure-html/fig-pipelines-basic-plot-1.png" class="img-fluid figure-img" style="width:100.0%" alt="四个方框排成一条直线，用箭头连接：&quot;<INPUT> -> mutate -> scale -> <OUTPUT>&quot;。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipelines-basic-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;7.2：简单的顺序管道图。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>这张图展示了 <code>Graph</code> 本质上就是一组由「边」连接的 <code>PipeOp</code> 的集合。<code>Graph</code> 内部的 <code>PipeOp</code> 集合可以通过 <code>$pipeops</code> 字段访问。用 <code>$edges</code> 字段可以访问各条边，它返回一个列出每条边上数据流动的「源」（<code>src_id</code>、<code>src_channel</code>）与「目的地」（<code>dst_id</code>、<code>dst_channel</code>）的 <code>data.table</code>。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>$edges</code>/<code>$pipeops</code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">graph</span><span class="op">$</span><span class="va">pipeops</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$mutate
+
+── PipeOp &lt;mutate&gt;: not trained ─────────────────────────────────────────
+Values: mutation=&lt;list&gt;, delete_originals=FALSE
+
+── Input channels: 
+  name train predict
+ input  Task    Task
+
+── Output channels: 
+   name train predict
+ output  Task    Task
+
+$scale
+
+── PipeOp &lt;scale&gt;: not trained ──────────────────────────────────────────
+Values: robust=FALSE
+
+── Input channels: 
+  name train predict
+ input  Task    Task
+
+── Output channels: 
+   name train predict
+ output  Task    Task</code></pre>
+</div>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">graph</span><span class="op">$</span><span class="va">edges</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   src_id src_channel dst_id dst_channel
+1: mutate      output  scale       input</code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>「通道（channel）」是 <code>Graph</code> 边模型中的一个微妙但重要的概念。大多数基础 <code>PipeOp</code> 只有一个名为 <code>input</code> 的输入通道和一个名为 <code>output</code> 的输出通道；但在非顺序管道（第 8 章）里，某些算子（如 <code>gunion</code>、<code>branch</code>）会有多个输出通道，分别承载不同类型的数据。因此边必须用 <code>src_channel</code>/<code>dst_channel</code> 精确指明从哪个输出通道连接到哪个输入通道。把这与电路图类比会有帮助：通道是「端口」，边是「导线」。</p>
+</div>
+<p>除了使用 <code>%&gt;&gt;%</code> 之外，你也可以用 <code>$add_pipeop()</code> 和 <code>$add_edge()</code> 方法显式地创建 <code>Graph</code>，即先创建 <code>PipeOp</code>，再创建连接它们的边：</p>
+<div class="cell">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">graph</span> <span class="op">=</span> <span class="va"><a href="https://mlr3pipelines.mlr-org.com/reference/Graph.html">Graph</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="op">)</span><span class="op">$</span></span>
+<span>  <span class="fu">add_pipeop</span><span class="op">(</span><span class="va">po_mutate</span><span class="op">)</span><span class="op">$</span></span>
+<span>  <span class="fu">add_pipeop</span><span class="op">(</span><span class="va">po_scale</span><span class="op">)</span><span class="op">$</span></span>
+<span>  <span class="fu">add_edge</span><span class="op">(</span><span class="st">"mutate"</span>, <span class="st">"scale"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+Graph 与 DAG
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><a href="https://mlr3pipelines.mlr-org.com/reference/Graph.html"><code>Graph</code></a> 类表示一个类似于有向无环图（directed acyclic graph, DAG）的对象，因为一个 <a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a> 的输入不能依赖于它自身的输出，因此不允许出现环（cycles）。不过它与 DAG 的相似性并不完美，因为 <code>Graph</code> 类允许节点之间有多条边。用「有向无环多重图（directed acyclic multigraph）」这样的术语会更准确，但为了简洁起见，我们仍使用「graph（图）」。</p>
+</div>
+</div>
+<p>构建完成后，可以像调用 <code>Learner</code> 一样，通过调用 <code>$train()</code> 与 <code>$predict()</code> 来使用一个 <code>Graph</code>（不过它在训练和预测期间仍然输出一个 <code>list</code>）：</p>
+<div class="cell">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">result</span> <span class="op">=</span> <span class="va">graph</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_small</span><span class="op">)</span></span>
+<span><span class="va">result</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$scale.output
+
+── &lt;TaskClassif&gt; (333x4): Simplified Palmer Penguins ────────────────────
+• Target: species
+• Properties: multiclass
+• Features (3):
+  • dbl (3): bill_depth, bill_length, bill_ratio
+• Target classes: Adelie (44%), Gentoo (36%), Chinstrap (20%)</code></pre>
+</div>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">result</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   species bill_depth bill_length bill_ratio
+1:  Adelie     0.7796     -0.8947    -1.0421
+2:  Adelie     0.1194     -0.8216    -0.6804
+3:  Adelie     0.4241     -0.6753    -0.7435</code></pre>
+</div>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">result</span> <span class="op">=</span> <span class="va">graph</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_onepenguin</span><span class="op">)</span></span>
+<span><span class="va">result</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="fu">head</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   species bill_depth bill_length bill_ratio
+1:  Adelie     0.9319      -0.529    -0.8963</code></pre>
+</div>
+</div>
+</section><section id="sec-pipelines-sequential" class="level2 page-columns page-full" data-number="7.3"><h2 data-number="7.3" class="anchored" data-anchor-id="sec-pipelines-sequential">
+<span class="header-section-number">7.3</span> 顺序学习器管道（Sequential Learner-Pipelines）</h2>
+<p> <code>mlr3pipelines</code> 最常见的应用之一，可能是用它来执行预处理任务，比如缺失值填补或因子编码，然后把处理后的数据喂给一个 <code>Learner</code>——我们会在 <a href="../chapter9/preprocessing.html" class="quarto-xref"><span>第 9 章</span></a> 中看到更多这样的实际应用。表示这种工作流的 <code>Graph</code> 会在训练时操作数据并拟合一个 <code>Learner</code> 模型，从而确保在预测阶段数据以相同的方式被处理。从概念上讲，这一过程可能如图 <a href="#fig-pipelines-pipeline" class="quarto-xref">图&nbsp;<span>7.3</span></a> 所示。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-pipelines-pipeline" class="quarto-float quarto-figure quarto-figure-center anchored" alt="上方管道：Dtrain -> Scaling -> Factor Encoding -> Median Imputation -> Decision Tree。下方与上方相同，只是以 Dtest 开始，并在末端有一个指向 Prediction 的箭头。上方行的每个 PipeOp 都有一个箭头指向下方行对应的 PipeOp，指向一个已训练的状态。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pipelines-pipeline-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/mlr3book_figures-22.svg" class="img-fluid figure-img" style="width:100.0%" alt="上方管道：Dtrain -> Scaling -> Factor Encoding -> Median Imputation -> Decision Tree。下方与上方相同，只是以 Dtest 开始，并在末端有一个指向 Prediction 的箭头。上方行的每个 PipeOp 都有一个箭头指向下方行对应的 PipeOp，指向一个已训练的状态。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipelines-pipeline-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;7.3：顺序学习器管道内部训练与预测过程的概念图。在训练阶段（上行），数据依次通过各个预处理算子，每个算子都会修改数据并创建一个 <code>$state</code>。最后，学习器接收到数据并创建模型。在预测阶段（下行），数据同样被预处理算子变换，并在此过程中使用各自的 <code>$state</code>（灰色方框）信息。随后，学习器接收到与训练时所见数据格式相同的数据，并做出预测。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<section id="learners-as-pipeops-and-graphs-as-learners" class="level3 page-columns page-full" data-number="7.3.1"><h3 data-number="7.3.1" class="anchored" data-anchor-id="learners-as-pipeops-and-graphs-as-learners">
+<span class="header-section-number">7.3.1</span> 学习器作为 PipeOp，Graph 作为学习器</h3>
+<p>在 <a href="#fig-pipelines-pipeline" class="quarto-xref">图&nbsp;<span>7.3</span></a> 中，最后一个 <code>PipeOp</code> 是一个 <code>Learner</code>。<code>Learner</code> 对象可以用 <a href="https://mlr3pipelines.mlr-org.com/reference/as_pipeop.html"><code>as_pipeop()</code></a> 转换为 <code>PipeOp</code>，不过只有在你选择手工创建图而不是使用 <code>%&gt;&gt;%</code> 时才需要这样做。无论用哪种方法，在内部 <code>Learner</code> 都是被传给 <code>po("learner")</code> 的。下面的代码创建了一个 <a href="https://mlr3pipelines.mlr-org.com/reference/Graph.html"><code>Graph</code></a>，它用 <code>po("imputesample")</code> 从观测值中抽样来填补缺失值（<a href="../chapter9/preprocessing.html#sec-preprocessing-missing" class="quarto-xref"><span>第 9.3 节</span></a>），然后在变换后的任务上拟合逻辑回归。</p>
+<div class="cell">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_logreg</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.log_reg"</span><span class="op">)</span></span>
+<span><span class="va">graph</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"imputesample"</span><span class="op">)</span> <span class="op"><a href="https://mlr3pipelines.mlr-org.com/reference/grapes-greater-than-greater-than-grapes.html">%&gt;&gt;%</a></span> <span class="va">lrn_logreg</span></span>
+<span><span class="va">graph</span><span class="op">$</span><span class="fu">plot</span><span class="op">(</span>horizontal <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-pipelines-learnerpipeop" class="quarto-float quarto-figure quarto-figure-center anchored" alt="四个方框排成一条直线，用箭头连接：&quot;<INPUT> -> imputesample -> classif.log_reg -> <OUTPUT>&quot;。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pipelines-learnerpipeop-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/sequential_pipelines_files/figure-html/fig-pipelines-learnerpipeop-1.png" class="img-fluid figure-img" style="width:100.0%" alt="四个方框排成一条直线，用箭头连接：&quot;<INPUT> -> imputesample -> classif.log_reg -> <OUTPUT>&quot;。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipelines-learnerpipeop-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;7.4：顺序管道中的 <code>"imputesample"</code> 与 <code>"learner"</code> 两个 PipeOp。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>我们已经看到，训练和预测 <code>Graph</code> 是可以的，但与 <code>Learner</code> 对象的设计略有不同，即训练与预测时的输入和输出都是 <code>list</code> 对象。要把 <code>Graph</code> 作为接口完全一致的 <code>Learner</code> 使用，可以用 <a href="https://mlr3.mlr-org.com/reference/as_learner.html"><code>as_learner()</code></a> 把它包装进一个 <a href="https://mlr3pipelines.mlr-org.com/reference/mlr_learners_graph.html"><code>GraphLearner</code></a> 对象。然后该 <code>Graph</code> 就可以像任何其他 <code>Learner</code> 一样使用，因此现在我们就可以对我们的管道做基准测试，以决定是用抽样填补还是用观测值众数填补（<code>po("imputemode")</code>）：</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>GraphLearner</code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">glrn_sample</span> <span class="op">=</span> <span class="fu">as_learner</span><span class="op">(</span><span class="va">graph</span><span class="op">)</span></span>
+<span><span class="va">glrn_mode</span> <span class="op">=</span> <span class="fu">as_learner</span><span class="op">(</span><span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"imputemode"</span><span class="op">)</span> <span class="op"><a href="https://mlr3pipelines.mlr-org.com/reference/grapes-greater-than-greater-than-grapes.html">%&gt;&gt;%</a></span> <span class="va">lrn_logreg</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">design</span> <span class="op">=</span> <span class="fu">benchmark_grid</span><span class="op">(</span><span class="fu">tsk</span><span class="op">(</span><span class="st">"diabetes"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">glrn_sample</span>, <span class="va">glrn_mode</span><span class="op">)</span>,</span>
+<span>  <span class="fu">rsmp</span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bmr</span> <span class="op">=</span> <span class="fu">benchmark</span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span>
+<span><span class="va">aggr</span> <span class="op">=</span> <span class="va">bmr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">learner_id</span>, <span class="va">classif.ce</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">aggr</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                     learner_id classif.ce
+1: imputesample.classif.log_reg     0.2422
+2:   imputemode.classif.log_reg     0.2474</code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong><code>GraphLearner</code> 是管道与 mlr3 外部生态（基准测试、调优、嵌套重采样、AutoML）之间的「适配器」。它的功能类似于 Python 中 scikit-learn 的 <code>make_pipeline</code>：把「预处理 + 模型」整体装扮成一个学习器，从而可以统一进行 <code>resample()</code>、<code>benchmark()</code>、<code>tune()</code>。这里的基准测试是对两种缺失值填补策略（抽样 vs. 众数）的公平对比：两者都把「填补 + 逻辑回归」作为整体在同一个 3 折交叉验证下评估，这正是「管道级比较」的典型用法，也避免了在真实使用当中「如何填补」被实施到测试数据的泄漏问题。</p>
+</div>
+<p>在这个例子中，我们看到抽样填补方法略好一些，不过差异可能并不显著。</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+自动转换为学习器
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>在本书中，为了清晰起见，我们总是使用 <code>as_learner()</code> 显式地把 <code>Graph</code> 转换为 <code>Learner</code>。当你想使用 <code>$predict_newdata()</code> 这类学习器专属函数时，这种转换是必要的；而内建的 <code>mlr3</code> 方法如 <code>resample()</code> 和 <code>benchmark_grid()</code> 会自动完成这种转换，因此并非严格必需的。在上面的例子中，也可以直接使用</p>
+<div class="cell">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">design</span> <span class="op">=</span> <span class="fu">benchmark_grid</span><span class="op">(</span><span class="fu">tsk</span><span class="op">(</span><span class="st">"diabetes"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">graph</span>, <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"imputesample"</span><span class="op">)</span> <span class="op"><a href="https://mlr3pipelines.mlr-org.com/reference/grapes-greater-than-greater-than-grapes.html">%&gt;&gt;%</a></span> <span class="va">lrn_logreg</span><span class="op">)</span>,</span>
+<span>  <span class="fu">rsmp</span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="inspecting-graphs" class="level3" data-number="7.3.2"><h3 data-number="7.3.2" class="anchored" data-anchor-id="inspecting-graphs">
+<span class="header-section-number">7.3.2</span> 检查 Graph</h3>
+<p>你可能想检查管道和数据流，以便更深入地了解管道或对其进行调试。我们首先需要把 <code>$keep_results</code> 标志设置为 <code>TRUE</code>，以便保留中间结果；该标志默认关闭，以节省内存。</p>
+<div class="cell">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">glrn_sample</span><span class="op">$</span><span class="va">graph_model</span><span class="op">$</span><span class="va">keep_results</span> <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="va">glrn_sample</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="fu">tsk</span><span class="op">(</span><span class="st">"diabetes"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>通过 <code>$graph_model</code> 字段可以访问该 <code>Graph</code>，然后像前面一样用 <code>$pipeops</code> 访问各 <code>PipeOp</code>。在本例中，我们可以看到在训练 <code>"imputesample"</code> <code>PipeOp</code> 之后，我们的 <a href="https://mlr3.mlr-org.com/reference/Task.html"><code>Task</code></a> 不再有缺失数据了。这个方法可以用来访问任意的中间结果：</p>
+<div class="cell">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">imputesample_output</span> <span class="op">=</span> <span class="va">glrn_sample</span><span class="op">$</span><span class="va">graph_model</span><span class="op">$</span><span class="va">pipeops</span><span class="op">$</span><span class="va">imputesample</span><span class="op">$</span></span>
+<span>  <span class="va">.result</span></span>
+<span><span class="va">imputesample_output</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="fu">missings</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>diabetes      age pedigree pregnant  glucose  insulin     mass pressure 
+       0        0        0        0        0        0        0        0 
+ triceps 
+       0 </code></pre>
+</div>
+</div>
+<p>我们也可以用 <code>$pipeops</code> 访问底层的 <a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a>，注意我们需要用 <code>$learner_model</code> 从 <a href="https://mlr3pipelines.mlr-org.com/reference/mlr_pipeops_learner.html"><code>PipeOpLearner</code></a> 中取出学习器。我们可以用类似的方法窥探图中任何 <code>PipeOp</code> 的状态：</p>
+<div class="cell">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">pipeop_logreg</span> <span class="op">=</span> <span class="va">glrn_sample</span><span class="op">$</span><span class="va">graph_model</span><span class="op">$</span><span class="va">pipeops</span><span class="op">$</span><span class="va">classif.log_reg</span></span>
+<span><span class="va">learner_logreg</span> <span class="op">=</span> <span class="va">pipeop_logreg</span><span class="op">$</span><span class="va">learner_model</span></span>
+<span><span class="va">learner_logreg</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;LearnerClassifLogReg&gt; (classif.log_reg): Logistic Regression ────────
+• Model: glm
+• Parameters: link=logit, use_pred_offset=TRUE
+• Packages: mlr3, mlr3learners, and stats
+• Predict Types: [response] and prob
+• Feature Types: logical, integer, numeric, character, factor, and
+ordered
+• Encapsulation: none (fallback: -)
+• Properties: offset, twoclass, and weights
+• Other settings: use_weights = 'use', predict_raw = 'FALSE'</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+<code>$base_learner()</code>
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>在本例中，我们本可以用 <code>glrn_sample$base_learner()</code> 直接访问已训练的学习器，但这无法推广到可能包含多个学习器的更复杂管道。</p>
+</div>
+</div>
+</section>
+<section id="configuring-pipeline-hyperparameters" class="level3" data-number="7.3.3"><h3 data-number="7.3.3" class="anchored" data-anchor-id="configuring-pipeline-hyperparameters">
+<span class="header-section-number">7.3.3</span> 配置管道超参数</h3>
+<p><code>PipeOp</code> 的超参数集中汇集在图（graph）的 <code>$param_set</code> 中，并以其所属 <code>PipeOp</code> 的 ID 作为前缀，以避免参数名冲突。下面我们两次使用同一个 <code>PipeOp</code>，但通过设置 <code>id</code> 确保它们的 ID 唯一。</p>
+<div class="cell">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">graph</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"scale"</span>, center <span class="op">=</span> <span class="cn">FALSE</span>, scale <span class="op">=</span> <span class="cn">TRUE</span>, id <span class="op">=</span> <span class="st">"scale"</span><span class="op">)</span> <span class="op"><a href="https://mlr3pipelines.mlr-org.com/reference/grapes-greater-than-greater-than-grapes.html">%&gt;&gt;%</a></span></span>
+<span>  <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"scale"</span>, center <span class="op">=</span> <span class="cn">TRUE</span>, scale <span class="op">=</span> <span class="cn">FALSE</span>, id <span class="op">=</span> <span class="st">"center"</span><span class="op">)</span> <span class="op"><a href="https://mlr3pipelines.mlr-org.com/reference/grapes-greater-than-greater-than-grapes.html">%&gt;&gt;%</a></span></span>
+<span>  <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.rpart"</span>, cp <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html">unlist</a></span><span class="op">(</span><span class="va">graph</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      scale.center        scale.scale       scale.robust 
+                 0                  1                  0 
+     center.center       center.scale      center.robust 
+                 1                  0                  0 
+  classif.rpart.cp classif.rpart.xval 
+                 1                  0 </code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>参数命名规则值得特别注意：图中每个超参数的完整名字 = <code>PipeOp</code> 的 ID + 点号 + 参数名，例如 <code>scale.center</code>、<code>classif.rpart.cp</code>。这条规则使我们对「管道参数」拥有一个统一的平面命名空间（flat namespace），这正是后续第 4 章调优、第 8 章 <code>branch</code>/<code>proxy</code> 之所以能直接对管道做超参数搜索的基础。另外要注意，上述例子中把 <code>"scale"</code> 和 <code>"center"</code> 两个算子串联形成「先缩放再中心化」的序列，等价于分别控制两种标准化行为，读者可以借此体会「算子 ID 划分」对参数语义的影响。</p>
+</div>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+图（Graph）中的 PipeOp ID
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>如果你需要更改 <a href="https://mlr3pipelines.mlr-org.com/reference/Graph.html"><code>Graph</code></a> 中 <a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a> 的 ID，请使用 <code>Graph</code> 类的 <code>$set_names</code> 方法，例如 <code>some_graph$set_names(old = "old_name", new = "new_name")</code>。不要通过 <code>graph$pipeops$&lt;old_id&gt;$id = &lt;new_id&gt;</code> 改变某个 <code>PipeOp</code> 的 ID，因为那只会修改 <code>PipeOp</code> 自身记录的 ID，而不会修改 <code>Graph</code> 的记录，这会导致错误。</p>
+</div>
+</div>
+<p>无论管道被当作 <code>Graph</code> 还是 <code>GraphLearner</code>，超参数的更新和访问方式都是一样的。</p>
+<div class="cell">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">graph</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">classif.rpart.maxdepth</span> <span class="op">=</span> <span class="fl">5</span></span>
+<span><span class="va">graph_learner</span> <span class="op">=</span> <span class="fu">as_learner</span><span class="op">(</span><span class="va">graph</span><span class="op">)</span></span>
+<span><span class="va">graph_learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">classif.rpart.minsplit</span> <span class="op">=</span> <span class="fl">2</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html">unlist</a></span><span class="op">(</span><span class="va">graph_learner</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          scale.center            scale.scale           scale.robust 
+                     0                      1                      0 
+         center.center           center.scale          center.robust 
+                     1                      0                      0 
+      classif.rpart.cp classif.rpart.maxdepth classif.rpart.minsplit 
+                     1                      5                      2 
+    classif.rpart.xval 
+                     0 </code></pre>
+</div>
+</div>
+</section></section><section id="conclusion" class="level2" data-number="7.4"><h2 data-number="7.4" class="anchored" data-anchor-id="conclusion">
+<span class="header-section-number">7.4</span> 小结</h2>
+<p>本章我们介绍了 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 及其构建块：<a href="https://mlr3pipelines.mlr-org.com/reference/Graph.html"><code>Graph</code></a> 与 <a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a>。我们看到了如何把多个 <code>PipeOp</code> 对象创建为 <code>Graph</code> 形式的管道，以及如何从 <code>Graph</code> 中访问 <code>PipeOp</code>。我们还看到了如何把 <code>Learner</code> 当作 <code>PipeOp</code>、把 <code>Graph</code> 当作 <code>Learner</code>。在 <a href="../chapter8/non-sequential_pipelines_and_tuning.html" class="quarto-xref"><span>第 8 章</span></a> 中，我们将把这个功能再推进一步，考察 <code>PipeOp</code> 非顺序执行的管道，并看看如何用 <a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a> 对管道进行调优。大量使用顺序管道的实用示例可以在 <a href="../chapter9/preprocessing.html" class="quarto-xref"><span>第 9 章</span></a> 中找到，那里我们研究用于数据预处理的管道。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>回顾本章核心，可以把 <code>mlr3pipelines</code> 的心智模型概括为三层：<strong>算子（PipeOp）</strong>是单步变换，有输入/输出通道（channel）与可训练的「状态」；<strong>图（Graph）</strong>是通过边连接的算子集合，定义数据流动方式（本章为顺序、直线式）；<strong>图学习器（GraphLearner）</strong>把整个图伪装成学习器，使其无缝接入 mlr3 的基准、调优与部署流程。掌握这个概念三角形后，第 8 章的分支、并集、堆叠等非顺序结构就能顺理成章。</p>
+</div>
+<div id="tbl-api-pipelines-seq" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-api-pipelines-seq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+表&nbsp;7.1：本章涵盖的重要类与函数，以及其底层类（如适用）、类构造函数或函数、重要类字段与方法（如适用）。
+</figcaption><div aria-describedby="tbl-api-pipelines-seq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead><tr class="header">
+<th>类</th>
+<th>构造函数/函数</th>
+<th>字段/方法</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a></td>
+<td><a href="https://mlr3pipelines.mlr-org.com/reference/po.html"><code>po()</code></a></td>
+<td>
+<code>$train()</code>； <code>$predict()</code>； <code>$state</code>； <code>$id</code>； <code>$param_set</code>
+</td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3pipelines.mlr-org.com/reference/Graph.html"><code>Graph</code></a></td>
+<td><code>%&gt;&gt;%</code></td>
+<td>
+<code>$add_pipeop()</code>； <code>$add_edge()</code>； <code>$pipeops</code>； <code>$edges</code>；<code>$train()</code>； <code>$predict()</code>
+</td>
+</tr>
+<tr class="odd">
+<td><a href="https://mlr3pipelines.mlr-org.com/reference/mlr_learners_graph.html"><code>GraphLearner</code></a></td>
+<td><a href="https://mlr3.mlr-org.com/reference/as_learner.html"><code>as_learner</code></a></td>
+<td><code>$graph</code></td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3pipelines.mlr-org.com/reference/mlr_pipeops_learner.html"><code>PipeOpLearner</code></a></td>
+<td><a href="https://mlr3pipelines.mlr-org.com/reference/as_pipeop.html"><code>as_pipeop</code></a></td>
+<td><code>$learner_model</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section><section id="exercises" class="level2" data-number="7.5"><h2 data-number="7.5" class="anchored" data-anchor-id="exercises">
+<span class="header-section-number">7.5</span> 练习</h2>
+<ol type="1">
+<li>创建一个包含 <code>Graph</code> 的学习器，该 <code>Graph</code> 先用 <code>po("imputeoor")</code> 填补缺失值，用 <code>po("scale")</code> 标准化数据，然后用 <code>lrn("classif.log_reg")</code> 拟合逻辑线性模型。</li>
+<li>在 <code>tsk("diabetes")</code> 上训练上一题创建的学习器，并显示所得模型的系数。访问该模型有哪两种不同的方式？</li>
+<li>验证上一题中 <code>lrn("classif.log_reg")</code> 输入任务的 <code>"age"</code> 列确实被标准化了。一种方法是查看 <code>lrn("classif.log_reg")</code> 模型的 <code>$data</code> 字段；但那是该特定学习器特有的做法，不能通用。什么才是另一种更通用的做法？提示：使用 <code>$keep_results</code> 标志。</li>
+</ol>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>练习 2 中「访问模型的两条途径」实际上对应 7.3.2 节的两种思路：一是通过 <code>$graph_model$pipeops$&lt;learner_id&gt;$learner_model</code> 深入到图中提取内部学习器；二是用专用于单学习器管道的 <code>$base_learner()</code>。练习 3 则是调试思想的综合运用——《不触及测试集》的前提下，用 <code>keep_results = TRUE</code> 保留中间任务后 <code>missings()</code>/<code>head()</code> 等方法核对预处理是否按预期生效。</p>
+</div>
+</section><section id="citation" class="level2" data-number="7.6"><h2 data-number="7.6" class="anchored" data-anchor-id="citation">
+<span class="header-section-number">7.6</span> 引用</h2>
+<p>请按如下方式引用本章：</p>
+<p>Binder M, Pfisterer F. (2024). Sequential Pipelines. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/sequential_pipelines.html.</p>
+<div class="sourceCode" id="cb40"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="va">@incollection</span>{<span class="ot">citekey</span>,</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span> = "<span class="st">Martin Binder and Florian Pfisterer</span>",</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span> = "<span class="st">Sequential Pipelines</span>",</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">booktitle</span> = "<span class="st">Applied Machine Learning Using {m}lr3 in {R}</span>",</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">publisher</span> = "<span class="st">CRC Press</span>", <span class="st">year</span> = "<span class="st">2024</span>",</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">editor</span> = "<span class="st">Bernd Bischl and Raphael Sonabend and Lars Kotthoff and Michel Lang</span>",</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">url</span> = "<span class="st">https://mlr3book.mlr-org.com/sequential_pipelines.html</span>"</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+
+
+<!-- -->
+
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-mlr3pipelines" class="csl-entry" role="listitem">
+Binder, Martin, Florian Pfisterer, Michel Lang, Lennart Schneider, Lars Kotthoff, and Bernd Bischl. 2021. <span>“<span class="nocase">mlr3pipelines</span> - Flexible Machine Learning Pipelines in <span>R</span>.”</span> <em>Journal of Machine Learning Research</em> 22 (184): 1–7. <a href="https://jmlr.org/papers/v22/21-0281.html">https://jmlr.org/papers/v22/21-0281.html</a>.
+</div>
+</div>
+</section>
+  </main>
+  <nav class="chnav">
+    <a class="" href="ch06-feature-selection.html"><span class="dir">上一章</span><span class="ch">第 6 章 特征选择</span></a>
+    <a class="" href="ch08-nonseq-pipelines-tuning.html"><span class="dir">下一章</span><span class="ch">第 8 章 非顺序管道与调优</span></a>
+  </nav>
+  <div class="footer">
+    <div>《Applied Machine Learning Using mlr3 in R》中文译本 · 非官方翻译</div>
+    <div class="lic">原文 © 2024 CRC Press（Bischl, Sonabend, Kotthoff &amp; Lang 主编，CC BY-NC-SA 4.0）· 本站由志愿翻译，仅供学习交流</div>
+  </div>
+</div>
+<script>
+MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] } };
+</script>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
+</body>
+</html>

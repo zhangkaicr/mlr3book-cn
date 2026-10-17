@@ -59,6 +59,50 @@ body {
   border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
 }
 .theme-toggle:hover { border-color: var(--accent); }
+/* 搜索 */
+.search-box { position: relative; display: flex; align-items: center; }
+.search-box input {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 5px 10px 5px 28px; font-size: 13px; width: 190px;
+  font-family: inherit; outline: none;
+}
+.search-box input:focus { border-color: var(--accent); width: 240px; }
+.search-box .ico { position: absolute; left: 9px; color: var(--muted); font-size: 12px; pointer-events: none; }
+.search-panel {
+  display: none; position: absolute; top: calc(100% + 6px); right: 0; width: 460px;
+  max-width: 90vw; max-height: 66vh; overflow-y: auto; z-index: 200;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 12px 34px rgba(0,0,0,.42); padding: 6px;
+}
+.search-panel.open { display: block; }
+.search-panel .s-head {
+  padding: 8px 11px 7px; font-size: 12px; color: var(--muted);
+  border-bottom: 1px solid var(--border); margin-bottom: 5px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.search-panel .s-hint { font-size: 12px; color: var(--muted); padding: 18px 12px; text-align: center; }
+.s-item { display: block; padding: 8px 11px; border-radius: 7px; text-decoration: none; color: var(--fg); }
+.s-item:hover, .s-item.sel { background: var(--panel2); }
+.s-item .s-ch { font-size: 11px; color: var(--accent2); margin-bottom: 2px; }
+.s-item .s-sec { font-size: 12px; color: var(--accent); margin-bottom: 3px; }
+.s-item .s-txt { font-size: 13px; line-height: 1.6; color: var(--fg); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.s-item mark { background: rgba(255, 200, 0, .32); color: inherit; border-radius: 2px; padding: 0 1px; }
+[data-theme="light"] .s-item mark { background: rgba(255, 200, 0, .45); }
+/* 搜索结果页 */
+.search-page-box { margin: 26px 0 0; }
+.search-page-box input {
+  width: 100%; background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 8px; padding: 12px 15px; font-size: 15px; font-family: inherit; outline: none;
+}
+.search-page-box input:focus { border-color: var(--accent); }
+.s-meta { color: var(--muted); font-size: 13px; margin: 14px 0 8px; }
+.s-list { list-style: none; margin: 0; padding: 0; }
+.s-list .s-item { border: 1px solid var(--border); margin: 8px 0; }
+@media (max-width: 640px) {
+  .search-box input { width: 130px; }
+  .search-box input:focus { width: 170px; }
+  .search-panel { width: 84vw; }
+}
 /* 章头 */
 .header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
 .header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
@@ -170,9 +214,14 @@ function toggleTheme(){
 </head>
 <body>
 <div class="topbar">
-  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <a class="brand" href="../index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
   <div class="right">
-    <a class="home-link" href="index.html">目录</a>
+    <div class="search-box">
+      <span class="ico">&#128269;</span>
+      <input type="search" id="mlr3-search" placeholder="搜索全书…（按 /）" autocomplete="off" aria-label="全书搜索">
+      <div class="search-panel" id="mlr3-search-panel"></div>
+    </div>
+    <a class="home-link" href="../index.html">目录</a>
     <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
   </div>
 </div>
@@ -187,9 +236,9 @@ function toggleTheme(){
 <p><strong>Florian Pfisterer</strong> <br><em>Ludwig-Maximilians-Universität München</em></p>
 <p><strong>Marc Becker</strong> <br><em>Ludwig-Maximilians-Universität München, and Munich Center for Machine Learning (MCML)</em></p>
 <p><strong>Marvin N. Wright</strong> <br><em>Leibniz Institute for Prevention Research and Epidemiology – BIPS, and University of Bremen, and University of Copenhagen</em> <br><br></p>
-<p>在<a href="../chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>中，我们学习了如何使用 <a href="https://mlr3pipelines.mlr-org.com/reference/Graph.html"><code>Graph</code></a> 类和若干 <a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a> 对象构建简单的顺序管道（sequential pipeline）。在本章中，我们将进一步学习非顺序管道（non-sequential pipeline），它能执行更复杂的操作。接着，我们将结合 <a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a> 与 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 的方法来调优管道，并考虑一些具体例子，包括多保真度调优（multi-fidelity tuning，<a href="../chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-hyperband" class="quarto-xref"><span>5.3 节</span></a>）和特征选择（<a href="../chapter6/feature_selection.html" class="quarto-xref"><span>第 6 章</span></a>）。</p>
-<p>在<a href="../chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>中，我们见识了 <code>%&gt;&gt;%</code> 运算符的强大之处：它可以把多个 <code>PipeOp</code> 和 <code>Learner</code> 组合起来装配成图（graph）。给定单个 <code>PipeOp</code> 或 <a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 时，<code>%&gt;&gt;%</code> 运算符会把这些对象排列成线性的 <code>Graph</code>，其中每个 <code>PipeOp</code> 依次执行。然而，通过使用 <a href="https://mlr3pipelines.mlr-org.com/reference/gunion.html"><code>gunion()</code></a> 函数，我们可以把多个 <code>PipeOp</code>、多个 <code>Graph</code>、或两者的混合组合成并行的 <code>Graph</code>。</p>
-<p>在下面的例子中，我们创建一个 <code>Graph</code>：首先把输入居中（<code>po("scale")</code>），然后把居中后的数据复制到两个并行分支：一个分支用表示数据是否为缺失值的列来替换数据（<code>po("missind")</code>），另一个分支使用中位数填补缺失值（<code>po("imputemedian")</code>），后者我们将在<a href="../chapter9/preprocessing.html#sec-preprocessing-missing" class="quarto-xref"><span>9.3 节</span></a>再次讨论。两个分支的输出最后用 <code>po("featureunion")</code> 合并为一个数据集。</p>
+<p>在<a href="https://mlr3book.mlr-org.com/chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>中，我们学习了如何使用 <a href="https://mlr3pipelines.mlr-org.com/reference/Graph.html"><code>Graph</code></a> 类和若干 <a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a> 对象构建简单的顺序管道（sequential pipeline）。在本章中，我们将进一步学习非顺序管道（non-sequential pipeline），它能执行更复杂的操作。接着，我们将结合 <a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a> 与 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 的方法来调优管道，并考虑一些具体例子，包括多保真度调优（multi-fidelity tuning，<a href="https://mlr3book.mlr-org.com/chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-hyperband" class="quarto-xref"><span>5.3 节</span></a>）和特征选择（<a href="https://mlr3book.mlr-org.com/chapter6/feature_selection.html" class="quarto-xref"><span>第 6 章</span></a>）。</p>
+<p>在<a href="https://mlr3book.mlr-org.com/chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>中，我们见识了 <code>%&gt;&gt;%</code> 运算符的强大之处：它可以把多个 <code>PipeOp</code> 和 <code>Learner</code> 组合起来装配成图（graph）。给定单个 <code>PipeOp</code> 或 <a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 时，<code>%&gt;&gt;%</code> 运算符会把这些对象排列成线性的 <code>Graph</code>，其中每个 <code>PipeOp</code> 依次执行。然而，通过使用 <a href="https://mlr3pipelines.mlr-org.com/reference/gunion.html"><code>gunion()</code></a> 函数，我们可以把多个 <code>PipeOp</code>、多个 <code>Graph</code>、或两者的混合组合成并行的 <code>Graph</code>。</p>
+<p>在下面的例子中，我们创建一个 <code>Graph</code>：首先把输入居中（<code>po("scale")</code>），然后把居中后的数据复制到两个并行分支：一个分支用表示数据是否为缺失值的列来替换数据（<code>po("missind")</code>），另一个分支使用中位数填补缺失值（<code>po("imputemedian")</code>），后者我们将在<a href="https://mlr3book.mlr-org.com/chapter9/preprocessing.html#sec-preprocessing-missing" class="quarto-xref"><span>9.3 节</span></a>再次讨论。两个分支的输出最后用 <code>po("featureunion")</code> 合并为一个数据集。</p>
 <div class="cell">
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3pipelines.mlr-org.com">mlr3pipelines</a></span><span class="op">)</span></span>
 <span></span>
@@ -206,7 +255,7 @@ function toggleTheme(){
 <div class="cell-output-display">
 <div id="fig-pipelines-parallel-plot" class="quarto-float quarto-figure quarto-figure-center anchored" alt="六个框，其中前两个是 &quot;<INPUT> -> scale&quot;，然后 &quot;scale&quot; 有两条箭头分别指向 &quot;missind&quot; 和 &quot;imputemedian&quot;，两者都有箭头指向 &quot;featureunion -> <OUTPUT>&quot;。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pipelines-parallel-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/non-sequential_pipelines_and_tuning_files/figure-html/fig-pipelines-parallel-plot-1.png" class="img-fluid figure-img" style="width:100.0%" alt="六个框，其中前两个是 &quot;<INPUT> -> scale&quot;，然后 &quot;scale&quot; 有两条箭头分别指向 &quot;missind&quot; 和 &quot;imputemedian&quot;，两者都有箭头指向 &quot;featureunion -> <OUTPUT>&quot;。">
+<img src="../images/non-sequential_pipelines_and_tuning_files/figure-html/fig-pipelines-parallel-plot-1.png" class="img-fluid figure-img" style="width:100.0%" alt="六个框，其中前两个是 &quot;<INPUT> -> scale&quot;，然后 &quot;scale&quot; 有两条箭头分别指向 &quot;missind&quot; 和 &quot;imputemedian&quot;，两者都有箭头指向 &quot;featureunion -> <OUTPUT>&quot;。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipelines-parallel-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;8.1: 简单的并行管道图，显示一个公共数据源先被缩放，然后同一份数据被并行地传给两个 <code>PipeOp</code>，它们的输出被合并后返回给用户。
@@ -237,7 +286,7 @@ function toggleTheme(){
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong><code>gunion()</code>（graph union 的缩写）的作用是把多个 <code>PipeOp</code>/<code>Graph</code>/学习器"并联"起来——它们共享同一个输入，各自独立处理，最后生成多个输出。这与顺序管道 <code>%&gt;&gt;%</code>（把上一个的输出作为下一个的输入）形成对照。并联结果通常用 <code>po("featureunion")</code> 把各分支产生的特征列合并成一个数据集。这是 mlr3pipelines 构建非顺序管道的两个最基本的"积木"。</p>
 </div>
-<section id="selectors-and-parallel-pipelines" class="level2 page-columns page-full" data-number="8.1"><h2 data-number="8.1" class="anchored" data-anchor-id="selectors-and-parallel-pipelines">
+<section id="selectors-and-parallel-pipelines" class="level2 page-columns page-full" data-number="8.1"><h2 data-number="8.1" class="anchored" data-anchor-id="selectors-and-parallel-pipelines" id="selectors-and-parallel-pipelines">
 <span class="header-section-number">8.1</span> 选择器与并行管道（Selectors and Parallel Pipelines）</h2>
 <p>在 <a href="https://mlr3pipelines.mlr-org.com/reference/Graph.html"><code>Graph</code></a> 中，操作只作用于一部分特征是很常见的。在 <code>mlr3pipelines</code> 中有两种方式可以实现这一点（<a href="#fig-pipelines-select-affect" class="quarto-xref">图&nbsp;<span>8.2</span></a>）：要么把列子集传给某个 <a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a> 的 <code>affect_columns</code> 超参数（假定该 <code>PipeOp</code> 有这个超参数），该参数控制哪些列应受该 <code>PipeOp</code> 影响；要么使用 <a href="https://mlr3pipelines.mlr-org.com/reference/mlr_pipeops_select.html"><code>PipeOpSelect</code></a> 算子，在指定的特征子集上并行地创建操作，然后用 <a href="https://mlr3pipelines.mlr-org.com/reference/mlr_pipeops_featureunion.html"><code>PipeOpFeatureUnion</code></a> 合并结果。</p>
 <div class="cell" data-layout-nrow="2">
@@ -247,7 +296,7 @@ function toggleTheme(){
 <div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-pipelines-select-affect" style="flex-basis: 100.0%;justify-content: flex-start;">
 <div id="fig-pipelines-select-affect-1" class="quarto-float quarto-figure quarto-figure-center anchored" alt="上图显示顺序管道 &quot;po(op1, affected_columns: ¬X&quot;) -> po(op2, affected_columns: X&quot;)。下图显示并行管道，它以一条分叉箭头开始，分别指向 po(&quot;select&quot;, ¬X) 和 po(&quot;select&quot;, X)。这两者分别指向 po(op1) 和 po(op2)，然后两者都指向同一个 po(&quot;featureunion&quot;)。">
 <figure class="quarto-float quarto-subfloat-fig figure"><div aria-describedby="fig-pipelines-select-affect-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/Figures/mlr3book_figures-28.svg" class="img-fluid figure-img" style="width:70.0%" data-ref-parent="fig-pipelines-select-affect" alt="上图显示顺序管道 &quot;po(op1, affected_columns: ¬X&quot;) -> po(op2, affected_columns: X&quot;)。下图显示并行管道，它以一条分叉箭头开始，分别指向 po(&quot;select&quot;, ¬X) 和 po(&quot;select&quot;, X)。这两者分别指向 po(op1) 和 po(op2)，然后两者都指向同一个 po(&quot;featureunion&quot;)。">
+<img src="../images/Figures/mlr3book_figures-28.svg" class="img-fluid figure-img" style="width:70.0%" data-ref-parent="fig-pipelines-select-affect" alt="上图显示顺序管道 &quot;po(op1, affected_columns: ¬X&quot;) -> po(op2, affected_columns: X&quot;)。下图显示并行管道，它以一条分叉箭头开始，分别指向 po(&quot;select&quot;, ¬X) 和 po(&quot;select&quot;, X)。这两者分别指向 po(op1) 和 po(op2)，然后两者都指向同一个 po(&quot;featureunion&quot;)。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-pipelines-select-affect-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (a) 可以使用 <code>affect_columns</code> 超参数把操作限制在一部分特征上。使用时管道仍可顺序运行。
@@ -259,7 +308,7 @@ function toggleTheme(){
 <div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-pipelines-select-affect" style="flex-basis: 100.0%;justify-content: flex-start;">
 <div id="fig-pipelines-select-affect-2" class="quarto-float quarto-figure quarto-figure-center anchored" alt="上图显示顺序管道 &quot;po(op1, affected_columns: ¬X&quot;) -> po(op2, affected_columns: X&quot;)。下图显示并行管道，它以一条分叉箭头开始，分别指向 po(&quot;select&quot;, ¬X) 和 po(&quot;select&quot;, X)。这两者分别指向 po(op1) 和 po(op2)，然后两者都指向同一个 po(&quot;featureunion&quot;)。">
 <figure class="quarto-float quarto-subfloat-fig figure"><div aria-describedby="fig-pipelines-select-affect-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/Figures/mlr3book_figures-29.svg" class="img-fluid figure-img" style="width:70.0%" data-ref-parent="fig-pipelines-select-affect" alt="上图显示顺序管道 &quot;po(op1, affected_columns: ¬X&quot;) -> po(op2, affected_columns: X&quot;)。下图显示并行管道，它以一条分叉箭头开始，分别指向 po(&quot;select&quot;, ¬X) 和 po(&quot;select&quot;, X)。这两者分别指向 po(op1) 和 po(op2)，然后两者都指向同一个 po(&quot;featureunion&quot;)。">
+<img src="../images/Figures/mlr3book_figures-29.svg" class="img-fluid figure-img" style="width:70.0%" data-ref-parent="fig-pipelines-select-affect" alt="上图显示顺序管道 &quot;po(op1, affected_columns: ¬X&quot;) -> po(op2, affected_columns: X&quot;)。下图显示并行管道，它以一条分叉箭头开始，分别指向 po(&quot;select&quot;, ¬X) 和 po(&quot;select&quot;, X)。这两者分别指向 po(op1) 和 po(op2)，然后两者都指向同一个 po(&quot;featureunion&quot;)。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-pipelines-select-affect-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (b) 先用 <code>po("select")</code> 拆分输入，再用 <code>po("featureunion")</code> 合并输出，通过并发路径在任务的子集上操作。
@@ -274,7 +323,7 @@ function toggleTheme(){
 </div>
 </div>
 <p>两种方法都使用了 <a href="https://mlr3pipelines.mlr-org.com/reference/Selector.html"><code>Selector</code></a> 函数。这些辅助函数告知 <code>PipeOp</code> 应当作用于哪些特征。<code>Selector</code> 可以按正则表达式匹配列名（<a href="https://mlr3pipelines.mlr-org.com/reference/Selector.html"><code>selector_grep()</code></a>），也可以按列类型匹配（<a href="https://mlr3pipelines.mlr-org.com/reference/Selector.html"><code>selector_type()</code></a>）。<code>Selector</code> 还可以用来合并变量（<a href="https://mlr3pipelines.mlr-org.com/reference/Selector.html"><code>selector_union()</code></a>）、返回其集合差（<a href="https://mlr3pipelines.mlr-org.com/reference/Selector.html"><code>selector_setdiff()</code></a>），或者选择另一个 <code>Selector</code> 所选特征的补集（<a href="https://mlr3pipelines.mlr-org.com/reference/Selector.html"><code>selector_invert()</code></a>）。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>Selector</code></span></div></div>
-<p>例如，在<a href="../chapter7/sequential_pipelines.html#sec-pipelines-pipeops" class="quarto-xref"><span>7.1 节</span></a>中，我们对 <code>tsk("penguins_simple")</code> 的企鹅喙长和喙深应用了 PCA——先使用 <code>Task</code> 的 <code>$select()</code> 方法选择这些列，然后再应用 <code>PipeOp</code>。现在我们用 <code>selector_grep</code> 可以更简单地做到这一点，并且还可以继续用 <code>selector_invert</code> 对其它特征应用别的 <code>PipeOp</code>。下面我们使用 <code>po("scale")</code>，并利用 <code>affect_columns</code> 超参数：</p>
+<p>例如，在<a href="https://mlr3book.mlr-org.com/chapter7/sequential_pipelines.html#sec-pipelines-pipeops" class="quarto-xref"><span>7.1 节</span></a>中，我们对 <code>tsk("penguins_simple")</code> 的企鹅喙长和喙深应用了 PCA——先使用 <code>Task</code> 的 <code>$select()</code> 方法选择这些列，然后再应用 <code>PipeOp</code>。现在我们用 <code>selector_grep</code> 可以更简单地做到这一点，并且还可以继续用 <code>selector_invert</code> 对其它特征应用别的 <code>PipeOp</code>。下面我们使用 <code>po("scale")</code>，并利用 <code>affect_columns</code> 超参数：</p>
 <div class="cell">
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">sel_bill</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/Selector.html">selector_grep</a></span><span class="op">(</span><span class="st">"^bill"</span><span class="op">)</span></span>
 <span><span class="va">sel_not_bill</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/Selector.html">selector_invert</a></span><span class="op">(</span><span class="va">sel_bill</span><span class="op">)</span></span>
@@ -306,7 +355,7 @@ function toggleTheme(){
 <div class="cell-output-display">
 <div id="fig-pipelines-pcascale" class="quarto-float quarto-figure quarto-figure-center anchored" alt="七个框，第一个是 &quot;<INPUT>&quot;，它指向 &quot;s_bill -> pca&quot; 和 &quot;s_notbill -> scale&quot;，然后 &quot;pca&quot; 和 &quot;scale&quot; 都指向 &quot;featureunion -> <OUTPUT>&quot;。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pipelines-pcascale-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/non-sequential_pipelines_and_tuning_files/figure-html/fig-pipelines-pcascale-1.png" class="img-fluid figure-img" style="width:100.0%" alt="七个框，第一个是 &quot;<INPUT>&quot;，它指向 &quot;s_bill -> pca&quot; 和 &quot;s_notbill -> scale&quot;，然后 &quot;pca&quot; 和 &quot;scale&quot; 都指向 &quot;featureunion -> <OUTPUT>&quot;。">
+<img src="../images/non-sequential_pipelines_and_tuning_files/figure-html/fig-pipelines-pcascale-1.png" class="img-fluid figure-img" style="width:100.0%" alt="七个框，第一个是 &quot;<INPUT>&quot;，它指向 &quot;s_bill -> pca&quot; 和 &quot;s_notbill -> scale&quot;，然后 &quot;pca&quot; 和 &quot;scale&quot; 都指向 &quot;featureunion -> <OUTPUT>&quot;。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipelines-pcascale-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;8.3: 一个 <code>Graph</code> 的可视化，其中特征被分成两条路径，一条做 PCA、一条做缩放，然后合并并返回。
@@ -326,7 +375,7 @@ function toggleTheme(){
 <div class="cell-output-display">
 <div id="fig-pipelines-selectnop" class="quarto-float quarto-figure quarto-figure-center anchored" alt="七个框，第一个是 &quot;<INPUT>&quot;，它指向 &quot;s_bill -> scale&quot; 和 &quot;s_notbill -> nop&quot;，然后 &quot;scale&quot; 和 &quot;nop&quot; 都指向 &quot;featureunion -> <OUTPUT>&quot;。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pipelines-selectnop-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/non-sequential_pipelines_and_tuning_files/figure-html/fig-pipelines-selectnop-1.png" class="img-fluid figure-img" style="width:100.0%" alt="七个框，第一个是 &quot;<INPUT>&quot;，它指向 &quot;s_bill -> scale&quot; 和 &quot;s_notbill -> nop&quot;，然后 &quot;scale&quot; 和 &quot;nop&quot; 都指向 &quot;featureunion -> <OUTPUT>&quot;。">
+<img src="../images/non-sequential_pipelines_and_tuning_files/figure-html/fig-pipelines-selectnop-1.png" class="img-fluid figure-img" style="width:100.0%" alt="七个框，第一个是 &quot;<INPUT>&quot;，它指向 &quot;s_bill -> scale&quot; 和 &quot;s_notbill -> nop&quot;，然后 &quot;scale&quot; 和 &quot;nop&quot; 都指向 &quot;featureunion -> <OUTPUT>&quot;。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipelines-selectnop-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;8.4: 我们的 <code>Graph</code> 的可视化：特征被分成两条路径，以 'bill' 开头的特征被缩放，其余特征保持不变。
@@ -346,7 +395,7 @@ function toggleTheme(){
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>这里区分了两种让 <code>PipeOp</code> 只作用于部分特征的方式：<code>affect_columns</code> 直接在已有 <code>PipeOp</code> 上做"过滤"（管道结构保持顺序线性）；而 <code>po("select")</code> 则把"选列"本身变成一个显式的算子，可以配合 <code>gunion()</code>/<code>po("featureunion")</code> 构建真正的并行结构。后者的好处是逻辑清晰、不易因算子顺序造成意外（例如这里的 PCA 与缩放对调会出错），也便于复用同一组特征。选择器函数一族（<code>selector_grep</code>/<code>type</code>/<code>invert</code>/<code>union</code>/<code>setdiff</code>）相当于一套灵活的"列选择 DSL"。</p>
 </div>
-</section><section id="sec-pipelines-ppl" class="level2 page-columns page-full" data-number="8.2"><h2 data-number="8.2" class="anchored" data-anchor-id="sec-pipelines-ppl">
+</section><section id="sec-pipelines-ppl" class="level2 page-columns page-full" data-number="8.2"><h2 data-number="8.2" class="anchored" data-anchor-id="sec-pipelines-ppl" id="sec-pipelines-ppl">
 <span class="header-section-number">8.2</span> 常见模式与 ppl()（Common Patterns and ppl()）</h2>
 <p>现在你已经掌握了创建顺序和非顺序管道的方法，可以对 <a href="https://mlr3.mlr-org.com/reference/Task.html"><code>Task</code></a>、<a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 和 <a href="https://mlr3.mlr-org.com/reference/Prediction.html"><code>Prediction</code></a> 对象进行无穷无尽的变换。在<a href="#sec-pipelines-bagging" class="quarto-xref"><span>8.3.1 节</span></a>和<a href="#sec-pipelines-stack" class="quarto-xref"><span>8.3.2 节</span></a>中，我们将通过两个例子演示如何用我们已经介绍过的方法和类构造复杂而强大的图。不过，机器学习中许多常见问题都可以用同样的管道很好地解决，因此为了方便使用，我们把这类管道实现并保存到了 <a href="https://mlr3pipelines.mlr-org.com/reference/mlr_graphs.html"><code>mlr_graphs</code></a> 字典中；字典中的管道可以通过 <a href="https://mlr3pipelines.mlr-org.com/reference/ppl.html"><code>ppl()</code></a> 糖函数获取。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://mlr3pipelines.mlr-org.com/reference/ppl.html">ppl()</a></code></span></div></div>
 <p>截至写作此书时，该字典包含七个 <a href="https://mlr3pipelines.mlr-org.com/reference/Graph.html"><code>Graph</code></a>（必需的参数列在下面）：</p>
@@ -360,27 +409,27 @@ function toggleTheme(){
 <li>
 <code>ppl("ovr", graph)</code>：一对多（One-versus-rest）分类，把多分类任务转换为多个二分类任务，原始任务中的每个类别对应一个二分类任务。这些任务随后由给定的 <code>graph</code> 来评估，其中 <code>graph</code> 应当是一个学习器（或包含能产生预测的学习器的管道）。在各二分类任务上做出的预测会被合并成原始任务所需的多分类预测。</li>
 <li>
-<code>ppl("robustify")</code>：执行常见的预处理步骤，使任何 <code>Task</code> 都能与给定的 <code>Learner</code> 兼容。该管道在<a href="../chapter9/preprocessing.html#sec-prepro-robustify" class="quarto-xref"><span>9.4 节</span></a>中演示。</li>
+<code>ppl("robustify")</code>：执行常见的预处理步骤，使任何 <code>Task</code> 都能与给定的 <code>Learner</code> 兼容。该管道在<a href="https://mlr3book.mlr-org.com/chapter9/preprocessing.html#sec-prepro-robustify" class="quarto-xref"><span>9.4 节</span></a>中演示。</li>
 <li>
 <code>ppl("stacking", base_learners, super_learner)</code>：Stacking（<a href="#sec-pipelines-stack" class="quarto-xref"><span>8.3.2 节</span></a>会详细讨论）即把一个或多个模型（<code>base_learners</code>）的预测作为后续模型（<code>super_learner</code>）的特征。 </li>
 <li>
-<code>ppl("targettrafo", graph)</code>：创建一个 <code>Graph</code>，在训练过程中转换任务的预测目标（使用传给 <code>targetmutate.trafo</code> 超参数的函数），并确保这些变换在最终预测中会被反转（使用传给 <code>targetmutate.inverter</code> 超参数的函数）；<a href="../chapter9/preprocessing.html#sec-prepro-scale" class="quarto-xref"><span>9.5 节</span></a>给出了一个例子。</li>
+<code>ppl("targettrafo", graph)</code>：创建一个 <code>Graph</code>，在训练过程中转换任务的预测目标（使用传给 <code>targetmutate.trafo</code> 超参数的函数），并确保这些变换在最终预测中会被反转（使用传给 <code>targetmutate.inverter</code> 超参数的函数）；<a href="https://mlr3book.mlr-org.com/chapter9/preprocessing.html#sec-prepro-scale" class="quarto-xref"><span>9.5 节</span></a>给出了一个例子。</li>
 </ul>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong><code>ppl()</code> 是一个"配方库"：mlr3pipelines 把常见的高层管道（bagging、stacking、branch、greplicate、ovr、robustify、targettrafo）预先封装成可复用模板，用户只需传入必要参数即可。它相当于给 <code>po()</code>（单个算子）和 <code>%&gt;&gt;%</code>（顺序拼接）之上再加了一层"打包好的整体方案"，类似 scikit-learn 的 <code>make_pipeline</code> 与集成方法之间关系的进阶版本。</p>
 </div>
-</section><section id="practical-pipelines-by-example" class="level2" data-number="8.3"><h2 data-number="8.3" class="anchored" data-anchor-id="practical-pipelines-by-example">
+</section><section id="practical-pipelines-by-example" class="level2" data-number="8.3"><h2 data-number="8.3" class="anchored" data-anchor-id="practical-pipelines-by-example" id="practical-pipelines-by-example">
 <span class="header-section-number">8.3</span> 实战示例（Practical Pipelines by Example）</h2>
 <p>在本节中，我们将通过演示如何使用 bagging 和 stacking 把弱学习器变成强大的机器学习模型，从而把管道付诸实践。</p>
-<section id="sec-pipelines-bagging" class="level3" data-number="8.3.1"><h3 data-number="8.3.1" class="anchored" data-anchor-id="sec-pipelines-bagging">
+<section id="sec-pipelines-bagging" class="level3" data-number="8.3.1"><h3 data-number="8.3.1" class="anchored" data-anchor-id="sec-pipelines-bagging" id="sec-pipelines-bagging">
 <span class="header-section-number">8.3.1</span> 用 "greplicate" 与 "subsample" 实现 Bagging</h3>
-<p>Bagging（来自 <strong>bo</strong>otstrapp <strong>agg</strong>regat<strong>ing</strong>，自助聚合）的基本思想由 Breiman 提出 <span class="citation" data-cites="Breiman1996">Breiman (<a href="../references.html#ref-Breiman1996" role="doc-biblioref">1996</a>)</span>：把多个预测器聚合成一个更强大的预测器（<a href="#fig-pipelines-bagging" class="quarto-xref">图&nbsp;<span>8.5</span></a>）。预测通常通过回归任务的算术平均或分类任务的多数投票来聚合。Bagging 背后的直觉是：对一组不稳定的、多样化的（即仅弱相关的）预测器取平均，可以降低整体预测的方差。每个学习器在原始数据的一个不同的随机样本上训练。</p>
+<p>Bagging（来自 <strong>bo</strong>otstrapp <strong>agg</strong>regat<strong>ing</strong>，自助聚合）的基本思想由 Breiman 提出 <span class="citation" data-cites="Breiman1996">Breiman (<a href="https://mlr3book.mlr-org.com/references.html#ref-Breiman1996" role="doc-biblioref">1996</a>)</span>：把多个预测器聚合成一个更强大的预测器（<a href="#fig-pipelines-bagging" class="quarto-xref">图&nbsp;<span>8.5</span></a>）。预测通常通过回归任务的算术平均或分类任务的多数投票来聚合。Bagging 背后的直觉是：对一组不稳定的、多样化的（即仅弱相关的）预测器取平均，可以降低整体预测的方差。每个学习器在原始数据的一个不同的随机样本上训练。</p>
 <p>虽然我们已经看到可以用 <code>ppl("bagging")</code> 获得预先构建好的 bagging 管道，但本节我们将从头构建自己的管道，以展示如何构造复杂的 <a href="https://mlr3pipelines.mlr-org.com/reference/Graph.html"><code>Graph</code></a>，它将看起来像<a href="#fig-pipelines-bagging" class="quarto-xref">图&nbsp;<span>8.5</span></a> 那样。</p>
 <div class="cell">
 <div class="cell-output-display">
 <div id="fig-pipelines-bagging" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图中显示 &quot;Dtrain&quot; 有箭头指向四个独立的 po(&quot;subsample&quot;) 框，每个框又分别有箭头指向四个 po(&quot;classif.rpart&quot;) 框，其中每个框都有箭头指向同一个 po(&quot;classif.avg&quot;) 框。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pipelines-bagging-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/Figures/mlr3book_figures-26.svg" class="img-fluid figure-img" style="width:70.0%" alt="图中显示 &quot;Dtrain&quot; 有箭头指向四个独立的 po(&quot;subsample&quot;) 框，每个框又分别有箭头指向四个 po(&quot;classif.rpart&quot;) 框，其中每个框都有箭头指向同一个 po(&quot;classif.avg&quot;) 框。">
+<img src="../images/Figures/mlr3book_figures-26.svg" class="img-fluid figure-img" style="width:70.0%" alt="图中显示 &quot;Dtrain&quot; 有箭头指向四个独立的 po(&quot;subsample&quot;) 框，每个框又分别有箭头指向四个 po(&quot;classif.rpart&quot;) 框，其中每个框都有箭头指向同一个 po(&quot;classif.avg&quot;) 框。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipelines-bagging-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;8.5: 通过独立地对数据子采样并拟合各自的决策树学习器来执行 Bagging 的 <code>Graph</code>。得到的预测由多数投票 <code>PipeOp</code> 聚合。
@@ -402,7 +451,7 @@ function toggleTheme(){
 <div class="cell-output-display">
 <div id="fig-pipelines-bagginggraph" class="quarto-float quarto-figure quarto-figure-center anchored" alt="并行管道显示 &quot;<INPUT>&quot; 指向十个 PipeOps &quot;subsample_1&quot;,...,&quot;subsample_10&quot;，它们分别各自指向 &quot;classif.rpart_1&quot;,...,&quot;classif.rpart_10&quot;，所有这些最后都指向同一个 &quot;classifavg -> <OUTPUT>&quot;。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pipelines-bagginggraph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/non-sequential_pipelines_and_tuning_files/figure-html/fig-pipelines-bagginggraph-1.png" class="img-fluid figure-img" style="width:100.0%" alt="并行管道显示 &quot;<INPUT>&quot; 指向十个 PipeOps &quot;subsample_1&quot;,...,&quot;subsample_10&quot;，它们分别各自指向 &quot;classif.rpart_1&quot;,...,&quot;classif.rpart_10&quot;，所有这些最后都指向同一个 &quot;classifavg -> <OUTPUT>&quot;。">
+<img src="../images/non-sequential_pipelines_and_tuning_files/figure-html/fig-pipelines-bagginggraph-1.png" class="img-fluid figure-img" style="width:100.0%" alt="并行管道显示 &quot;<INPUT>&quot; 指向十个 PipeOps &quot;subsample_1&quot;,...,&quot;subsample_10&quot;，它们分别各自指向 &quot;classif.rpart_1&quot;,...,&quot;classif.rpart_10&quot;，所有这些最后都指向同一个 &quot;classifavg -> <OUTPUT>&quot;。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipelines-bagginggraph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;8.6: 构建的 bagging <code>Graph</code>：一个输入被多次抽样，供 10 个不同的学习器使用。
@@ -471,15 +520,15 @@ function toggleTheme(){
 </div>
 </div>
 <p>仅用几行代码，我们就从较弱的学习器造出了一个强大的模型，可以看到它的表现与 <code><a href="http://imbs-hl.github.io/ranger/reference/ranger.html">ranger::ranger</a></code> 的实现不相上下。在下一节中，我们将看第二个例子，它在管道内部使用交叉验证。</p>
-</section><section id="sec-pipelines-stack" class="level3" data-number="8.3.2"><h3 data-number="8.3.2" class="anchored" data-anchor-id="sec-pipelines-stack">
+</section><section id="sec-pipelines-stack" class="level3" data-number="8.3.2"><h3 data-number="8.3.2" class="anchored" data-anchor-id="sec-pipelines-stack" id="sec-pipelines-stack">
 <span class="header-section-number">8.3.2</span> 用 po("learner_cv") 实现 Stacking</h3>
-<p>Stacking（堆叠）<span class="citation" data-cites="Wolpert1992">(<a href="../references.html#ref-Wolpert1992" role="doc-biblioref">Wolpert 1992</a>)</span> 是另一种非常流行的集成（ensembling）技术，可以显著提升预测性能。Stacking 的基本思想是：把多个模型（通常称为 0 层模型，level 0 models）的预测作为后续模型（1 层模型，the level 1 model）的特征，由后者来组合这些预测（<a href="#fig-pipelines-stacking" class="quarto-xref">图&nbsp;<span>8.7</span></a>）。一个简单的组合可以是线性模型（如果你有很多 0 层模型，则可以用正则化），因为 0 层模型的加权和通常既合理又够用。不过，也可以使用非线性的 1 层模型，而且 1 层模型也完全有可能同时访问输入特征和 0 层预测。Stacking 可以构建两层以上（无论从概念上还是在 <code>mlr3</code> 中），但我们这里只限于这个更简单的结构，在实践中它也常常表现良好。</p>
+<p>Stacking（堆叠）<span class="citation" data-cites="Wolpert1992">(<a href="https://mlr3book.mlr-org.com/references.html#ref-Wolpert1992" role="doc-biblioref">Wolpert 1992</a>)</span> 是另一种非常流行的集成（ensembling）技术，可以显著提升预测性能。Stacking 的基本思想是：把多个模型（通常称为 0 层模型，level 0 models）的预测作为后续模型（1 层模型，the level 1 model）的特征，由后者来组合这些预测（<a href="#fig-pipelines-stacking" class="quarto-xref">图&nbsp;<span>8.7</span></a>）。一个简单的组合可以是线性模型（如果你有很多 0 层模型，则可以用正则化），因为 0 层模型的加权和通常既合理又够用。不过，也可以使用非线性的 1 层模型，而且 1 层模型也完全有可能同时访问输入特征和 0 层预测。Stacking 可以构建两层以上（无论从概念上还是在 <code>mlr3</code> 中），但我们这里只限于这个更简单的结构，在实践中它也常常表现良好。</p>
 <p>与 bagging 一样，我们将演示如何手动创建一个 stacking 管道，尽管用 <code>ppl("stacking")</code> 已经可以得到预先构建好的管道。</p>
 <div class="cell">
 <div class="cell-output-display">
 <div id="fig-pipelines-stacking" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图中显示 &quot;Dtrain&quot; 有箭头指向三个框：&quot;Decision Tree&quot;、&quot;KNN&quot; 和 &quot;Lasso Regression&quot;。它们每一个都指向同一个 &quot;Feature Union -> Logistic Regression&quot;。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pipelines-stacking-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/Figures/mlr3book_figures-27.svg" class="img-fluid figure-img" style="width:70.0%" alt="图中显示 &quot;Dtrain&quot; 有箭头指向三个框：&quot;Decision Tree&quot;、&quot;KNN&quot; 和 &quot;Lasso Regression&quot;。它们每一个都指向同一个 &quot;Feature Union -> Logistic Regression&quot;。">
+<img src="../images/Figures/mlr3book_figures-27.svg" class="img-fluid figure-img" style="width:70.0%" alt="图中显示 &quot;Dtrain&quot; 有箭头指向三个框：&quot;Decision Tree&quot;、&quot;KNN&quot; 和 &quot;Lasso Regression&quot;。它们每一个都指向同一个 &quot;Feature Union -> Logistic Regression&quot;。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipelines-stacking-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;8.7: 执行 Stacking 的 <code>Graph</code>：先拟合三个模型，然后用 <code>PipeOpFeatureUnion</code> 组合它们的输出，作为另一个模型的特征。
@@ -551,7 +600,7 @@ function toggleTheme(){
 <div class="cell-output-display">
 <div id="fig-pipelines-stackinggraph" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图中第一个框为 &quot;<INPUT>&quot;，有箭头指向三个框：&quot;rpart_cv&quot;、&quot;knn_cv&quot;、&quot;glmnet_cv&quot;，它们都有箭头指向同一个框链：&quot;featureunion -> select -> classif.log_reg -> <OUTPUT>&quot;。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pipelines-stackinggraph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/non-sequential_pipelines_and_tuning_files/figure-html/fig-pipelines-stackinggraph-1.png" class="img-fluid figure-img" style="width:100.0%" alt="图中第一个框为 &quot;<INPUT>&quot;，有箭头指向三个框：&quot;rpart_cv&quot;、&quot;knn_cv&quot;、&quot;glmnet_cv&quot;，它们都有箭头指向同一个框链：&quot;featureunion -> select -> classif.log_reg -> <OUTPUT>&quot;。">
+<img src="../images/non-sequential_pipelines_and_tuning_files/figure-html/fig-pipelines-stackinggraph-1.png" class="img-fluid figure-img" style="width:100.0%" alt="图中第一个框为 &quot;<INPUT>&quot;，有箭头指向三个框：&quot;rpart_cv&quot;、&quot;knn_cv&quot;、&quot;glmnet_cv&quot;，它们都有箭头指向同一个框链：&quot;featureunion -> select -> classif.log_reg -> <OUTPUT>&quot;。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipelines-stackinggraph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;8.8: 构建的 stacking <code>Graph</code>：一个输入被传给三个弱学习器，它们的预测再传给逻辑回归。
@@ -605,14 +654,14 @@ Residual Deviance: 176  AIC: 184</code></pre>
 <p><strong>背景与解释（译者注）：</strong>Stacking（堆叠）的关键在于 <code>po("learner_cv")</code>：它让 0 层学习器在 <code>$train()</code> 阶段就通过交叉验证产生"样本外"预测，从而避免"用训练数据自己的预测当特征"造成的过拟合信号泄漏。如果直接让学习器预测训练数据本身，1 层模型看到的特征会过于乐观，相当于把"背答案"的痕迹也当成了有用信息。这也是为什么 stacking 里使用交叉验证预测是推荐做法。</p>
 </div>
 <p>在介绍了 <code>mlr3pipelines</code> 的构件并看到它们落地之后，我们现在转向更高级的功能：把管道与调优结合起来。</p>
-</section></section><section id="sec-pipelines-tuning" class="level2" data-number="8.4"><h2 data-number="8.4" class="anchored" data-anchor-id="sec-pipelines-tuning">
+</section></section><section id="sec-pipelines-tuning" class="level2" data-number="8.4"><h2 data-number="8.4" class="anchored" data-anchor-id="sec-pipelines-tuning" id="sec-pipelines-tuning">
 <span class="header-section-number">8.4</span> 调优图（Tuning Graphs）</h2>
 <p>通过把管道包装进 <a href="https://mlr3pipelines.mlr-org.com/reference/mlr_learners_graph.html"><code>GraphLearner</code></a>，我们可以借助 <a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a> 在两个复杂度层次上对管道进行调优：</p>
 <ol type="1">
 <li><p>调优一个固定的、通常是顺序的管道，其中预处理与给定的学习器结合。这其实就是在联合调优管道中各操作的选定超参数子集。在概念上（<code>mlr3</code> 中技术上也是如此），这与调优一个不属于任何管道的普通学习器并没有多大区别。</p></li>
-<li><p>不仅调优管道的超参数（其结构在所包含的操作上并未完全固定），还要调优究竟把哪些具体的 <a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a> 应用到数据上。这就允许我们以数据驱动方式选择这些操作（例如用哪个学习器、做哪种预处理），这一做法被称为「组合式算法选择与超参数优化」（Combined Algorithm Selection and Hyperparameter optimization，CASH）<span class="citation" data-cites="Thornton2013">(<a href="../references.html#ref-Thornton2013" role="doc-biblioref">Thornton et al. 2013</a>)</span>。我们即将看到，在 <code>mlr3pipelines</code> 中可以通过功能强大的分支（branch，<a href="#sec-pipelines-branch" class="quarto-xref"><span>8.4.2 节</span></a>）和代理（proxy，<a href="#sec-pipelines-proxy" class="quarto-xref"><span>8.4.3 节</span></a>）元算子来实现。通过它们，我们可以在 <code>mlr3</code> 中方便地创建自己的「迷你 AutoML 系统」<span class="citation" data-cites="hutter2019automated">(<a href="../references.html#ref-hutter2019automated" role="doc-biblioref">Hutter, Kotthoff, and Vanschoren 2019</a>)</span>，甚至可以针对特定任务量身定制。</p></li>
+<li><p>不仅调优管道的超参数（其结构在所包含的操作上并未完全固定），还要调优究竟把哪些具体的 <a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a> 应用到数据上。这就允许我们以数据驱动方式选择这些操作（例如用哪个学习器、做哪种预处理），这一做法被称为「组合式算法选择与超参数优化」（Combined Algorithm Selection and Hyperparameter optimization，CASH）<span class="citation" data-cites="Thornton2013">(<a href="https://mlr3book.mlr-org.com/references.html#ref-Thornton2013" role="doc-biblioref">Thornton et al. 2013</a>)</span>。我们即将看到，在 <code>mlr3pipelines</code> 中可以通过功能强大的分支（branch，<a href="#sec-pipelines-branch" class="quarto-xref"><span>8.4.2 节</span></a>）和代理（proxy，<a href="#sec-pipelines-proxy" class="quarto-xref"><span>8.4.3 节</span></a>）元算子来实现。通过它们，我们可以在 <code>mlr3</code> 中方便地创建自己的「迷你 AutoML 系统」<span class="citation" data-cites="hutter2019automated">(<a href="https://mlr3book.mlr-org.com/references.html#ref-hutter2019automated" role="doc-biblioref">Hutter, Kotthoff, and Vanschoren 2019</a>)</span>，甚至可以针对特定任务量身定制。</p></li>
 </ol>
-<section id="sec-pipelines-combined" class="level3" data-number="8.4.1"><h3 data-number="8.4.1" class="anchored" data-anchor-id="sec-pipelines-combined">
+<section id="sec-pipelines-combined" class="level3" data-number="8.4.1"><h3 data-number="8.4.1" class="anchored" data-anchor-id="sec-pipelines-combined" id="sec-pipelines-combined">
 <span class="header-section-number">8.4.1</span> 调优 Graph 超参数</h3>
 <p>让我们考虑一个简单的顺序管道：先 <code>po("pca")</code> 后 <code>lrn("classif.kknn")</code>：</p>
 <div class="cell">
@@ -649,18 +698,18 @@ range [1, 32]</code></pre>
 2:       pca.classif.kknn     0.2458</code></pre>
 </div>
 </div>
-<p>调优管道通常比调优单个学习器耗时更长，因为训练步骤往往更复杂，搜索空间也更大。因此，并行化（<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-parallelization" class="quarto-xref"><span>10.1 节</span></a>）和/或更高效的搜索大调优空间的调优方法（例如贝叶斯优化，<a href="../chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-bayesian-optimization" class="quarto-xref"><span>5.4 节</span></a>）往往比较合适。</p>
+<p>调优管道通常比调优单个学习器耗时更长，因为训练步骤往往更复杂，搜索空间也更大。因此，并行化（<a href="https://mlr3book.mlr-org.com/chapter10/advanced_technical_aspects_of_mlr3.html#sec-parallelization" class="quarto-xref"><span>10.1 节</span></a>）和/或更高效的搜索大调优空间的调优方法（例如贝叶斯优化，<a href="https://mlr3book.mlr-org.com/chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-bayesian-optimization" class="quarto-xref"><span>5.4 节</span></a>）往往比较合适。</p>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>当 <code>PipeOp</code> 与学习器被 <code>as_learner()</code> 包装成 <code>GraphLearner</code> 之后，它们的超参数会汇聚到同一个 <code>$param_set</code> 中，并以各自的 ID 为前缀（例如 <code>pca.rank.</code>、<code>classif.kknn.k</code>）。这使得"管道的超参数调优"在语法上与普通学习器完全一致：<code>to_tune()</code> 负责标记搜索空间，<code>AutoTuner</code>/<code>tune()</code> 负责执行优化。如果你已经熟悉第 4 章的调优流程，这里几乎没有新增的语法负担。</p>
 </div>
-</section><section id="sec-pipelines-branch" class="level3" data-number="8.4.2"><h3 data-number="8.4.2" class="anchored" data-anchor-id="sec-pipelines-branch">
+</section><section id="sec-pipelines-branch" class="level3" data-number="8.4.2"><h3 data-number="8.4.2" class="anchored" data-anchor-id="sec-pipelines-branch" id="sec-pipelines-branch">
 <span class="header-section-number">8.4.2</span> 用 po("branch") 调优备选路径</h3>
 <p>在前一节中，我们调优了 stacking 管道里的 KKNN 和决策树，也调优了 PCA 的秩。但其实我们在调优 PCA 时，并没有先考虑它是否有益。在本节中，我们将通过 <a href="https://mlr3pipelines.mlr-org.com/reference/mlr_pipeops_branch.html"><code>PipeOpBranch</code></a> 和 <a href="https://mlr3pipelines.mlr-org.com/reference/mlr_pipeops_unbranch.html"><code>PipeOpUnbranch</code></a> 来回答这个问题：它们使得在管道中指定多个备选路径成为可能。<code>po("branch")</code> 创建多条路径，数据只能沿其中<em>一条</em>流动，具体由 <code>selection</code> 超参数决定（<a href="#fig-pipelines-alternatives" class="quarto-xref">图&nbsp;<span>8.13</span></a>）。这一概念使我们能够用调优来决定把哪些 <a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a> 和 <a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 纳入管道，同时还允许对每条路径中的所有选项进行调优。</p>
 <div class="cell">
 <div class="cell-output-display">
 <div id="fig-pipelines-branching" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图中左侧是 &quot;Dtrain&quot;，有一条箭头指向 `po(&quot;branch&quot;, selection = &quot;pca&quot;)`，然后它有一条深色阴影箭头指向写着 &quot;PCA&quot; 的框。该框上方是一个写着 &quot;PipeOpNOP&quot; 的透明框，&quot;PCA&quot; 框下方是另一个写着 &quot;YeoJohnson&quot; 的透明框，其含义是只有 &quot;PCA&quot; 框处于激活状态。然后 &quot;PCA&quot; 框有一条箭头指向 `po(&quot;unbranch&quot;)` -> po(&quot;branch&quot;, selection = &quot;XGBoost&quot;)`，它有三条箭头指向另外三个框，其中 &quot;XGBoost&quot; 高亮显示，而 &quot;Random Forest&quot; 和 &quot;Decision Tree&quot; 再次为透明。这些框最后都有箭头指向同一个 `po(&quot;unbranch&quot;)`。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pipelines-branching-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/Figures/mlr3book_figures-24.svg" class="img-fluid figure-img" style="width:100.0%" alt="图中左侧是 &quot;Dtrain&quot;，有一条箭头指向 `po(&quot;branch&quot;, selection = &quot;pca&quot;)`，然后它有一条深色阴影箭头指向写着 &quot;PCA&quot; 的框。该框上方是一个写着 &quot;PipeOpNOP&quot; 的透明框，&quot;PCA&quot; 框下方是另一个写着 &quot;YeoJohnson&quot; 的透明框，其含义是只有 &quot;PCA&quot; 框处于激活状态。然后 &quot;PCA&quot; 框有一条箭头指向 `po(&quot;unbranch&quot;)` -> po(&quot;branch&quot;, selection = &quot;XGBoost&quot;)`，它有三条箭头指向另外三个框，其中 &quot;XGBoost&quot; 高亮显示，而 &quot;Random Forest&quot; 和 &quot;Decision Tree&quot; 再次为透明。这些框最后都有箭头指向同一个 `po(&quot;unbranch&quot;)`。">
+<img src="../images/Figures/mlr3book_figures-24.svg" class="img-fluid figure-img" style="width:100.0%" alt="图中左侧是 &quot;Dtrain&quot;，有一条箭头指向 `po(&quot;branch&quot;, selection = &quot;pca&quot;)`，然后它有一条深色阴影箭头指向写着 &quot;PCA&quot; 的框。该框上方是一个写着 &quot;PipeOpNOP&quot; 的透明框，&quot;PCA&quot; 框下方是另一个写着 &quot;YeoJohnson&quot; 的透明框，其含义是只有 &quot;PCA&quot; 框处于激活状态。然后 &quot;PCA&quot; 框有一条箭头指向 `po(&quot;unbranch&quot;)` -> po(&quot;branch&quot;, selection = &quot;XGBoost&quot;)`，它有三条箭头指向另外三个框，其中 &quot;XGBoost&quot; 高亮显示，而 &quot;Random Forest&quot; 和 &quot;Decision Tree&quot; 再次为透明。这些框最后都有箭头指向同一个 `po(&quot;unbranch&quot;)`。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipelines-branching-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;8.9: 该图演示了 <code>po("branch")</code> 和 <code>po("unbranch")</code> 算子：创建三个独立分支，数据只流经 PCA（通过在 <code>selection</code> 参数中指定）。
@@ -668,7 +717,7 @@ range [1, 32]</code></pre>
 </div>
 </div>
 </div>
-<p>为了演示备选路径，我们将使用 MNIST <span class="citation" data-cites="lecun1998gradient">(<a href="../references.html#ref-lecun1998gradient" role="doc-biblioref">LeCun et al. 1998</a>)</span> 数据，它很适合用来演示预处理。数据从 OpenML 加载（在<a href="../chapter11/large-scale_benchmarking.html#sec-openml" class="quarto-xref"><span>11.1 节</span></a>中介绍），我们会对数据做子集化以加快示例运行。</p>
+<p>为了演示备选路径，我们将使用 MNIST <span class="citation" data-cites="lecun1998gradient">(<a href="https://mlr3book.mlr-org.com/references.html#ref-lecun1998gradient" role="doc-biblioref">LeCun et al. 1998</a>)</span> 数据，它很适合用来演示预处理。数据从 OpenML 加载（在<a href="https://mlr3book.mlr-org.com/chapter11/large-scale_benchmarking.html#sec-openml" class="quarto-xref"><span>11.1 节</span></a>中介绍），我们会对数据做子集化以加快示例运行。</p>
 <div class="cell">
 <div class="sourceCode" id="cb34"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3oml.mlr-org.com">mlr3oml</a></span><span class="op">)</span></span>
 <span><span class="va">otsk_mnist</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3oml.mlr-org.com/reference/otsk.html">otsk</a></span><span class="op">(</span>id <span class="op">=</span> <span class="fl">3573</span><span class="op">)</span></span>
@@ -694,7 +743,7 @@ range [1, 32]</code></pre>
 <div class="cell-output-display">
 <div id="fig-pipelines-branchone" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图中以 &quot;<INPUT> -> brnchPO&quot; 开始，它有三条箭头分别指向 &quot;removeconstants -> yeojohnson&quot;、&quot;nop&quot; 和 &quot;pca&quot;，这些框最后都指向 &quot;unbrnchPO -> <OUTPUT>&quot;。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pipelines-branchone-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/non-sequential_pipelines_and_tuning_files/figure-html/fig-pipelines-branchone-1.png" class="img-fluid figure-img" style="width:100.0%" alt="图中以 &quot;<INPUT> -> brnchPO&quot; 开始，它有三条箭头分别指向 &quot;removeconstants -> yeojohnson&quot;、&quot;nop&quot; 和 &quot;pca&quot;，这些框最后都指向 &quot;unbrnchPO -> <OUTPUT>&quot;。">
+<img src="../images/non-sequential_pipelines_and_tuning_files/figure-html/fig-pipelines-branchone-1.png" class="img-fluid figure-img" style="width:100.0%" alt="图中以 &quot;<INPUT> -> brnchPO&quot; 开始，它有三条箭头分别指向 &quot;removeconstants -> yeojohnson&quot;、&quot;nop&quot; 和 &quot;pca&quot;，这些框最后都指向 &quot;unbrnchPO -> <OUTPUT>&quot;。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipelines-branchone-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;8.10: 分支到三条不同路径的 <code>Graph</code>，用 <code>po("branch")</code> 拆分、用 <code>po("unbranch")</code> 合并。
@@ -733,7 +782,7 @@ range [1, 32]</code></pre>
 <div class="cell-output-display">
 <div id="fig-pipelines-branchtwo" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图中以 &quot;<INPUT> -> brnchPO&quot; 开始，它有两条箭头分别指向 &quot;removeconstants -> yeojohnson&quot;、&quot;nop&quot; 和 &quot;pca&quot;，这些框都指向 &quot;unbrnchPO -> branch&quot;，然后它再分出两条箭头指向 &quot;classif.rpart&quot; 和 &quot;classif.kknn&quot;，这两者最后都指向 &quot;unbranch -> <OUTPUT>&quot;。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pipelines-branchtwo-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/non-sequential_pipelines_and_tuning_files/figure-html/fig-pipelines-branchtwo-1.png" class="img-fluid figure-img" style="width:100.0%" alt="图中以 &quot;<INPUT> -> brnchPO&quot; 开始，它有两条箭头分别指向 &quot;removeconstants -> yeojohnson&quot;、&quot;nop&quot; 和 &quot;pca&quot;，这些框都指向 &quot;unbrnchPO -> branch&quot;，然后它再分出两条箭头指向 &quot;classif.rpart&quot; 和 &quot;classif.kknn&quot;，这两者最后都指向 &quot;unbranch -> <OUTPUT>&quot;。">
+<img src="../images/non-sequential_pipelines_and_tuning_files/figure-html/fig-pipelines-branchtwo-1.png" class="img-fluid figure-img" style="width:100.0%" alt="图中以 &quot;<INPUT> -> brnchPO&quot; 开始，它有两条箭头分别指向 &quot;removeconstants -> yeojohnson&quot;、&quot;nop&quot; 和 &quot;pca&quot;，这些框都指向 &quot;unbrnchPO -> branch&quot;，然后它再分出两条箭头指向 &quot;classif.rpart&quot; 和 &quot;classif.kknn&quot;，这两者最后都指向 &quot;unbranch -> <OUTPUT>&quot;。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipelines-branchtwo-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;8.11: 先由 <code>po("branch")</code> 拆分成三条不同路径、再用 <code>po("unbranch")</code> 合并的 <code>Graph</code>，随后再次分支并重组。
@@ -741,7 +790,7 @@ range [1, 32]</code></pre>
 </div>
 </div>
 </div>
-<p>调优 <code>selection</code> 超参数有助于确定哪些选项组合起来效果最好。我们还额外调优 KNN 学习器的 <code>k</code> 超参数，因为它可能取决于所执行的预处理类型。由于这个超参数只有在选择 <code>"classif.kknn"</code> 路径时才被激活，我们设置一个依赖关系（<a href="../chapter4/hyperparameter_optimization.html#sec-optimization-depends" class="quarto-xref"><span>4.4.4 节</span></a>）：</p>
+<p>调优 <code>selection</code> 超参数有助于确定哪些选项组合起来效果最好。我们还额外调优 KNN 学习器的 <code>k</code> 超参数，因为它可能取决于所执行的预处理类型。由于这个超参数只有在选择 <code>"classif.kknn"</code> 路径时才被激活，我们设置一个依赖关系（<a href="https://mlr3book.mlr-org.com/chapter4/hyperparameter_optimization.html#sec-optimization-depends" class="quarto-xref"><span>4.4.4 节</span></a>）：</p>
 <div class="cell">
 <div class="sourceCode" id="cb42"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">graph_learner</span> <span class="op">=</span> <span class="fu">as_learner</span><span class="op">(</span><span class="va">graph_learner</span><span class="op">)</span></span>
 <span></span>
@@ -771,7 +820,7 @@ range [1, 32]</code></pre>
 <div class="cell-output-display">
 <div id="fig-nonseq-instance" class="quarto-float quarto-figure quarto-figure-center anchored" alt="三个散点图，y 轴都是 'classif.ce'，范围大约从 0.25 到 0.5。左图为 'brnchPO.selection'，中图为 'classif.knn.k'，右图为 'branch.selection'。x 轴文本是要调优的超参数取值。y 轴的每一'行'表示一个不同的超参数配置（同时用彩色点区分）。最下面一行（也就是最佳配置）大约在 0.22 处，其结果显示与 instance 输出中显示的相同。其他'行'显示的是 KKNN 的 `k` 参数、学习器选择以及算子选择之间的权衡。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-nonseq-instance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/non-sequential_pipelines_and_tuning_files/figure-html/fig-nonseq-instance-1.png" class="img-fluid figure-img" style="width:100.0%" alt="三个散点图，y 轴都是 'classif.ce'，范围大约从 0.25 到 0.5。左图为 'brnchPO.selection'，中图为 'classif.knn.k'，右图为 'branch.selection'。x 轴文本是要调优的超参数取值。y 轴的每一'行'表示一个不同的超参数配置（同时用彩色点区分）。最下面一行（也就是最佳配置）大约在 0.22 处，其结果显示与 instance 输出中显示的相同。其他'行'显示的是 KKNN 的 `k` 参数、学习器选择以及算子选择之间的权衡。">
+<img src="../images/non-sequential_pipelines_and_tuning_files/figure-html/fig-nonseq-instance-1.png" class="img-fluid figure-img" style="width:100.0%" alt="三个散点图，y 轴都是 'classif.ce'，范围大约从 0.25 到 0.5。左图为 'brnchPO.selection'，中图为 'classif.knn.k'，右图为 'branch.selection'。x 轴文本是要调优的超参数取值。y 轴的每一'行'表示一个不同的超参数配置（同时用彩色点区分）。最下面一行（也就是最佳配置）大约在 0.22 处，其结果显示与 instance 输出中显示的相同。其他'行'显示的是 KKNN 的 `k` 参数、学习器选择以及算子选择之间的权衡。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-nonseq-instance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;8.12: 调优预处理分支选择（<code>brnchPO.selection</code>）、KNN <code>k</code> 参数（<code>classif.kknn.k</code>）以及学习分支选择（<code>branch.selection</code>）之后的调优实例。圆点表示调优过程中测试的不同超参数配置，颜色用于区分不同的超参数配置。
@@ -780,7 +829,7 @@ range [1, 32]</code></pre>
 </div>
 </div>
 <p>如结果和图<a href="#fig-nonseq-instance" class="quarto-xref">图&nbsp;<span>8.12</span></a>所示，选择了 <code>k</code> 设为 11 的 KNN 学习器，它与 Yeo-Johnson 变换组合时表现最好。</p>
-</section><section id="sec-pipelines-proxy" class="level3" data-number="8.4.3"><h3 data-number="8.4.3" class="anchored" data-anchor-id="sec-pipelines-proxy">
+</section><section id="sec-pipelines-proxy" class="level3" data-number="8.4.3"><h3 data-number="8.4.3" class="anchored" data-anchor-id="sec-pipelines-proxy" id="sec-pipelines-proxy">
 <span class="header-section-number">8.4.3</span> 用 po("proxy") 调优</h3>
 <div class="callout callout-style-simple callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -800,7 +849,7 @@ range [1, 32]</code></pre>
 <div class="cell-output-display">
 <div id="fig-pipelines-alternatives" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图中为 &quot;Dtrain -> po(&quot;proxy&quot;, content = PCA) -> po(&quot;proxy&quot;, content = XGBoost)&quot;；&quot;PCA&quot; 和 &quot;XGBoost&quot; 表示为暗示 PipeOp 的框。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pipelines-alternatives-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/Figures/mlr3book_figures-25.svg" class="img-fluid figure-img" style="width:70.0%" alt="图中为 &quot;Dtrain -> po(&quot;proxy&quot;, content = PCA) -> po(&quot;proxy&quot;, content = XGBoost)&quot;；&quot;PCA&quot; 和 &quot;XGBoost&quot; 表示为暗示 PipeOp 的框。">
+<img src="../images/Figures/mlr3book_figures-25.svg" class="img-fluid figure-img" style="width:70.0%" alt="图中为 &quot;Dtrain -> po(&quot;proxy&quot;, content = PCA) -> po(&quot;proxy&quot;, content = XGBoost)&quot;；&quot;PCA&quot; 和 &quot;XGBoost&quot; 表示为暗示 PipeOp 的框。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipelines-alternatives-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;8.13: 该图演示了以 <code>PipeOp</code> 为参数的 <code>po("proxy")</code> 算子。
@@ -814,7 +863,7 @@ range [1, 32]</code></pre>
 <span>  <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"proxy"</span>, id <span class="op">=</span> <span class="st">"learner"</span><span class="op">)</span></span>
 <span><span class="va">graph_learner</span> <span class="op">=</span> <span class="fu">as_learner</span><span class="op">(</span><span class="va">graph_learner</span><span class="op">)</span></span></code></pre></div>
 </div>
-<p><code>content</code> 超参数的调优空间应当是一个待评估选项的离散集合，以 <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_fct</code></a> 的形式传入（<a href="../chapter4/hyperparameter_optimization.html#sec-tune-ps" class="quarto-xref"><span>4.4.2 节</span></a>）。对于 <code>"preproc"</code> 代理算子，这简单来说就是我们想考虑的不同 <code>PipeOp</code>：</p>
+<p><code>content</code> 超参数的调优空间应当是一个待评估选项的离散集合，以 <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_fct</code></a> 的形式传入（<a href="https://mlr3book.mlr-org.com/chapter4/hyperparameter_optimization.html#sec-tune-ps" class="quarto-xref"><span>4.4.2 节</span></a>）。对于 <code>"preproc"</code> 代理算子，这简单来说就是我们想考虑的不同 <code>PipeOp</code>：</p>
 <div class="cell">
 <div class="sourceCode" id="cb46"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># define content for the preprocessing proxy operator</span></span>
 <span><span class="va">preproc.content</span> <span class="op">=</span> <span class="fu">p_fct</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span></span>
@@ -823,7 +872,7 @@ range [1, 32]</code></pre>
 <span>  yeojohnson <span class="op">=</span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"removeconstants"</span><span class="op">)</span> <span class="op"><a href="https://mlr3pipelines.mlr-org.com/reference/grapes-greater-than-greater-than-grapes.html">%&gt;&gt;%</a></span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"yeojohnson"</span><span class="op">)</span></span>
 <span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
-<p>对于 <code>"learner"</code> 代理，情况更复杂一些，因为学习器的选择依赖于不止一个搜索空间分量：学习器本身的选择（<code>lrn("classif.rpart")</code> 或 <code>lrn("classif.kknn")</code>）以及 KNN 学习器被调优的 <code>k</code> 超参数。为此，我们给 <code>.extra_trafo</code> 传一个变换函数（<a href="../chapter4/hyperparameter_optimization.html#sec-tune-trafo" class="quarto-xref"><span>4.4.3 节</span></a>）。注意在该变换内部我们对 <code>learner.content</code> 做了克隆（clone），否则我们最终会按引用修改搜索空间内部的原始 <a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 对象（<a href="../chapter1/introduction_and_overview.html#sec-r6" class="quarto-xref"><span>1.5.1 节</span></a>）。</p>
+<p>对于 <code>"learner"</code> 代理，情况更复杂一些，因为学习器的选择依赖于不止一个搜索空间分量：学习器本身的选择（<code>lrn("classif.rpart")</code> 或 <code>lrn("classif.kknn")</code>）以及 KNN 学习器被调优的 <code>k</code> 超参数。为此，我们给 <code>.extra_trafo</code> 传一个变换函数（<a href="https://mlr3book.mlr-org.com/chapter4/hyperparameter_optimization.html#sec-tune-trafo" class="quarto-xref"><span>4.4.3 节</span></a>）。注意在该变换内部我们对 <code>learner.content</code> 做了克隆（clone），否则我们最终会按引用修改搜索空间内部的原始 <a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 对象（<a href="https://mlr3book.mlr-org.com/chapter1/introduction_and_overview.html#sec-r6" class="quarto-xref"><span>1.5.1 节</span></a>）。</p>
 <div class="cell">
 <div class="sourceCode" id="cb47"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># define content for the learner proxy operator</span></span>
 <span><span class="va">learner.content</span> <span class="op">=</span> <span class="fu">p_fct</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span></span>
@@ -870,7 +919,7 @@ range [1, 32]</code></pre>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong><code>po("branch")</code> 与 <code>po("proxy")</code> 都能实现"从若干选项里选一个"，但思路不同：分支在结构上显式列出所有备选路径，数据只走被选中的一条，直观、可追溯；代理则是放一个"占位符"，把"选项本身"作为超参数（<code>content</code>）放进搜索空间，更适合选项多、需要借助 transform 做复杂参数注入的场景。二者常被视为构建 AutoML 工作流的基础设施。另一个重要小细节：在 <code>trafo</code> 中修改 R6 对象前先 <code>clone(deep = TRUE)</code>，可避免污染搜索空间中的原始对象。</p>
 </div>
-</section><section id="sec-hyperband-example-svm" class="level3" data-number="8.4.4"><h3 data-number="8.4.4" class="anchored" data-anchor-id="sec-hyperband-example-svm">
+</section><section id="sec-hyperband-example-svm" class="level3" data-number="8.4.4"><h3 data-number="8.4.4" class="anchored" data-anchor-id="sec-hyperband-example-svm" id="sec-hyperband-example-svm">
 <span class="header-section-number">8.4.4</span> 使用子抽样的 Hyperband</h3>
 <div class="callout callout-style-simple callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -885,7 +934,7 @@ range [1, 32]</code></pre>
 
 </div>
 </div>
-<p>在<a href="../chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-hyperband" class="quarto-xref"><span>5.3 节</span></a>中，我们学习了 Hyperband 调优器，以及它如何利用保真度（fidelity）参数来高效调优学习器。既然现在你已经学会了管道以及如何调优它们，在这个简短的小节中，我们将回到 Hyperband，展示如何把本章学到的所有内容组合起来，使 Hyperband 能用于任何 <code>Learner</code>。</p>
+<p>在<a href="https://mlr3book.mlr-org.com/chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-hyperband" class="quarto-xref"><span>5.3 节</span></a>中，我们学习了 Hyperband 调优器，以及它如何利用保真度（fidelity）参数来高效调优学习器。既然现在你已经学会了管道以及如何调优它们，在这个简短的小节中，我们将回到 Hyperband，展示如何把本章学到的所有内容组合起来，使 Hyperband 能用于任何 <code>Learner</code>。</p>
 <p>我们之前看到，有些学习器的某些超参数可以自然地充当保真度参数，例如随机森林中的树的数量。然而，利用管道，我们现在可以为任何模型创建保真度参数——使用 <code>po("subsample")</code>。<code>po("subsample")</code> 的 <code>frac</code> 参数控制送入后续 <code>Learner</code> 的数据量。一般来说，给 <code>Learner</code> 的数据越少，模型训练越快，但预测质量比提供更多训练数据时更差。用较少的数据做重采样，仍然能让我们获得有关不同模型配置相对性能的一些信息，因此"子抽样的数据比例"是保真度参数的绝佳候选。</p>
 <p>在这个例子中，我们将在 <code>tsk("sonar")</code> 上优化 SVM 的超参数 <code>cost</code> 和 <code>gamma</code>：</p>
 <div class="cell">
@@ -902,7 +951,7 @@ range [1, 32]</code></pre>
 <span>  <span class="va">learner</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
-<p>按照良好实践，我们对学习器做封装（encapsulate）并添加一个回退（fallback），以防止致命错误（<a href="../chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-tuning-errors" class="quarto-xref"><span>5.1 节</span></a>）。</p>
+<p>按照良好实践，我们对学习器做封装（encapsulate）并添加一个回退（fallback），以防止致命错误（<a href="https://mlr3book.mlr-org.com/chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-tuning-errors" class="quarto-xref"><span>5.1 节</span></a>）。</p>
 <div class="cell">
 <div class="sourceCode" id="cb52"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">graph_learner</span><span class="op">$</span><span class="fu">encapsulate</span><span class="op">(</span><span class="st">"evaluate"</span>, <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.featureless"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">graph_learner</span><span class="op">$</span><span class="va">timeout</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>train <span class="op">=</span> <span class="fl">30</span>, predict <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></span></code></pre></div>
@@ -927,7 +976,7 @@ $svm.gamma
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>Hyperband 属于"多保真度"调优方法：它用廉价但粗略的评估（这里指只用部分数据训练）快速淘汰没希望的配置，再把预算集中到少数有潜力的配置上。保真度参数（fidelity）就是"评估开销与评估准确性之间的旋钮"。mlr3 中通过给某个参数打上 <code>tags = "budget"</code> 标签，Hyperband 便知道该用哪个参数来控制每轮评估的资源量。这里用 <code>po("subsample")</code> 的 <code>frac</code> 充当 budget，使得<em>任何</em>学习器都能接入 Hyperband。</p>
 </div>
-</section><section id="sec-pipelines-featsel" class="level3" data-number="8.4.5"><h3 data-number="8.4.5" class="anchored" data-anchor-id="sec-pipelines-featsel">
+</section><section id="sec-pipelines-featsel" class="level3" data-number="8.4.5"><h3 data-number="8.4.5" class="anchored" data-anchor-id="sec-pipelines-featsel" id="sec-pipelines-featsel">
 <span class="header-section-number">8.4.5</span> 用过滤管道做特征选择</h3>
 <div class="callout callout-style-simple callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -942,7 +991,7 @@ $svm.gamma
 
 </div>
 </div>
-<p>在<a href="../chapter6/feature_selection.html#sec-fs-filter-based" class="quarto-xref"><span>6.1.4 节</span></a>中，我们学习了基于过滤器的特征选择，以及如何手动运行一个过滤器然后提取被选中的特征——通常使用任意的、未经调优的阈值。现在我们已经介绍了管道和调优，让我们简要回到特征选择，演示如何利用 <code>po("filter")</code> 来自动化基于过滤器的特征选择。<code>po("filter")</code> 有一个 <code>filter</code> 构造函数参数，它接收一个 <a href="https://www.rdocumentation.org/packages/base/topics/funprog"><code>Filter</code></a> 对象作为过滤方法，同时还有多种选择特征的参数可供选择：</p>
+<p>在<a href="https://mlr3book.mlr-org.com/chapter6/feature_selection.html#sec-fs-filter-based" class="quarto-xref"><span>6.1.4 节</span></a>中，我们学习了基于过滤器的特征选择，以及如何手动运行一个过滤器然后提取被选中的特征——通常使用任意的、未经调优的阈值。现在我们已经介绍了管道和调优，让我们简要回到特征选择，演示如何利用 <code>po("filter")</code> 来自动化基于过滤器的特征选择。<code>po("filter")</code> 有一个 <code>filter</code> 构造函数参数，它接收一个 <a href="https://www.rdocumentation.org/packages/base/topics/funprog"><code>Filter</code></a> 对象作为过滤方法，同时还有多种选择特征的参数可供选择：</p>
 <ul>
 <li>
 <code>filter.nfeat</code> —— 要选择的特征数量</li>
@@ -992,7 +1041,7 @@ $svm.gamma
 <div class="cell-output-display">
 <div id="fig-tunefilter" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图展示了基于过滤器的特征选择中模型的表现，显示向模型添加第二、第三和第四个特征会提升表现，而继续添加更多特征则无法再获得进一步的表现提升。">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-tunefilter-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/non-sequential_pipelines_and_tuning_files/figure-html/fig-tunefilter-1.png" class="img-fluid figure-img" style="width:100.0%" alt="图展示了基于过滤器的特征选择中模型的表现，显示向模型添加第二、第三和第四个特征会提升表现，而继续添加更多特征则无法再获得进一步的表现提升。">
+<img src="../images/non-sequential_pipelines_and_tuning_files/figure-html/fig-tunefilter-1.png" class="img-fluid figure-img" style="width:100.0%" alt="图展示了基于过滤器的特征选择中模型的表现，显示向模型添加第二、第三和第四个特征会提升表现，而继续添加更多特征则无法再获得进一步的表现提升。">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-tunefilter-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 图&nbsp;8.14: 不同特征数量下（由信息增益过滤器选择）的模型性能。
@@ -1001,9 +1050,9 @@ $svm.gamma
 </div>
 </div>
 <p>现在我们看到，在这个案例中，四个变量可能同样好，因此我们可以考虑继续采用四个特征，而不是 <code>instance$result</code> 建议的六个。</p>
-</section></section><section id="conclusion" class="level2" data-number="8.5"><h2 data-number="8.5" class="anchored" data-anchor-id="conclusion">
+</section></section><section id="conclusion" class="level2" data-number="8.5"><h2 data-number="8.5" class="anchored" data-anchor-id="conclusion" id="conclusion">
 <span class="header-section-number">8.5</span> 结论（Conclusion）</h2>
-<p>在本章中，我们在<a href="../chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>所学内容的基础上，构建了复杂的非顺序 <code>Graph</code>。我们看到了如何构建自己的图，以及如何使用 <code><a href="https://mlr3pipelines.mlr-org.com/reference/ppl.html">ppl()</a></code> 加载 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 中现成的 <code>Graph</code>。接着我们讨论了调优管道的不同方式，包括超参数的联合调优，以及调优 <code>Graph</code> 中 <code>PipeOp</code> 的选择，从而能够构建简单的、自定义的 AutoML 系统。在<a href="../chapter9/preprocessing.html" class="quarto-xref"><span>第 9 章</span></a>中，我们将更详细地研究如何利用管道进行数据预处理。</p>
+<p>在本章中，我们在<a href="https://mlr3book.mlr-org.com/chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>所学内容的基础上，构建了复杂的非顺序 <code>Graph</code>。我们看到了如何构建自己的图，以及如何使用 <code><a href="https://mlr3pipelines.mlr-org.com/reference/ppl.html">ppl()</a></code> 加载 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 中现成的 <code>Graph</code>。接着我们讨论了调优管道的不同方式，包括超参数的联合调优，以及调优 <code>Graph</code> 中 <code>PipeOp</code> 的选择，从而能够构建简单的、自定义的 AutoML 系统。在<a href="https://mlr3book.mlr-org.com/chapter9/preprocessing.html" class="quarto-xref"><span>第 9 章</span></a>中，我们将更详细地研究如何利用管道进行数据预处理。</p>
 <div id="tbl-api-pipelines-nonseq" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-api-pipelines-nonseq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 表&nbsp;8.1: 本章涉及的重要类与函数，包括底层类（如适用）、类构造函数或函数，以及重要的类字段与方法（如适用）。
@@ -1048,7 +1097,7 @@ $svm.gamma
 </div>
 </figure>
 </div>
-</section><section id="exercises" class="level2" data-number="8.6"><h2 data-number="8.6" class="anchored" data-anchor-id="exercises">
+</section><section id="exercises" class="level2" data-number="8.6"><h2 data-number="8.6" class="anchored" data-anchor-id="exercises" id="exercises">
 <span class="header-section-number">8.6</span> 练习（Exercises）</h2>
 <ol type="1">
 <li>创建一个图：把所有不含缺失值的数值列替换为它们的 PCA 变换。用两种方式解决：一个是在顺序图中使用 <code>affect_columns</code>，另一个是在非顺序图中使用 <code>po("select")</code>。在 <code>tsk("diabetes")</code> 上训练该图以检查结果。提示：你可能会发现 <code><a href="https://mlr3pipelines.mlr-org.com/reference/Selector.html">selector_missing()</a></code> 很有用。</li>
@@ -1056,7 +1105,7 @@ $svm.gamma
 <li>如何在不显式命名你想排除的类别的情况下解决上一题，使你的图适用于任何分类任务？提示：看看<a href="#sec-pipelines-bagging" class="quarto-xref"><span>8.3.1 节</span></a>中的 <code>selector_subsample</code>。</li>
 <li>(*) 组合管道、分支和调优，创建你自己的「迷你 AutoML 系统」。它应当允许自动预处理，以及自动选择一个表现良好的学习算法。你的 <code>PipeOp</code> 和模型都应当被调优。你的系统应当配备两种预处理选项（缺失值插补和因子编码）以及至少三种可供选择的学习算法。你可以用随机搜索来优化它，或尝试使用更高级的调优算法。至少在三个不同的数据集上测试它，并通过嵌套重采样把它与未调优的随机森林的性能做比较。</li>
 </ol>
-</section><section id="citation" class="level2" data-number="8.7"><h2 data-number="8.7" class="anchored" data-anchor-id="citation">
+</section><section id="citation" class="level2" data-number="8.7"><h2 data-number="8.7" class="anchored" data-anchor-id="citation" id="citation">
 <span class="header-section-number">8.7</span> 引用（Citation）</h2>
 <p>请按以下格式引用本章：</p>
 <p>Binder M, Pfisterer F, Becker M, Wright MN. (2024). Non-sequential Pipelines and Tuning. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/non-sequential_pipelines_and_tuning.html.</p>
@@ -1106,5 +1155,6 @@ MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }
 <script type="text/javascript" id="MathJax-script" async
   src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
 </script>
+<script src="../search.js"></script>
 </body>
 </html>

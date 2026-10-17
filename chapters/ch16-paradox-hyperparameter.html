@@ -59,6 +59,50 @@ body {
   border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
 }
 .theme-toggle:hover { border-color: var(--accent); }
+/* 搜索 */
+.search-box { position: relative; display: flex; align-items: center; }
+.search-box input {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 5px 10px 5px 28px; font-size: 13px; width: 190px;
+  font-family: inherit; outline: none;
+}
+.search-box input:focus { border-color: var(--accent); width: 240px; }
+.search-box .ico { position: absolute; left: 9px; color: var(--muted); font-size: 12px; pointer-events: none; }
+.search-panel {
+  display: none; position: absolute; top: calc(100% + 6px); right: 0; width: 460px;
+  max-width: 90vw; max-height: 66vh; overflow-y: auto; z-index: 200;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 12px 34px rgba(0,0,0,.42); padding: 6px;
+}
+.search-panel.open { display: block; }
+.search-panel .s-head {
+  padding: 8px 11px 7px; font-size: 12px; color: var(--muted);
+  border-bottom: 1px solid var(--border); margin-bottom: 5px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.search-panel .s-hint { font-size: 12px; color: var(--muted); padding: 18px 12px; text-align: center; }
+.s-item { display: block; padding: 8px 11px; border-radius: 7px; text-decoration: none; color: var(--fg); }
+.s-item:hover, .s-item.sel { background: var(--panel2); }
+.s-item .s-ch { font-size: 11px; color: var(--accent2); margin-bottom: 2px; }
+.s-item .s-sec { font-size: 12px; color: var(--accent); margin-bottom: 3px; }
+.s-item .s-txt { font-size: 13px; line-height: 1.6; color: var(--fg); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.s-item mark { background: rgba(255, 200, 0, .32); color: inherit; border-radius: 2px; padding: 0 1px; }
+[data-theme="light"] .s-item mark { background: rgba(255, 200, 0, .45); }
+/* 搜索结果页 */
+.search-page-box { margin: 26px 0 0; }
+.search-page-box input {
+  width: 100%; background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 8px; padding: 12px 15px; font-size: 15px; font-family: inherit; outline: none;
+}
+.search-page-box input:focus { border-color: var(--accent); }
+.s-meta { color: var(--muted); font-size: 13px; margin: 14px 0 8px; }
+.s-list { list-style: none; margin: 0; padding: 0; }
+.s-list .s-item { border: 1px solid var(--border); margin: 8px 0; }
+@media (max-width: 640px) {
+  .search-box input { width: 130px; }
+  .search-box input:focus { width: 170px; }
+  .search-panel { width: 84vw; }
+}
 /* 章头 */
 .header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
 .header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
@@ -170,9 +214,14 @@ function toggleTheme(){
 </head>
 <body>
 <div class="topbar">
-  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <a class="brand" href="../index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
   <div class="right">
-    <a class="home-link" href="index.html">目录</a>
+    <div class="search-box">
+      <span class="ico">&#128269;</span>
+      <input type="search" id="mlr3-search" placeholder="搜索全书…（按 /）" autocomplete="off" aria-label="全书搜索">
+      <div class="search-panel" id="mlr3-search-panel"></div>
+    </div>
+    <a class="home-link" href="../index.html">目录</a>
     <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
   </div>
 </div>
@@ -187,7 +236,7 @@ function toggleTheme(){
 <p><strong>Sebastian Fischer</strong> <br><em>Ludwig-Maximilians-Universität München, and Munich Center for Machine Learning (MCML)</em></p>
 <p><strong>Michel Lang</strong> <br><em>Research Center Trustworthy Data Science and Security, and TU Dortmund University</em></p>
 <p><strong>Alexander Winterstetter</strong> <br><em>Ludwig-Maximilians-Universität München</em> <br><br></p>
-<p>在前面的章节中，我们已经概述了如何手动设置超参数（<a href="../chapter2/data_and_basic_modeling.html#sec-param-set" class="quarto-xref"><span>2.2.3 节</span></a>）或自动优化超参数（<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>）。</p>
+<p>在前面的章节中，我们已经概述了如何手动设置超参数（<a href="https://mlr3book.mlr-org.com/chapter2/data_and_basic_modeling.html#sec-param-set" class="quarto-xref"><span>2.2.3 节</span></a>）或自动优化超参数（<a href="https://mlr3book.mlr-org.com/chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>）。</p>
 <p>在本章中，我们将介绍<a href="https://paradox.mlr-org.com"><code>paradox</code></a>包，它提供了一种描述参数空间（Parameter Space）的语言，以及对这些参数空间进行有用操作的工具。参数空间在描述以下内容时通常很有用：</p>
 <ul>
 <li>一个 R 函数的一组合理输入值</li>
@@ -203,7 +252,7 @@ function toggleTheme(){
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>参数空间（Parameter Space）在机器学习中通常指一个函数或算法所有可接受参数取值的集合。例如 <code>rpart</code> 决策树的 <code>minsplit</code> 只能取正整数、<code>cp</code> 只能取非负实数。paradox 包相当于把这个概念「一等公民化」：它不仅描述取值范围，还统一处理参数类型、依赖关系、变换函数和采样。理解 paradox 有助于理解 mlr3 生态中的许多关键概念，因为 mlr3 的 <code>Learner</code>（学习器）的 <code>$param_set</code>、调优（tuning）的 <code>search_space</code>、mlr3pipelines 的 <code>PipeOp</code> 参数，底层都是 paradox 的 <code>ParamSet</code> 对象。可以说，paradox 是 mlr3 生态的「参数基础设施」。</p>
 </div>
-<section id="reference-based-objects" class="level2" data-number="16.1"><h2 data-number="16.1" class="anchored" data-anchor-id="reference-based-objects">
+<section id="reference-based-objects" class="level2" data-number="16.1"><h2 data-number="16.1" class="anchored" data-anchor-id="reference-based-objects" id="reference-based-objects">
 <span class="header-section-number">16.1</span> 基于引用的对象</h2>
 <p>重要的是要知道，在<a href="https://paradox.mlr-org.com"><code>paradox</code></a>中创建的某些对象是「基于引用（reference-based）」的，这与 R 中大多数其他对象不同。当对一个<a href="https://paradox.mlr-org.com/reference/ParamSet.html"><code>ParamSet</code></a>对象进行更改时，例如改变 <code>$values</code> 字段，所有指向这个参数集的变量都会包含更改后的对象。要创建一个参数集的独立副本，需要使用 <code>$clone(deep = TRUE)</code> 方法：</p>
 <div class="cell">
@@ -245,9 +294,9 @@ function toggleTheme(){
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>R 语言中大多数对象遵循「复制-修改（copy-on-modify）」语义：把 <code>x</code> 赋值给 <code>y</code> 后修改 <code>y</code>，<code>x</code> 不会改变。但基于 R6 类的对象（如 <code>ParamSet</code>）采用「引用（reference）」语义：赋值只是复制指针，所有变量共享同一个对象。这是 mlr3 生态（mlr3、mlr3pipelines、mlr3tuning 都基于 R6）与 base R 的一个重大差异，也是新手常见的坑。因此，如果你需要一份互不影响、可独立修改的参数集副本，务必使用 <code>$clone(deep = TRUE)</code>；浅克隆（<code>clone()</code> 不带 <code>deep</code>）只会复制外壳，内部的嵌套对象（如 <code>$values</code> 列表）仍可能被共享。</p>
 </div>
-</section><section id="defining-a-parameter-space" class="level2" data-number="16.2"><h2 data-number="16.2" class="anchored" data-anchor-id="defining-a-parameter-space">
+</section><section id="defining-a-parameter-space" class="level2" data-number="16.2"><h2 data-number="16.2" class="anchored" data-anchor-id="defining-a-parameter-space" id="defining-a-parameter-space">
 <span class="header-section-number">16.2</span> 定义参数空间</h2>
-<section id="domain-representing-single-parameters" class="level3" data-number="16.2.1"><h3 data-number="16.2.1" class="anchored" data-anchor-id="domain-representing-single-parameters">
+<section id="domain-representing-single-parameters" class="level3" data-number="16.2.1"><h3 data-number="16.2.1" class="anchored" data-anchor-id="domain-representing-single-parameters" id="domain-representing-single-parameters">
 <span class="header-section-number">16.2.1</span> 表示单个参数的 <code>Domain</code></h3>
 <p>参数空间由单个参数组成，这些参数通常可以取一个原子值。例如，考虑尝试配置<a href="https://cran.r-project.org/package=rpart"><code>rpart</code></a>包的 <code><a href="https://rdrr.io/pkg/rpart/man/rpart.control.html">rpart::rpart.control()</a></code>对象。它有很多组件（<code>minsplit</code>、<code>cp</code>，……），每个都取单个值。</p>
 <p>这些组件由<a href="https://paradox.mlr-org.com/reference/Domain.html"><code>Domain</code></a>对象表示，可以使用<a href="#tbl-paradox-define" class="quarto-xref">表&nbsp;<span>16.1</span></a>中的糖函数（sugar functions）来创建。</p>
@@ -349,7 +398,7 @@ function toggleTheme(){
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong><code>default</code> 与 <code>init</code> 是初学者容易混淆的一对概念。简单说：<code>default</code> 是「如果不设置，算法就用这个值」；<code>init</code> 则是「创建 <code>ParamSet</code> 的那一刻，<code>$values</code> 里预先放入的值」。所以 <code>init</code> 会体现在 <code>$values</code> 中（如上表第一行 <code>parA</code> 的 value 列为 <code>FALSE</code>），而 <code>default</code> 只出现在 default 列。另外，<code>special_vals</code> 允许你「破例」接受不符合类型的值——比如让一个数值参数也能接受 <code>NULL</code>（表示「不设该参数」）。paradox 之所以要求 <code>Domain</code> 在构造后不可变，是为了保证参数空间的定义始终一致；修改取值范围应该新建一个 <code>ParamSet</code>，而不是就地改动。</p>
 </div>
-<section id="type-range-checking" class="level4" data-number="16.2.1.1"><h4 data-number="16.2.1.1" class="anchored" data-anchor-id="type-range-checking">
+<section id="type-range-checking" class="level4" data-number="16.2.1.1"><h4 data-number="16.2.1.1" class="anchored" data-anchor-id="type-range-checking" id="type-range-checking">
 <span class="header-section-number">16.2.1.1</span> 类型 / 范围检查</h4>
 <p><code>ParamSet</code> 对象提供了使用 <code>$test()</code>、<code>$check()</code> 和 <code>$assert()</code> 函数来检查一个值是否满足其条件的能力，即类型是否正确，以及是否落在允许值的范围内。它们的参数必须是一个命名列表，其中的值将对照相应参数进行检查，并且可以只检查参数的一个子集。<code>$test()</code> 应在条件检查中使用，返回 <code>TRUE</code> 或 <code>FALSE</code>；而 <code>$check()</code> 在一个值不符合参数时返回错误描述（因此与 <a href="https://www.rdocumentation.org/packages/checkmate/topics/assert"><code>assert()</code></a> 函数配合得很好）。每当一个值不匹配时，<code>$assert()</code> 将抛出错误。</p>
 <div class="cell">
@@ -369,7 +418,7 @@ function toggleTheme(){
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong><code>$test()</code>、<code>$check()</code>、<code>$assert()</code> 三者的关系与 checkmate 包一致，可以理解为三个「递进」版本：<code>$test()</code> 返回布尔值，适合放在 <code>if</code> 条件里；<code>$check()</code> 返回 <code>TRUE</code> 或错误字符串，便于与其他检查组合并给出完整错误信息；<code>$assert()</code> 在失败时直接抛出错误并停止执行。paradox 底层正是用 checkmate 实现检查逻辑的（例如上面的错误消息 “Must be of type 'logical flag'” 就来自 checkmate）。注意这里的「类型检查」对 R 语言尤其重要：R 的 <code>TRUE</code> 和字符串 <code>"TRUE"</code> 是完全不同的对象，上面第二个例子就展示了把逻辑参数传成字符串会被拒绝——这种隐式类型转换在 R 中不会自动发生，这也是 R 语言动态类型系统下常见的程序缺陷来源。</p>
 </div>
-</section></section><section id="parameter-sets" class="level3" data-number="16.2.2"><h3 data-number="16.2.2" class="anchored" data-anchor-id="parameter-sets">
+</section></section><section id="parameter-sets" class="level3" data-number="16.2.2"><h3 data-number="16.2.2" class="anchored" data-anchor-id="parameter-sets" id="parameter-sets">
 <span class="header-section-number">16.2.2</span> 参数集</h3>
 <p>参数的<strong>有序集合</strong>在 <code>ParamSet</code> 中处理。它通常通过调用 <code><a href="https://paradox.mlr-org.com/reference/ps.html">ps()</a></code> 创建，但也可以使用 <code>ParamSet$new()</code> 函数初始化。主要区别在于 <code><a href="https://paradox.mlr-org.com/reference/ps.html">ps()</a></code> 接受命名参数，而 <code>ParamSet$new()</code> 接受一个命名列表。后者使得以编程方式构造参数集更容易，但稍微更啰嗦。</p>
 <p><code>ParamSet</code> 可以使用 <code><a href="https://rdrr.io/r/base/c.html">c()</a></code> 或 <a href="https://paradox.mlr-org.com/reference/ps_union.html"><code>ps_union()</code></a>（后者接受一个列表）进行组合，并且它们有一个 <code>$subset()</code> 方法允许子集化。所有这些函数都返回一个新的、克隆的参数集对象，并且不修改原始参数集。</p>
@@ -405,7 +454,7 @@ function toggleTheme(){
 3 variables not shown: [default, storage_type, tags]</code></pre>
 </div>
 </div>
-<section id="values-in-a-paramset" class="level4" data-number="16.2.2.1"><h4 data-number="16.2.2.1" class="anchored" data-anchor-id="values-in-a-paramset">
+<section id="values-in-a-paramset" class="level4" data-number="16.2.2.1"><h4 data-number="16.2.2.1" class="anchored" data-anchor-id="values-in-a-paramset" id="values-in-a-paramset">
 <span class="header-section-number">16.2.2.1</span> <code>ParamSet</code> 中的值</h4>
 <p>虽然 <code>ParamSet</code> 从根本上表示一个值空间，但它也有一个可以包含该空间内一个点的 <code>$values</code> 字段。这很有用，因为许多定义参数空间的事物需要类似的操作（如参数检查），而这些操作可以借此简化。<code>$values</code> 字段包含一个命名列表，它总是会被对照参数约束进行检查。当尝试设置参数值时，例如为 <a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 的<a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 设置参数值，需要使用的就是其 <code>$param_set</code> 的 <code>$values</code> 字段。</p>
 <div class="cell">
@@ -440,7 +489,7 @@ $y
 [1] 3</code></pre>
 </div>
 </div>
-</section><section id="dependencies" class="level4" data-number="16.2.2.2"><h4 data-number="16.2.2.2" class="anchored" data-anchor-id="dependencies">
+</section><section id="dependencies" class="level4" data-number="16.2.2.2"><h4 data-number="16.2.2.2" class="anchored" data-anchor-id="dependencies" id="dependencies">
 <span class="header-section-number">16.2.2.2</span> 依赖（Dependencies）</h4>
 <p>通常，某些参数取决于其他参数的值，从而变得无关或不应被给出。一个例子是：一个参数用来开关某个算法特性（例如正则化），而另一个参数控制该特性的行为（例如一个正则化参数）。第二个参数被称为<em>依赖</em>于第一个参数取值为 <code>TRUE</code>。</p>
 <div class="bg-note">
@@ -517,7 +566,7 @@ $y
 2:  D  A &lt;Condition:CondEqual&gt;</code></pre>
 </div>
 </div>
-</section></section><section id="vector-parameters" class="level3" data-number="16.2.3"><h3 data-number="16.2.3" class="anchored" data-anchor-id="vector-parameters">
+</section></section><section id="vector-parameters" class="level3" data-number="16.2.3"><h3 data-number="16.2.3" class="anchored" data-anchor-id="vector-parameters" id="vector-parameters">
 <span class="header-section-number">16.2.3</span> 向量参数</h3>
 <p>在 <a href="https://paradox.mlr-org.com"><code>paradox</code></a> 中没有「向量参数」这种类型。取而代之的是，现在可以使用 <a href="https://paradox.mlr-org.com/reference/ps_replicate.html"><code>ps_replicate()</code></a> 函数创建单个参数的多个副本。这会创建一个由多个参数副本组成的 <code>ParamSet</code>，然后可以（可选地）把它添加到另一个 <code>ParamSet</code> 中。</p>
 <div class="cell">
@@ -561,14 +610,14 @@ $rep2.x
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>paradox 刻意不提供向量参数类型，原因在于：向量参数（尤其长度可变时）难以定义「边界」和「距离」，从而无法被大多数采样器和基于距离的调优算法（如高斯过程代理模型）直接处理。paradox 的替代方案是「复制参数 + 变换」：用 <code>ps_replicate()</code> 生成多个同构参数副本，每个副本仍是普通标量参数，可以正常采样；然后用 <code>$.extra_trafo</code> 在转置（transpose）阶段把它们拼装成一个向量。这样既保持了采样器的通用性，又保留了向量参数的用户友好接口。这也是 paradox 设计哲学的一个缩影：用若干简单、可组合的标量原语，表达复杂的高维参数结构。</p>
 </div>
-</section></section><section id="parameter-sampling" class="level2" data-number="16.3"><h2 data-number="16.3" class="anchored" data-anchor-id="parameter-sampling">
+</section></section><section id="parameter-sampling" class="level2" data-number="16.3"><h2 data-number="16.3" class="anchored" data-anchor-id="parameter-sampling" id="parameter-sampling">
 <span class="header-section-number">16.3</span> 参数采样</h2>
 <p>通常，拥有一列可以系统地遍历的可能参数值是有用的，例如为了找到算法表现特别好的参数值（调优）。<a href="https://paradox.mlr-org.com"><code>paradox</code></a>提供了多种函数，允许在「网格」设计中创建等间隔的参数值，也允许随机采样。在后一种情况下，可以或多或少细致地影响采样分布。</p>
 <p>采样时始终要记住的一点是：只有有界的数值参数和因子参数才能被采样，即不是 <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_uty()</code></a>。此外，对大多数采样器来说，<a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_int()</code></a> 和 <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_dbl()</code></a> 必须有有限的下界和上界。</p>
-<section id="parameter-designs" class="level3" data-number="16.3.1"><h3 data-number="16.3.1" class="anchored" data-anchor-id="parameter-designs">
+<section id="parameter-designs" class="level3" data-number="16.3.1"><h3 data-number="16.3.1" class="anchored" data-anchor-id="parameter-designs" id="parameter-designs">
 <span class="header-section-number">16.3.1</span> 参数设计</h3>
 <p>对参数空间采样的函数从根本上返回一个 <a href="https://paradox.mlr-org.com/reference/Design.html"><code>Design</code></a> 类的对象。这些对象把采样到的数据作为一个 <code>data.table</code> 放在 <code>$data</code> 字段下，还提供使用 <code>$transpose()</code> 函数转换为参数值列表的功能。</p>
-</section><section id="grid-design" class="level3" data-number="16.3.2"><h3 data-number="16.3.2" class="anchored" data-anchor-id="grid-design">
+</section><section id="grid-design" class="level3" data-number="16.3.2"><h3 data-number="16.3.2" class="anchored" data-anchor-id="grid-design" id="grid-design">
 <span class="header-section-number">16.3.2</span> 网格设计</h3>
 <p><a href="https://paradox.mlr-org.com/reference/generate_design_grid.html"><code>generate_design_grid()</code></a> 函数用于创建包含所有参数值组合的网格设计：<a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_lgl()</code></a> 和 <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_fct()</code></a> 的所有可能值，以及 <code><a href="https://paradox.mlr-org.com/reference/Domain.html">p_int()</a></code> 和 <code><a href="https://paradox.mlr-org.com/reference/Domain.html">p_dbl()</a></code> 的给定分辨率的值。分辨率可以为所有数值参数给出，也可以通过 <code>param_resolutions</code> 参数为特定的命名参数给出。</p>
 <div class="cell">
@@ -597,7 +646,7 @@ $rep2.x
 6: 1.0 1</code></pre>
 </div>
 </div>
-</section><section id="random-sampling" class="level3" data-number="16.3.3"><h3 data-number="16.3.3" class="anchored" data-anchor-id="random-sampling">
+</section><section id="random-sampling" class="level3" data-number="16.3.3"><h3 data-number="16.3.3" class="anchored" data-anchor-id="random-sampling" id="random-sampling">
 <span class="header-section-number">16.3.3</span> 随机采样</h3>
 <p><code>paradox</code>提供了不同的随机采样方法，它们在可配置程度上各不相同（参见<a href="#fig-paradox-sampling" class="quarto-xref">图&nbsp;<span>16.1</span></a>）。获得均匀随机参数样本最简单的方法是 <a href="https://paradox.mlr-org.com/reference/generate_design_random.html"><code>generate_design_random()</code></a>。也可以使用 <a href="https://paradox.mlr-org.com/reference/generate_design_lhs.html"><code>generate_design_lhs()</code></a> 创建拉丁超立方体（latin hypercube）采样的参数值，它利用 <a href="https://cran.r-project.org/package=lhs"><code>lhs</code></a> 包。LHS 采样创建的低差异采样值比纯随机值更均匀地覆盖参数空间。<a href="https://paradox.mlr-org.com/reference/generate_design_sobol.html"><code>generate_design_sobol()</code></a> 可以用来使用 Sobol 序列采样。</p>
 <div class="cell">
@@ -611,7 +660,7 @@ $rep2.x
 <div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-paradox-sampling" style="flex-basis: 33.3%;justify-content: flex-start;">
 <div id="fig-paradox-sampling-1" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Scatter plot showing 500 randomly sampled points in a unit square with uneven clustering.">
 <figure class="quarto-float quarto-subfloat-fig figure"><div aria-describedby="fig-paradox-sampling-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/advanced_hyperparameter_specification_using_paradox_files/figure-html/fig-paradox-sampling-1.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-paradox-sampling" alt="显示 500 个在单位正方形中随机采样、分布不均地点聚的点。" />
+<img src="../images/advanced_hyperparameter_specification_using_paradox_files/figure-html/fig-paradox-sampling-1.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-paradox-sampling" alt="显示 500 个在单位正方形中随机采样、分布不均地点聚的点。" />
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-paradox-sampling-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (a) 随机设计
@@ -621,7 +670,7 @@ $rep2.x
 <div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-paradox-sampling" style="flex-basis: 33.3%;justify-content: flex-start;">
 <div id="fig-paradox-sampling-2" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Scatter plot showing 500 Sobol sequence sampled points in a unit square with more even coverage.">
 <figure class="quarto-float quarto-subfloat-fig figure"><div aria-describedby="fig-paradox-sampling-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/advanced_hyperparameter_specification_using_paradox_files/figure-html/fig-paradox-sampling-2.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-paradox-sampling" alt="显示 500 个在单位正方形中通过 Sobol 序列采样、覆盖更均匀的点。" />
+<img src="../images/advanced_hyperparameter_specification_using_paradox_files/figure-html/fig-paradox-sampling-2.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-paradox-sampling" alt="显示 500 个在单位正方形中通过 Sobol 序列采样、覆盖更均匀的点。" />
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-paradox-sampling-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (b) Sobol 设计
@@ -631,7 +680,7 @@ $rep2.x
 <div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-paradox-sampling" style="flex-basis: 33.3%;justify-content: flex-start;">
 <div id="fig-paradox-sampling-3" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Scatter plot showing 500 latin hypercube sampled points in a unit square with more even coverage.">
 <figure class="quarto-float quarto-subfloat-fig figure"><div aria-describedby="fig-paradox-sampling-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="images/advanced_hyperparameter_specification_using_paradox_files/figure-html/fig-paradox-sampling-3.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-paradox-sampling" alt="显示 500 个在单位正方形中通过拉丁超立方体采样、覆盖更均匀的点。" />
+<img src="../images/advanced_hyperparameter_specification_using_paradox_files/figure-html/fig-paradox-sampling-3.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-paradox-sampling" alt="显示 500 个在单位正方形中通过拉丁超立方体采样、覆盖更均匀的点。" />
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-paradox-sampling-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (c) LHS 设计
@@ -644,11 +693,11 @@ $rep2.x
 图&nbsp;16.1：二维参数空间上随机、拉丁超立方体与 Sobol 序列采样设计的比较。
 </figcaption></figure>
 </div>
-</section><section id="generalized-sampling-the-sampler-class" class="level3" data-number="16.3.4"><h3 data-number="16.3.4" class="anchored" data-anchor-id="generalized-sampling-the-sampler-class">
+</section><section id="generalized-sampling-the-sampler-class" class="level3" data-number="16.3.4"><h3 data-number="16.3.4" class="anchored" data-anchor-id="generalized-sampling-the-sampler-class" id="generalized-sampling-the-sampler-class">
 <span class="header-section-number">16.3.4</span> 广义采样：<code>Sampler</code> 类</h3>
 <p>有时可能希望更细致地配置参数采样。<code>paradox</code>使用 <a href="https://paradox.mlr-org.com/reference/Sampler.html"><code>Sampler</code></a> 抽象基类进行采样，它有许多不同的子类，这些子类可以被参数化并组合以控制采样过程。甚至可以创建 <code>Sampler</code> 类（或其任何<em>子</em>类）的更多子类，以获得更多可能性。</p>
 <p>每个 <code>Sampler</code> 对象都有一个 <a href="https://www.rdocumentation.org/packages/base/topics/sample"><code>sample()</code></a> 函数，它接受一个参数——要采样的实例数，并返回一个 <code>Design</code> 对象。</p>
-<section id="d-samplers" class="level4" data-number="16.3.4.1"><h4 data-number="16.3.4.1" class="anchored" data-anchor-id="d-samplers">
+<section id="d-samplers" class="level4" data-number="16.3.4.1"><h4 data-number="16.3.4.1" class="anchored" data-anchor-id="d-samplers" id="d-samplers">
 <span class="header-section-number">16.3.4.1</span> 一维采样器（1D-Samplers）</h4>
 <p>有一系列为单个参数采样值的采样器。它们是 <a href="https://paradox.mlr-org.com/reference/Sampler1DUnif.html"><code>Sampler1DUnif</code></a>（均匀采样）、<a href="https://paradox.mlr-org.com/reference/Sampler1DCateg.html"><code>Sampler1DCateg</code></a>（分类参数采样）、<a href="https://paradox.mlr-org.com/reference/Sampler1DNormal.html"><code>Sampler1DNormal</code></a>（正态分布采样，在参数边界处截断）和 <a href="https://paradox.mlr-org.com/reference/Sampler1DRfun.html"><code>Sampler1DRfun</code></a>（任意一维采样，给定一个随机函数）。它们用一个一维的 <a href="https://paradox.mlr-org.com/reference/ParamSet.html"><code>ParamSet</code></a> 初始化，然后可以用于采样值。</p>
 <div class="cell">
@@ -664,7 +713,7 @@ $rep2.x
 5: a</code></pre>
 </div>
 </div>
-</section><section id="hierarchical-sampler" class="level4" data-number="16.3.4.2"><h4 data-number="16.3.4.2" class="anchored" data-anchor-id="hierarchical-sampler">
+</section><section id="hierarchical-sampler" class="level4" data-number="16.3.4.2"><h4 data-number="16.3.4.2" class="anchored" data-anchor-id="hierarchical-sampler" id="hierarchical-sampler">
 <span class="header-section-number">16.3.4.2</span> 层次采样器</h4>
 <p><a href="https://paradox.mlr-org.com/reference/SamplerHierarchical.html"><code>SamplerHierarchical</code></a> 采样器是一个辅助采样器，它组合许多一维采样器以获得一个组合分布。它的名字「hierarchical（层次）」暗示它能够尊重参数依赖。这意味着参数只有在它们的依赖得到满足时才会被采样。</p>
 <p>下面的例子展示了这是如何工作的：<code>Int</code> 参数 <code>B</code> 依赖 <code>Lgl</code> 参数 <code>A</code> 为 <code>TRUE</code>。<code>A</code> 在大约一半的情况下被采样为 <code>TRUE</code>，此时 <code>B</code> 取 0 到 10 之间的一个值。在 <code>A</code> 为 <code>FALSE</code> 的情况下，<code>B</code> 被设置为 <code>NA</code>。</p>
@@ -699,7 +748,7 @@ A         0   1   2   3   4   5   6   7   8   9  10 &lt;NA&gt;
   TRUE   48  50  37  41  54  43  39  41  40  43  55    0</code></pre>
 </div>
 </div>
-</section><section id="joint-sampler" class="level4" data-number="16.3.4.3"><h4 data-number="16.3.4.3" class="anchored" data-anchor-id="joint-sampler">
+</section><section id="joint-sampler" class="level4" data-number="16.3.4.3"><h4 data-number="16.3.4.3" class="anchored" data-anchor-id="joint-sampler" id="joint-sampler">
 <span class="header-section-number">16.3.4.3</span> 联合采样器</h4>
 <p>另一种组合采样器的方法是 <a href="https://paradox.mlr-org.com/reference/SamplerJointIndep.html"><code>SamplerJointIndep</code></a>。<code>SamplerJointIndep</code> 也使得组合非一维的 <code>Sampler</code> 成为可能。然而，<code>SamplerJointIndep</code> 目前不能处理带依赖的 <code>ParamSet</code>。</p>
 <div class="cell">
@@ -718,10 +767,10 @@ A         0   1   2   3   4   5   6   7   8   9  10 &lt;NA&gt;
 5: 0.075433 0.9797</code></pre>
 </div>
 </div>
-</section><section id="samplerunif" class="level4" data-number="16.3.4.4"><h4 data-number="16.3.4.4" class="anchored" data-anchor-id="samplerunif">
+</section><section id="samplerunif" class="level4" data-number="16.3.4.4"><h4 data-number="16.3.4.4" class="anchored" data-anchor-id="samplerunif" id="samplerunif">
 <span class="header-section-number">16.3.4.4</span> SamplerUnif</h4>
 <p><code><a href="https://paradox.mlr-org.com/reference/generate_design_random.html">generate_design_random()</a></code> 中使用的 <code>Sampler</code> 是 <a href="https://paradox.mlr-org.com/reference/SamplerUnif.html"><code>SamplerUnif</code></a> 采样器，它对应于对所有参数使用 <code>Sampler1DUnif</code> 的 <code>HierarchicalSampler</code>，其依赖感知行为与 <code><a href="https://paradox.mlr-org.com/reference/generate_design_random.html">generate_design_random()</a></code> 相同。</p>
-</section></section></section><section id="parameter-transformation" class="level2" data-number="16.4"><h2 data-number="16.4" class="anchored" data-anchor-id="parameter-transformation">
+</section></section></section><section id="parameter-transformation" class="level2" data-number="16.4"><h2 data-number="16.4" class="anchored" data-anchor-id="parameter-transformation" id="parameter-transformation">
 <span class="header-section-number">16.4</span> 参数变换</h2>
 <p>虽然不同的 <a href="https://paradox.mlr-org.com/reference/Sampler.html"><code>Sampler</code></a> 允许对参数分布进行广泛的指定，但在某些情况下，获得期望分布最简单的方式是从一个简单分布（如均匀分布）采样参数，然后对它们进行变换。这可以通过构造一个带 <code>trafo</code> 参数的 <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>Domain</code></a> 来完成，或者把一个函数赋给 <a href="https://paradox.mlr-org.com/reference/ParamSet.html"><code>ParamSet</code></a> 的 <code>$.extra_trafo</code> 字段。后者也可以通过向 <a href="https://paradox.mlr-org.com/reference/ps.html"><code>ps()</code></a> 简写构造器传递一个 <code>.extra_trafo</code> 参数来完成。</p>
 <p><code>Domain</code> 中的 <code>trafo</code> 函数只用一个参数调用，即要变换的值。它只能作用于单个参数的维度。</p>
@@ -795,7 +844,7 @@ A         0   1   2   3   4   5   6   7   8   9  10 &lt;NA&gt;
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>「先采样、再变换（sample-then-transform）」是超参数优化中极其常见的技巧，背后是对搜索效率的考量。以学习率为例，它跨越多个数量级（0.001 到 0.1），如果直接在原始尺度上均匀采样，大多数样本会挤在较大的数量级附近，小数量级的取值覆盖不足；而对采样值取对数后再均匀采样，等价于在原始尺度上按「对数均匀分布」采样，各数量级被公平对待。paradox 把这种变换封装为 <code>trafo</code>（单参数）或 <code>.extra_trafo</code>（整个参数集），使「采样空间」与「实际取值空间」解耦：采样器始终工作在简单、有界的空间上，变换层负责映射到真实参数域。这正是 mlr3 中 <code>to_tune(logscale = TRUE)</code> 等选项的底层机制。另一个常见用法是 16.4.1 节即将展示的「类型变换」——把一个 <code>character</code> 类别映射为真正的函数对象。</p>
 </div>
-<section id="transformation-between-types" class="level3" data-number="16.4.1"><h3 data-number="16.4.1" class="anchored" data-anchor-id="transformation-between-types">
+<section id="transformation-between-types" class="level3" data-number="16.4.1"><h3 data-number="16.4.1" class="anchored" data-anchor-id="transformation-between-types" id="transformation-between-types">
 <span class="header-section-number">16.4.1</span> 类型之间的变换</h3>
 <p>通常，用一个 <code>ParamSet</code> 创建设计，然后用它来配置其他对象，这些对象本身有一个参数集来定义它们取的值。然而，可以用于随机采样的参数集在某些方面受到限制：它们必须有有限边界，并且不能包含「无类型」（<a href="https://paradox.mlr-org.com/reference/Domain.html"><code>p_uty</code></a>）参数。<code>$trafo</code> 为这些情况提供了粘合剂。对 trafo 函数的返回值约束相对较少，因此可以返回与原始 <code>ParamSet</code> 有不同边界甚至类型的值。甚至可以移除一些参数并添加新参数。</p>
 <p>例如，假设某个方法需要一个<em>函数</em>作为参数。假设一个以某种方式汇总其数据的函数。用户可以通过像 <a href="https://www.rdocumentation.org/packages/stats/topics/median"><code>median()</code></a> 或 <a href="https://www.rdocumentation.org/packages/base/topics/mean"><code>mean()</code></a> 这样的函数，但也可以传入分位数或完全不同的东西。这个方法可能会使用下面的 <code>ParamSet</code>：</p>
@@ -904,10 +953,10 @@ quantile(input, x$quantile)
     9.543 </code></pre>
 </div>
 </div>
-</section><section id="automatic-factor-level-transformation" class="level3" data-number="16.4.2"><h3 data-number="16.4.2" class="anchored" data-anchor-id="automatic-factor-level-transformation">
+</section><section id="automatic-factor-level-transformation" class="level3" data-number="16.4.2"><h3 data-number="16.4.2" class="anchored" data-anchor-id="automatic-factor-level-transformation" id="automatic-factor-level-transformation">
 <span class="header-section-number">16.4.2</span> 自动因子水平变换</h3>
 <p>一个常见的用例是需要指定一组都应当被尝试（或从中采样）的值。可能某个超参数接受函数对象作为值，而一组特定的函数应当被尝试。也可能是一组特殊的数值选择应当被尝试。为此，<code><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct()</a></code> 构造器的 <code>level</code> 参数可以是某个不是 <code>character</code> 向量的值，而是其他东西。</p>
-<p>假设我们按<a href="../chapter4/hyperparameter_optimization.html#sec-tune-ps" class="quarto-xref"><span>4.4.2 节</span></a>中的描述用 <code><a href="https://paradox.mlr-org.com/reference/ps.html">ps()</a></code> 定义一个搜索空间。如果，例如，对 <code>cost</code> 参数只应尝试 <code>0.1</code>、<code>3</code> 和 <code>10</code> 这些值，即使是在做随机搜索时，我们可以如下构造搜索空间：</p>
+<p>假设我们按<a href="https://mlr3book.mlr-org.com/chapter4/hyperparameter_optimization.html#sec-tune-ps" class="quarto-xref"><span>4.4.2 节</span></a>中的描述用 <code><a href="https://paradox.mlr-org.com/reference/ps.html">ps()</a></code> 定义一个搜索空间。如果，例如，对 <code>cost</code> 参数只应尝试 <code>0.1</code>、<code>3</code> 和 <code>10</code> 这些值，即使是在做随机搜索时，我们可以如下构造搜索空间：</p>
 <div class="cell">
 <div class="sourceCode" id="cb100"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">search_space</span> <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/ps.html">ps</a></span><span class="op">(</span></span>
 <span>  cost <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/Domain.html">p_fct</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">3</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -983,15 +1032,15 @@ quantile(input, x$quantile)
     0.3     0.7 </code></pre>
 </div>
 </div>
-</section></section><section id="sec-paradox-tuning-spaces" class="level2" data-number="16.5"><h2 data-number="16.5" class="anchored" data-anchor-id="sec-paradox-tuning-spaces">
+</section></section><section id="sec-paradox-tuning-spaces" class="level2" data-number="16.5"><h2 data-number="16.5" class="anchored" data-anchor-id="sec-paradox-tuning-spaces" id="sec-paradox-tuning-spaces">
 <span class="header-section-number">16.5</span> 定义调优空间</h2>
 <p>运行优化时，重要的是让调优算法知道哪些超参数是合法的。这里每个超参数的名称、类型和合法范围都很重要。所有这些信息都通过 <a href="https://paradox.mlr-org.com/reference/ParamSet.html"><code>ParamSet</code></a> 类的对象传达，该类定义在 <a href="https://paradox.mlr-org.com"><code>paradox</code></a> 中。</p>
 <p>注意，<code>ParamSet</code> 对象存在于两种上下文中。第一，参数集对象被用来为一个学习器（和其他对象）定义合法参数设置的空间。第二，它们被用来为调优定义搜索空间。我们主要对后者感兴趣。例如，我们可以考虑 <code>lrn("classif.rpart")</code> 的 <code>minsplit</code> 参数。与该学习器关联的 <code>ParamSet</code> 有一个下界但<em>没有</em>上界。然而，为了调优该值，必须给出下界<em>和</em>上界，因为调优搜索空间需要有界。对 <a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 或 <a href="https://mlr3pipelines.mlr-org.com/reference/PipeOp.html"><code>PipeOp</code></a> 对象，通常使用「无界」的参数集。而在这里，我们将主要关注创建可以用于调优的「有界」参数集。</p>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>同一个 <code>ParamSet</code> 在 mlr3 生态里扮演两个不同角色，理解这一点对使用调优至关重要。其一，作为学习器的「参数说明书」，它只需要给出合法取值范围即可，因此经常出现只有下界、没有上界的参数（例如 rpart 的 <code>minsplit</code> 可以大到任意正整数）；其二，作为调优的「搜索空间（search space）」，它必须让采样器和优化器知道「在哪里搜索」，所以所有数值参数都必须有上下界，否则无法生成候选点。mlr3tuning 要求调优空间有界，正是为了保证搜索过程始终在明确定义的区域内进行。这也是为什么 <code>to_tune()</code> 常常需要你补充 <code>upper</code>（上界）——它无法从学习器那半开（open-ended）的参数定义中推断出来。</p>
 </div>
-<p>如何使用 <a href="https://paradox.mlr-org.com/reference/ps.html"><code>ps()</code></a> 创建搜索空间已经在<a href="../chapter4/hyperparameter_optimization.html#sec-tune-ps" class="quarto-xref"><span>4.4.2 节</span></a>中概述。</p>
-<section id="sec-paradox-creation-tuning-paramset-from-learner" class="level3" data-number="16.5.1"><h3 data-number="16.5.1" class="anchored" data-anchor-id="sec-paradox-creation-tuning-paramset-from-learner">
+<p>如何使用 <a href="https://paradox.mlr-org.com/reference/ps.html"><code>ps()</code></a> 创建搜索空间已经在<a href="https://mlr3book.mlr-org.com/chapter4/hyperparameter_optimization.html#sec-tune-ps" class="quarto-xref"><span>4.4.2 节</span></a>中概述。</p>
+<section id="sec-paradox-creation-tuning-paramset-from-learner" class="level3" data-number="16.5.1"><h3 data-number="16.5.1" class="anchored" data-anchor-id="sec-paradox-creation-tuning-paramset-from-learner" id="sec-paradox-creation-tuning-paramset-from-learner">
 <span class="header-section-number">16.5.1</span> 从其他 ParamSet 创建调优 ParamSet</h3>
 <p>为一个已经拥有参数集信息的学习器定义调优 <code>ParamSet</code> 可能看起来不必要的繁琐，而确实有一种方法可以从一个学习器的参数集创建调优 <code>ParamSet</code>，充分利用已有信息。</p>
 <p>这是通过把学习器的 <code>ParamSet</code> 的值设置为所谓的 <a href="https://paradox.mlr-org.com/reference/to_tune.html"><code>TuneToken</code></a> 来完成的，这些 token 通过 <a href="https://paradox.mlr-org.com/reference/to_tune.html"><code>to_tune()</code></a> 调用构造。这可以像把其他超参数设置为特定值那样完成。它可以被理解为这些超参数被标记为稍后要调优。用于调优的结果 <code>ParamSet</code> 可以通过 <code>$search_space()</code> 方法获取。</p>
@@ -1135,7 +1184,7 @@ Trafo is set.</code></pre>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>本节展示了把 <code>to_tune()</code> 与 <code>ps()</code> 组合带来的高阶用法，值得特别注意三点。第一，对因子水平做调优时，采样发生在水平名（<code>character</code>）上，trafo 才把名字映射为真正的值，所以定义依赖时条件必须写在<em>变换前</em>的名字上（如 <code>cost == "val2"</code> 而非 <code>cost == 0.7</code>）。第二，<code>$search_space()</code> 会继承学习器参数集中已有的依赖——例如 SVM 的 <code>degree</code> 只在 <code>kernel = "polynomial"</code> 时有效，这份依赖会自动进入搜索空间，网格/随机采样时会自动把 <code>degree</code> 置为缺失（如输出中的 <code>NA</code>），从而避免评估无意义配置。第三，向量超参数（如 <code>class.weights</code>）可以通过「整体 <code>ps()</code> + <code>.extra_trafo</code> 返回单元素列表」的方式被当作单一超参数调优，这是 paradox 以标量原语表达复杂结构能力的又一例证。</p>
 </div>
-</section></section><section id="citation" class="level2" data-number="16.6"><h2 data-number="16.6" class="anchored" data-anchor-id="citation">
+</section></section><section id="citation" class="level2" data-number="16.6"><h2 data-number="16.6" class="anchored" data-anchor-id="citation" id="citation">
 <span class="header-section-number">16.6</span> 引用</h2>
 <p>请按如下方式引用本章：</p>
 <p>Binder M, Fischer S, Lang M, Winterstetter A. (2024). Advanced Hyperparameter Specification using paradox. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/advanced_hyperparameter_specification_using_paradox.html.</p>
@@ -1168,5 +1217,6 @@ MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }
 <script type="text/javascript" id="MathJax-script" async
   src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
 </script>
+<script src="../search.js"></script>
 </body>
 </html>

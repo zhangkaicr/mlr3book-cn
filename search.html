@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>搜索 · 《Applied Machine Learning Using mlr3 in R》中文版</title>
+<script>
+(function(){var s=localStorage.getItem("mlr3-theme");if(s===null)s="dark";document.documentElement.setAttribute("data-theme",s);})();
+</script>
+<style>
+:root{--bg:#1e2228;--fg:#d8dee4;--muted:#9aa4b0;--panel:#262c34;--panel2:#2e3540;--border:#3a4350;--accent:#4ea1ff;--accent2:#8f7ae6;--link:#6cb0ff}
+[data-theme="light"]{--bg:#f7f8fa;--fg:#24292f;--muted:#57606a;--panel:#ffffff;--panel2:#f0f2f5;--border:#d9dee3;--accent:#0969da;--accent2:#8250df;--link:#0969da}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;line-height:1.75}
+.container{max-width:860px;margin:0 auto;padding:30px 20px 80px}
+.topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;background:var(--panel);border-bottom:1px solid var(--border);padding:10px 20px}
+.brand{font-weight:600;color:var(--fg);text-decoration:none;display:flex;align-items:center;gap:8px}
+.brand .logo{color:var(--accent)}
+.topbar .right{display:flex;align-items:center;gap:10px}
+.home-link{color:var(--muted);font-size:13px;text-decoration:none}
+.home-link:hover{color:var(--accent)}
+.theme-toggle{background:var(--panel2);border:1px solid var(--border);color:var(--fg);border-radius:6px;padding:4px 12px;font-size:13px;cursor:pointer}
+.theme-toggle:hover{border-color:var(--accent)}
+.search-hero{padding:34px 0 6px}
+.search-hero h1{font-size:27px;margin:0 0 6px}
+.search-hero .sub{color:var(--muted);font-size:14px;margin-bottom:4px}
+.search-page-box{margin:26px 0 0}
+.search-page-box input{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--fg);border-radius:8px;padding:12px 15px;font-size:15px;font-family:inherit;outline:none}
+.search-page-box input:focus{border-color:var(--accent)}
+.s-meta{color:var(--muted);font-size:13px;margin:14px 0 8px}
+.s-list{list-style:none;margin:0;padding:0}
+.s-item{display:block;padding:9px 12px;border-radius:7px;text-decoration:none;color:var(--fg)}
+.s-list .s-item{border:1px solid var(--border);margin:8px 0;background:var(--panel)}
+.s-list .s-item:hover{border-color:var(--accent)}
+.s-item .s-ch{font-size:11px;color:var(--accent2);margin-bottom:2px}
+.s-item .s-sec{font-size:12px;color:var(--accent);margin-bottom:3px}
+.s-item .s-txt{font-size:13px;line-height:1.6;color:var(--fg)}
+.s-item mark{background:rgba(255,200,0,.32);color:inherit;border-radius:2px;padding:0 1px}
+[data-theme="light"] .s-item mark{background:rgba(255,200,0,.45)}
+.search-tips{margin:20px 0 0;color:var(--muted);font-size:13px}
+.search-tips kbd{background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:monospace;font-size:12px}
+.footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--border);color:var(--muted);font-size:13px;text-align:center}
+</style>
+<script>
+function toggleTheme(){var c=document.documentElement.getAttribute("data-theme");var n=c==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);localStorage.setItem("mlr3-theme",n)}
+</script>
+<script src="search.js"></script>
+</head>
+<body>
+<div class="topbar">
+<a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+<div class="right">
+<a class="home-link" href="index.html">目录</a>
+<button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
+</div>
+</div>
+<div class="container">
+<div class="search-hero">
+<h1>全书搜索</h1>
+<div class="sub">检索 16 章正文与附录的全部文字内容（不含代码）</div>
+</div>
+<div class="search-page-box" id="s-page-box">
+<input type="search" id="s-page-input" placeholder="输入关键词，如 管道、交叉验证、paradox…" autocomplete="off" aria-label="搜索全书">
+</div>
+<div class="s-meta" id="s-page-meta">输入关键词开始搜索全书内容</div>
+<ul class="s-list" id="s-page-list"></ul>
+<div class="search-tips">提示：在任意页面按 <kbd>/</kbd> 可快速聚焦搜索框，多个关键词用空格分隔（同时匹配）。</div>
+<div class="footer">
+<div>《Applied Machine Learning Using mlr3 in R》中文译本 · 非官方翻译，仅供学习交流</div>
+</div>
+</div>
+</body>
+</html>

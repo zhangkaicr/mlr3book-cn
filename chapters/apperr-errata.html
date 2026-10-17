@@ -59,6 +59,50 @@ body {
   border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
 }
 .theme-toggle:hover { border-color: var(--accent); }
+/* 搜索 */
+.search-box { position: relative; display: flex; align-items: center; }
+.search-box input {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 5px 10px 5px 28px; font-size: 13px; width: 190px;
+  font-family: inherit; outline: none;
+}
+.search-box input:focus { border-color: var(--accent); width: 240px; }
+.search-box .ico { position: absolute; left: 9px; color: var(--muted); font-size: 12px; pointer-events: none; }
+.search-panel {
+  display: none; position: absolute; top: calc(100% + 6px); right: 0; width: 460px;
+  max-width: 90vw; max-height: 66vh; overflow-y: auto; z-index: 200;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 12px 34px rgba(0,0,0,.42); padding: 6px;
+}
+.search-panel.open { display: block; }
+.search-panel .s-head {
+  padding: 8px 11px 7px; font-size: 12px; color: var(--muted);
+  border-bottom: 1px solid var(--border); margin-bottom: 5px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.search-panel .s-hint { font-size: 12px; color: var(--muted); padding: 18px 12px; text-align: center; }
+.s-item { display: block; padding: 8px 11px; border-radius: 7px; text-decoration: none; color: var(--fg); }
+.s-item:hover, .s-item.sel { background: var(--panel2); }
+.s-item .s-ch { font-size: 11px; color: var(--accent2); margin-bottom: 2px; }
+.s-item .s-sec { font-size: 12px; color: var(--accent); margin-bottom: 3px; }
+.s-item .s-txt { font-size: 13px; line-height: 1.6; color: var(--fg); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.s-item mark { background: rgba(255, 200, 0, .32); color: inherit; border-radius: 2px; padding: 0 1px; }
+[data-theme="light"] .s-item mark { background: rgba(255, 200, 0, .45); }
+/* 搜索结果页 */
+.search-page-box { margin: 26px 0 0; }
+.search-page-box input {
+  width: 100%; background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 8px; padding: 12px 15px; font-size: 15px; font-family: inherit; outline: none;
+}
+.search-page-box input:focus { border-color: var(--accent); }
+.s-meta { color: var(--muted); font-size: 13px; margin: 14px 0 8px; }
+.s-list { list-style: none; margin: 0; padding: 0; }
+.s-list .s-item { border: 1px solid var(--border); margin: 8px 0; }
+@media (max-width: 640px) {
+  .search-box input { width: 130px; }
+  .search-box input:focus { width: 170px; }
+  .search-panel { width: 84vw; }
+}
 /* 章头 */
 .header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
 .header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
@@ -170,9 +214,14 @@ function toggleTheme(){
 </head>
 <body>
 <div class="topbar">
-  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <a class="brand" href="../index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
   <div class="right">
-    <a class="home-link" href="index.html">目录</a>
+    <div class="search-box">
+      <span class="ico">&#128269;</span>
+      <input type="search" id="mlr3-search" placeholder="搜索全书…（按 /）" autocomplete="off" aria-label="全书搜索">
+      <div class="search-panel" id="mlr3-search-panel"></div>
+    </div>
+    <a class="home-link" href="../index.html">目录</a>
     <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
   </div>
 </div>
@@ -184,22 +233,22 @@ function toggleTheme(){
   </div>
   <main>
 <p>本附录列出了在线版本书籍对第一版各章所做的修改。</p>
-<section id="introduction-and-overview" class="level2" data-number="D.1"><h2 data-number="D.1" class="anchored" data-anchor-id="introduction-and-overview">
+<section id="introduction-and-overview" class="level2" data-number="D.1"><h2 data-number="D.1" class="anchored" data-anchor-id="introduction-and-overview" id="introduction-and-overview">
 <span class="header-section-number">D.1</span> 1. 绪论与概览</h2>
 <ul>
 <li>新增了关于 Docker 镜像的说明。</li>
-</ul></section><section id="data-and-basic-modeling" class="level2" data-number="D.2"><h2 data-number="D.2" class="anchored" data-anchor-id="data-and-basic-modeling">
+</ul></section><section id="data-and-basic-modeling" class="level2" data-number="D.2"><h2 data-number="D.2" class="anchored" data-anchor-id="data-and-basic-modeling" id="data-and-basic-modeling">
 <span class="header-section-number">D.2</span> 2. 数据与基础建模</h2>
 <ul>
 <li>将对 <code>Param</code> 的引用替换为 <code>Domain</code>。</li>
 <li>新增了关于 <code>$configure()</code> 方法的段落。</li>
 <li>由于 <code>mlbench</code> 移除了 <code>PimaIndiansDiabetes2</code>，练习中的该数据集已替换为 <code>SynthDiabetes2</code>。</li>
-</ul></section><section id="evaluation-and-benchmarking" class="level2" data-number="D.3"><h2 data-number="D.3" class="anchored" data-anchor-id="evaluation-and-benchmarking">
+</ul></section><section id="evaluation-and-benchmarking" class="level2" data-number="D.3"><h2 data-number="D.3" class="anchored" data-anchor-id="evaluation-and-benchmarking" id="evaluation-and-benchmarking">
 <span class="header-section-number">D.3</span> 3. 评估与基准测试</h2>
 <ul>
 <li>改用 <code>$encapsulate()</code> 方法，而非 <code>$encapsulate</code> 和 <code>$fallback</code> 字段。</li>
 <li>新增了关于 <code>mlr3inferr</code> 包的章节。</li>
-</ul></section><section id="hyperparameter-optimization" class="level2" data-number="D.4"><h2 data-number="D.4" class="anchored" data-anchor-id="hyperparameter-optimization">
+</ul></section><section id="hyperparameter-optimization" class="level2" data-number="D.4"><h2 data-number="D.4" class="anchored" data-anchor-id="hyperparameter-optimization" id="hyperparameter-optimization">
 <span class="header-section-number">D.4</span> 4. 超参数优化</h2>
 <ul>
 <li>将 <code>TuningInstanceSingleCrit</code> 更名为 <code>TuningInstanceBatchSingleCrit</code>。</li>
@@ -209,7 +258,7 @@ function toggleTheme(){
 <li>将 <code>lrn("surv.coxtime")</code> 替换为 <code>lrn("classif.mlp")</code>。</li>
 <li>新增说明：使用 <code>to_tune()</code> 时，学习器依赖会被自动保留。</li>
 <li>在 <code>lrn("classif.xgboost")</code> 示例中新增了 <code>booster = "gbtree"</code>。</li>
-</ul></section><section id="advanced-tuning-methods-and-black-box-optimization" class="level2" data-number="D.5"><h2 data-number="D.5" class="anchored" data-anchor-id="advanced-tuning-methods-and-black-box-optimization">
+</ul></section><section id="advanced-tuning-methods-and-black-box-optimization" class="level2" data-number="D.5"><h2 data-number="D.5" class="anchored" data-anchor-id="advanced-tuning-methods-and-black-box-optimization" id="advanced-tuning-methods-and-black-box-optimization">
 <span class="header-section-number">D.5</span> 5. 高级调优方法与黑箱优化</h2>
 <ul>
 <li>将 <code>TuningInstanceSingleCrit</code> 更名为 <code>TuningInstanceBatchSingleCrit</code>。</li>
@@ -222,42 +271,42 @@ function toggleTheme(){
 <li>在重要函数表中新增 <code>oi()</code>。</li>
 <li>改用 <code>$encapsulate()</code> 方法，而非 <code>$encapsulate</code> 和 <code>$fallback</code> 字段。</li>
 <li>在示例 5.4.4 中，调优的是 <code>lrn("svm")</code> 而非 <code>lrn("rpart")</code>。</li>
-</ul></section><section id="feature-selection" class="level2" data-number="D.6"><h2 data-number="D.6" class="anchored" data-anchor-id="feature-selection">
+</ul></section><section id="feature-selection" class="level2" data-number="D.6"><h2 data-number="D.6" class="anchored" data-anchor-id="feature-selection" id="feature-selection">
 <span class="header-section-number">D.6</span> 6. 特征选择</h2>
 <ul>
 <li>将 <code>FSelectInstanceSingleCrit</code> 更名为 <code>FSelectInstanceBatchSingleCrit</code>。</li>
 <li>将 <code>FSelectInstanceMultiCrit</code> 更名为 <code>FSelectInstanceBatchMultiCrit</code>。</li>
 <li>将 <code>FeatureSelector</code> 更名为 <code>FeatureSelectorBatch</code>。</li>
 <li>在重要函数表中新增 <code>fsi()</code>。</li>
-</ul></section><section id="sequential-pipelines" class="level2" data-number="D.7"><h2 data-number="D.7" class="anchored" data-anchor-id="sequential-pipelines">
+</ul></section><section id="sequential-pipelines" class="level2" data-number="D.7"><h2 data-number="D.7" class="anchored" data-anchor-id="sequential-pipelines" id="sequential-pipelines">
 <span class="header-section-number">D.7</span> 7. 顺序管道</h2>
 <ul>
 <li>由于 <code>pima</code> 任务已从 <code>mlr3</code> 移除，将 <code>tsk("pima")</code> 替换为 <code>tsk("diabetes")</code>。</li>
-</ul></section><section id="non-sequential-pipelines-and-tuning" class="level2" data-number="D.8"><h2 data-number="D.8" class="anchored" data-anchor-id="non-sequential-pipelines-and-tuning">
+</ul></section><section id="non-sequential-pipelines-and-tuning" class="level2" data-number="D.8"><h2 data-number="D.8" class="anchored" data-anchor-id="non-sequential-pipelines-and-tuning" id="non-sequential-pipelines-and-tuning">
 <span class="header-section-number">D.8</span> 8. 非顺序管道与调优</h2>
 <ul>
 <li>在分块示例中将核心数减少为 2。</li>
 <li>改用 <code>$encapsulate()</code> 方法，而非 <code>$encapsulate</code> 和 <code>$fallback</code> 字段。</li>
 <li>由于 <code>pima</code> 任务已从 <code>mlr3</code> 移除，将 <code>tsk("pima")</code> 替换为 <code>tsk("diabetes")</code>。</li>
 <li>在 AutoML 练习解答中，将 <code>pos()</code> 替换为命名 <code>PipeOp</code> 列表，因为 <code>pos()</code> 现在返回未命名列表，否则 <code>ppl("branch")</code> 会使用整数分支选择值。</li>
-</ul></section><section id="advanced-technical-aspects-of-mlr3" class="level2" data-number="D.9"><h2 data-number="D.9" class="anchored" data-anchor-id="advanced-technical-aspects-of-mlr3">
+</ul></section><section id="advanced-technical-aspects-of-mlr3" class="level2" data-number="D.9"><h2 data-number="D.9" class="anchored" data-anchor-id="advanced-technical-aspects-of-mlr3" id="advanced-technical-aspects-of-mlr3">
 <span class="header-section-number">D.9</span> 10. mlr3 高级技术方面</h2>
 <ul>
 <li>改用 <code>$encapsulate()</code> 方法，而非 <code>$encapsulate</code> 和 <code>$fallback</code> 字段。</li>
 <li>新增了使用 <code>mirai</code> 包进行并行化的章节。</li>
 <li>新增了条件类（condition classes）章节。</li>
 <li>新增了基础日志器（base logger）章节。</li>
-</ul></section><section id="large-scale-benchmarking" class="level2" data-number="D.10"><h2 data-number="D.10" class="anchored" data-anchor-id="large-scale-benchmarking">
+</ul></section><section id="large-scale-benchmarking" class="level2" data-number="D.10"><h2 data-number="D.10" class="anchored" data-anchor-id="large-scale-benchmarking" id="large-scale-benchmarking">
 <span class="header-section-number">D.10</span> 11. 大规模基准测试</h2>
 <ul>
 <li>改用 <code>$encapsulate()</code> 方法，而非 <code>$encapsulate</code> 和 <code>$fallback</code> 字段。</li>
 <li>由于 <code>pima</code> 任务已从 <code>mlr3</code> 移除，将 <code>tsk("pima")</code> 替换为 <code>tsk("diabetes")</code>。</li>
-</ul></section><section id="model-interpretation" class="level2" data-number="D.11"><h2 data-number="D.11" class="anchored" data-anchor-id="model-interpretation">
+</ul></section><section id="model-interpretation" class="level2" data-number="D.11"><h2 data-number="D.11" class="anchored" data-anchor-id="model-interpretation" id="model-interpretation">
 <span class="header-section-number">D.11</span> 12. 模型解释</h2>
 <ul>
 <li>对于局部代理模型，将任务子集改为第 127 行而非第 35 行。</li>
 <li>在「正确解读夏普利值」章节中添加 <code><a href="https://rdrr.io/r/base/as.data.frame.html">as.data.frame()</a></code>。</li>
-</ul></section><section id="beyond-regression-and-classification" class="level2" data-number="D.12"><h2 data-number="D.12" class="anchored" data-anchor-id="beyond-regression-and-classification">
+</ul></section><section id="beyond-regression-and-classification" class="level2" data-number="D.12"><h2 data-number="D.12" class="anchored" data-anchor-id="beyond-regression-and-classification" id="beyond-regression-and-classification">
 <span class="header-section-number">D.12</span> 13. 回归与分类之外</h2>
 <ul>
 <li>对 <code>lrn("surv.svm")</code> 使用 <code>gamma</code> 而非 <code>gamma.mu</code>
@@ -266,7 +315,7 @@ function toggleTheme(){
 <li>提及用于更改预测类型的 <code>pipeline_responsecompositor()</code> 管道</li>
 <li>在「组合（Composition）」小节中，使用 <code>lrn("surv.xgboost.aft")</code> 而非 <code>lrn("surv.glmnet")</code></li>
 <li>新增说明：<code>pendensity</code> 已于 2026 年从 CRAN 移除。</li>
-</ul></section><section id="algorithmic-fairness" class="level2" data-number="D.13"><h2 data-number="D.13" class="anchored" data-anchor-id="algorithmic-fairness">
+</ul></section><section id="algorithmic-fairness" class="level2" data-number="D.13"><h2 data-number="D.13" class="anchored" data-anchor-id="algorithmic-fairness" id="algorithmic-fairness">
 <span class="header-section-number">D.13</span> 14. 算法公平性</h2>
 <ul>
 <li>为代码块 7 添加了随机种子。</li>
@@ -292,5 +341,6 @@ MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }
 <script type="text/javascript" id="MathJax-script" async
   src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
 </script>
+<script src="../search.js"></script>
 </body>
 </html>

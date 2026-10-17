@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>预测集、验证与内部调优（+）</title>
+<script>
+(function(){
+  var saved = localStorage.getItem("mlr3-theme");
+  if (saved === null) saved = "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+})();
+</script>
+<style>
+:root {
+  --bg: #1e2228; --fg: #d8dee4; --muted: #9aa4b0;
+  --panel: #262c34; --panel2: #2e3540; --border: #3a4350;
+  --accent: #4ea1ff; --accent2: #8f7ae6;
+  --code-bg: #161a20; --code-fg: #d8dee4;
+  --note-bg: #2a3450; --note-border: #5a7fff;
+  --callout-bg: #2b3826; --callout-border: #6bbf59;
+  --table-head: #2e3540; --table-row: #262c34; --link: #6cb0ff;
+  --h-border: #3a4350;
+}
+[data-theme="light"] {
+  --bg: #f7f8fa; --fg: #24292f; --muted: #57606a;
+  --panel: #ffffff; --panel2: #f0f2f5; --border: #d9dee3;
+  --accent: #0969da; --accent2: #8250df;
+  --code-bg: #f3f4f6; --code-fg: #24292f;
+  --note-bg: #eef2ff; --note-border: #5a7fff;
+  --callout-bg: #eff7ec; --callout-border: #6bbf59;
+  --table-head: #eef1f4; --table-row: #ffffff; --link: #0969da;
+  --h-border: #d9dee3;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  line-height: 1.78; font-size: 16px;
+  transition: background .2s, color .2s;
+}
+.container { max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+/* 顶栏 */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+}
+.topbar .brand { font-weight: 600; font-size: 15px; color: var(--fg); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+.topbar .brand .logo { color: var(--accent); }
+.topbar .right { display: flex; align-items: center; gap: 10px; }
+.topbar .home-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+.topbar .home-link:hover { color: var(--accent); }
+.theme-toggle {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+/* 章头 */
+.header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
+.header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
+.header-block h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.35; }
+.header-block .subtitle { color: var(--muted); font-size: 14px; }
+/* 章节导航 */
+.chnav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0 6px; flex-wrap: wrap; }
+.chnav a {
+  background: var(--panel); border: 1px solid var(--border); color: var(--fg);
+  text-decoration: none; font-size: 14px; padding: 10px 16px; border-radius: 8px;
+  max-width: 46%; display: block;
+}
+.chnav a:hover { border-color: var(--accent); color: var(--accent); }
+.chnav .dir { color: var(--muted); font-size: 12px; display: block; }
+.chnav .ch { font-weight: 600; }
+.chnav a.disabled { opacity: .4; pointer-events: none; }
+/* 正文 */
+main { padding: 0 0 20px; }
+main h1 { font-size: 26px; margin: 40px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--h-border); }
+main h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--h-border); }
+main h3 { font-size: 18px; margin: 28px 0 10px; }
+main h4 { font-size: 16px; margin: 22px 0 8px; color: var(--accent); }
+main p { margin: 10px 0; }
+main a { color: var(--link); text-decoration: none; }
+main a:hover { text-decoration: underline; }
+main strong { font-weight: 600; }
+main ul, main ol { padding-left: 26px; }
+main li { margin: 5px 0; }
+main blockquote {
+  margin: 12px 0; padding: 10px 16px; border-left: 4px solid var(--border);
+  background: var(--panel2); color: var(--muted); border-radius: 0 6px 6px 0;
+}
+main hr { border: none; border-top: 1px solid var(--border); margin: 26px 0; }
+main img { max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 6px; }
+main table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+main th { background: var(--table-head); font-weight: 600; }
+main th, main td { border: 1px solid var(--border); padding: 7px 11px; }
+main tr:nth-child(even) td { background: var(--table-row); }
+/* 代码 */
+pre {
+  background: var(--code-bg); color: var(--code-fg);
+  padding: 14px 16px; border-radius: 8px; overflow-x: auto;
+  border: 1px solid var(--border); font-size: 13.5px; line-height: 1.6;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+code {
+  font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+  background: var(--panel2); color: var(--accent);
+  padding: 2px 5px; border-radius: 4px; font-size: 13.5px;
+}
+pre code { background: none; color: var(--code-fg); padding: 0; }
+/* 代码块容器（Quarto 结构） */
+.sourceCode { margin: 14px 0; }
+.sourceCode pre { margin: 0; }
+/* 输出块 */
+.cell { margin: 6px 0; }
+.cell-output { margin: 0 0 6px; }
+.cell-output pre { background: var(--panel2); border-style: dashed; }
+.cell-output-stderr { border-color: #d29922; }
+.cell-output-stdout pre { border-color: var(--border); }
+/* figure */
+figure { margin: 18px 0; text-align: center; }
+figure img { margin: 0 auto; }
+figcaption, .caption { color: var(--muted); font-size: 13px; margin-top: 6px; text-align: center; }
+.quarto-float { margin: 18px 0; }
+.quarto-figure { margin: 18px 0; text-align: center; }
+/* 背景与解释（译者注）框 */
+.bg-note {
+  background: var(--note-bg); border: 1px solid var(--note-border);
+  border-radius: 8px; padding: 14px 18px; margin: 18px 0;
+  font-size: 15px;
+}
+.bg-note p { margin: 6px 0; }
+.bg-note .bg-title { font-weight: 600; color: var(--accent); }
+/* 原书 callout 提示框 */
+.callout {
+  border-radius: 8px; padding: 12px 18px; margin: 16px 0;
+  border-left: 5px solid var(--accent); background: var(--panel2);
+}
+.callout-tip { border-left-color: #6bbf59; }
+.callout-note { border-left-color: var(--accent); }
+.callout-warning { border-left-color: #d29922; }
+.callout-important { border-left-color: #e05d5d; }
+.callout-header { font-weight: 600; margin-bottom: 4px; }
+.callout-title-container { display: inline; }
+.callout-body p { margin: 6px 0; }
+.callout-icon-container { display: none; }
+/* 脚注 */
+.footnote-ref { font-size: 12px; vertical-align: super; }
+/* 页脚 */
+.footer {
+  margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 13px; text-align: center;
+}
+.footer .lic { margin-top: 6px; font-size: 12px; }
+/* 表格滚动 */
+main table { display: block; overflow-x: auto; }
+/* banner 样式（原书 callout 可能以其他名目出现） */
+[class*="callout"] > p:first-child { margin-top: 4px; }
+</style>
+<script>
+function toggleTheme(){
+  var cur = document.documentElement.getAttribute("data-theme");
+  var next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("mlr3-theme", next);
+}
+</script>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <div class="right">
+    <a class="home-link" href="index.html">目录</a>
+    <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
+  </div>
+</div>
+<div class="container">
+  <div class="header-block">
+    <div class="part">第四部分 高级专题</div>
+    <h1>预测集、验证与内部调优（+）</h1>
+    <div class="subtitle">《Applied Machine Learning Using mlr3 in R》中文翻译 · 章节 第 15 章 预测集、验证与内部调优</div>
+  </div>
+  <main>
+<p><strong>Sebastian Fischer</strong> <br><em>Ludwig-Maximilians-Universität München, and Munich Center for Machine Learning (MCML)</em> <br><br></p>
+<section id="sec-predict-sets" class="level2" data-number="15.1"><h2 data-number="15.1" class="anchored" data-anchor-id="sec-predict-sets">
+<span class="header-section-number">15.1</span> 预测集与训练误差估计</h2>
+<p>在<a href="../chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>中，我们已经详细研究了如何训练、预测和评估许多不同的学习器（Learner）。评估一个完全训练好的模型通常需要在未见过的测试观测上做出预测。当我们直接用训练好的学习器做预测时，可以显式控制使用哪些观测：</p>
+<div class="cell">
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_sonar</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"sonar"</span><span class="op">)</span></span>
+<span><span class="va">lrn_rf</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.ranger"</span><span class="op">)</span></span>
+<span><span class="va">lrn_rf</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_sonar</span>, row_ids <span class="op">=</span> <span class="fl">4</span><span class="op">:</span><span class="fl">208</span><span class="op">)</span></span>
+<span><span class="va">pred1</span> <span class="op">=</span> <span class="va">lrn_rf</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_sonar</span>, row_ids <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">pred2</span> <span class="op">=</span> <span class="va">lrn_rf</span><span class="op">$</span><span class="fu">predict_newdata</span><span class="op">(</span><span class="va">tsk_sonar</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>但当使用 <code>resample()</code> 或 <code>benchmark()</code> 时，默认行为是在重采样的<em>测试</em>集上做预测。通过配置学习器的 <code>$predict_sets</code>，也可以对任务和数据的其他专门子集做出预测，即<em>训练</em>集和<em>内部验证集（internal_valid）</em>数据。我们将在接下来的小节中讨论更复杂的 <em>internal_valid</em> 选项。现在先来看如何在<em>训练</em>集上做预测。这有时对进一步分析或研究过拟合（overfitting）是有价值的。又或者我们只是出于好奇。让我们把学习器配置为同时在<em>训练</em>集和<em>测试</em>集上做预测：</p>
+<div class="cell">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rf</span><span class="op">$</span><span class="va">predict_sets</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"train"</span>, <span class="st">"test"</span><span class="op">)</span></span>
+<span><span class="va">rr</span> <span class="op">=</span> <span class="fu">resample</span><span class="op">(</span><span class="va">tsk_sonar</span>, <span class="va">lrn_rf</span>, <span class="fu">rsmp</span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>在重采样过程中，学习器会在当前迭代被训练之后，对所有请求的集合产生预测。要访问它们，我们可以索取一个包含 3 个预测对象的列表（对应每个 CV 折），也可以索取整个 CV 的组合预测对象——在本例中，它包含的预测行数与任务中的观测数一样多。</p>
+<div class="cell">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html">str</a></span><span class="op">(</span><span class="va">rr</span><span class="op">$</span><span class="fu">predictions</span><span class="op">(</span><span class="st">"test"</span><span class="op">)</span><span class="op">)</span> <span class="co"># 或者 str(rr$predictions("train"))</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>List of 3
+ $ :Classes 'PredictionClassif', 'Prediction', 'R6' &lt;PredictionClassif&gt; 
+ $ :Classes 'PredictionClassif', 'Prediction', 'R6' &lt;PredictionClassif&gt; 
+ $ :Classes 'PredictionClassif', 'Prediction', 'R6' &lt;PredictionClassif&gt; </code></pre>
+</div>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rr</span><span class="op">$</span><span class="fu">prediction</span><span class="op">(</span><span class="st">"test"</span><span class="op">)</span> <span class="co"># 或者 rr$prediction("train")</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionClassif&gt; for 208 observations: ────────────────────────────
+ row_ids truth response
+       5     R        M
+       6     R        M
+       7     R        M
+     ---   ---      ---
+     200     M        M
+     203     M        M
+     208     M        M</code></pre>
+</div>
+</div>
+<p>我们也可以对重采样结果的特定集合应用性能度量（Measure）：</p>
+<div class="cell">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span></span>
+<span>  <span class="fu">msr</span><span class="op">(</span><span class="st">"classif.ce"</span>, predict_sets <span class="op">=</span> <span class="st">"train"</span>, id <span class="op">=</span> <span class="st">"ce_train"</span><span class="op">)</span>,</span>
+<span>  <span class="fu">msr</span><span class="op">(</span><span class="st">"classif.ce"</span>, predict_sets <span class="op">=</span> <span class="st">"test"</span>, id <span class="op">=</span> <span class="st">"ce_test"</span><span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>ce_train  ce_test 
+  0.0000   0.2065 </code></pre>
+</div>
+</div>
+<p>度量的默认预测集通常是测试集。但我们也可以在这里请求其他集合。如果为度量请求了多个预测集，它们的预测在传入度量之前会被拼接，然后度量通常会对该集合的所有预测行计算一个汇总得分。在我们的例子中，不出所料，训练误差低于测试误差。</p>
+<p>如果我们只想访问在训练期间计算的信息，甚至可以配置学习器完全不产生任何预测。例如，对于那些在底层实现中已经在训练期间产生泛化误差（generalization error）估计的学习器，这是有用的，比如使用袋外误差（out-of-bag error）估计或验证分数。前者只对具有 'oob_error' 属性的学习器可用，可以通过<a href="https://mlr3.mlr-org.com/reference/mlr_measures_oob_error.html"><code>MeasureOOBError</code></a>访问。后者对具有 'validation' 属性的学习器可用，实现为<a href="https://mlr3.mlr-org.com/reference/mlr_measures_internal_valid_score.html"><code>MeasureInternalValidScore</code></a>。下面我们用随机森林的袋外误差来评估它。由于我们不需要任何预测集，可以使用<a href="https://mlr3.mlr-org.com/reference/mlr_resamplings_insample.html"><code>ResamplingInsample</code></a>，它会使用整个数据集进行训练。</p>
+<div class="cell">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rf</span><span class="op">$</span><span class="va">predict_sets</span> <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="va">rsmp_in</span> <span class="op">=</span> <span class="fu">rsmp</span><span class="op">(</span><span class="st">"insample"</span><span class="op">)</span></span>
+<span><span class="va">rr</span> <span class="op">=</span> <span class="fu">resample</span><span class="op">(</span><span class="va">tsk_sonar</span>, <span class="va">lrn_rf</span>, <span class="va">rsmp_in</span><span class="op">)</span></span>
+<span><span class="va">msr_oob</span> <span class="op">=</span> <span class="fu">msr</span><span class="op">(</span><span class="st">"oob_error"</span><span class="op">)</span></span>
+<span><span class="va">rr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="va">msr_oob</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>oob_error 
+   0.1587 </code></pre>
+</div>
+</div>
+<p>这一切对于基准测试（benchmarking）、调优（tuning）、嵌套重采样（nested resampling）以及任何在内部涉及重采样、并且我们要么生成预测、要么对其应用性能度量的过程，都以完全相同的方式工作。下面我们通过调优随机森林的 <code>mtry.ratio</code> 参数（使用简单的网格搜索）来说明这一点。我们不是在某个测试数据上显式做出预测并加以评估，而是用 OOB 误差来评估 <code>mtry.ratio</code>。这会大大加快调优过程，因为此时只需拟合一个随机森林（只需训练即可），我们就可以从这个单一模型中获取 OOB，而不必拟合多个模型。由于 OOB 观测在集成的每棵树训练期间都未被触碰，这仍然能产生有效的性能估计。</p>
+<div class="cell">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rf</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">set_values</span><span class="op">(</span></span>
+<span>  mtry.ratio <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">ti</span> <span class="op">=</span> <span class="fu">tune</span><span class="op">(</span></span>
+<span>  task <span class="op">=</span> <span class="va">tsk_sonar</span>,</span>
+<span>  tuner <span class="op">=</span> <span class="fu">tnr</span><span class="op">(</span><span class="st">"grid_search"</span><span class="op">)</span>,</span>
+<span>  learner <span class="op">=</span> <span class="va">lrn_rf</span>,</span>
+<span>  resampling <span class="op">=</span> <span class="va">rsmp_in</span>,</span>
+<span>  measure <span class="op">=</span> <span class="va">msr_oob</span>,</span>
+<span>  term_evals <span class="op">=</span> <span class="fl">10</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>训练误差通常远低于测试误差，因为前者是在模型已经见过的数据上计算的。两者之间的差距正是过拟合（overfitting）最直观的表现：模型记住了训练样本中的噪声，而不是学到一般规律。交叉验证（cross-validation）的核心思想，就是通过多次划分训练/测试子集，用从未参与训练的数据来估计模型的泛化误差。在本节中，mlr3 的 <code>predict_sets</code> 机制让你能在同一次重采样结果上同时拿到训练集与测试集的预测，便于直接对比。另外值得注意，OOB（out-of-bag，袋外）误差是随机森林等基于自助采样（bootstrap）的集成方法特有的「免费」性能估计：每棵树只由约三分之二的样本训练，未被该树使用的样本即可充当验证数据。它天然无偏且无需额外重采样，因此在某些调优场景下可以大幅节省计算成本。</p>
+</div>
+</section><section id="sec-validation" class="level2" data-number="15.2"><h2 data-number="15.2" class="anchored" data-anchor-id="sec-validation">
+<span class="header-section-number">15.2</span> 验证</h2>
+<p>对于迭代式训练（许多学习器都使用），在训练<em>过程中</em>跟踪模型在<em>验证</em>数据上的性能是很有意义的。可以用于简单的日志记录或事后分析，但主要的用例是早停（early stopping）。如果模型在训练数据上的性能持续改善，但在验证数据上的性能停滞或下降，这表明过拟合，我们应该停止迭代训练。在训练过程中以在线方式处理这一点，远比从外部通过传统的、离线式的超参数调优来配置迭代次数高效得多——后者需要一遍又一遍地以不同的迭代次数重新拟合模型（并且无法利用任何有关序列进展的信息）。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>早停（early stopping）是迭代式学习算法（如 boosting、深度学习）中一类经典的正则化（regularization）手段。其思想朴素而有效：训练误差会随着迭代不断下降，但当模型开始记住训练集的噪声时，验证集误差反而会回升——这个拐点（此时训练误差通常仍在下降）就是应该停止迭代的时刻。传统做法是把迭代次数（如 XGBoost 的 <code>nrounds</code>）当作普通超参数，用交叉验证离线调优，代价是每评估一个取值都要完整重新训练一遍；而早停只需训练一次，在过程中实时监控验证指标即可，计算成本低得多。深度学习社区把「允许验证指标连续多少轮不改善」称为耐心（patience），在 XGBoost 中对应 <code>early_stopping_rounds</code> 参数。需要强调的是，早停要求存在一块独立的验证数据——验证集（validation set）通常从训练集中划出，与最终评估用的测试集（test set）严格区分。</p>
+</div>
+<p>在 <code>mlr3</code> 中，学习器可以具有 'validation' 和 'internal_tuning' 属性，以表明它们是否可以使用验证集，以及是否可以在内部优化超参数，例如通过早停。要检查给定的学习器是否支持这一点，我们只需访问它的 <code>$properties</code> 字段。这类学习器的例子包括 XGBoost、LightGBM、CatBoost 等 boosting 算法，以及来自<a href="https://cran.r-project.org/package=mlr3torch"><code>mlr3torch</code></a>的深度学习模型。在本节中，我们将在 sonar 上训练 XGBoost，并跟踪它在验证集上的性能。</p>
+<div class="cell">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_sonar</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"sonar"</span><span class="op">)</span></span>
+<span><span class="va">lrn_xgb</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.xgboost"</span><span class="op">)</span></span>
+<span><span class="va">lrn_xgb</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;LearnerClassifXgboost&gt; (classif.xgboost): Extreme Gradient Boosting ─
+• Model: -
+• Parameters: nrounds=1000, nthread=1, verbose=0, verbosity=0,
+use_pred_offset=TRUE
+• Validate: NULL
+• Packages: mlr3, mlr3learners, and xgboost
+• Predict Types: [response] and prob
+• Feature Types: logical, integer, and numeric
+• Encapsulation: none (fallback: -)
+• Properties: hotstart_forward, importance, internal_tuning, missings,
+multiclass, offset, twoclass, validation, and weights
+• Other settings: use_weights = 'use', predict_raw = 'FALSE'</code></pre>
+</div>
+</div>
+<p>要启用验证，我们需要配置验证数据是如何构造的。对 XGBoost 来说有一个特殊的 <code>watchlist</code> 参数，但 <code>mlr3</code> 也通过学习器的 <code>$validate</code> 字段提供了一个标准化的——以及我们稍后将看到的，更强大的——接口。这个字段可以设置为：</p>
+<ul>
+<li>
+<code>NULL</code> 表示不使用验证数据（默认），</li>
+<li>一个比例，表示训练数据中用作验证集的比例，</li>
+<li>
+<code>"predefined"</code> 表示使用任务中指定的验证数据（我们很快就会看到如何配置），以及</li>
+<li>
+<code>"test"</code> 表示使用测试集作为验证数据，这只能与重采样和调优结合使用。</li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+测试数据泄漏
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>如果学习器的 <code>$validate</code> 字段设为 'test'，我们就会在训练期间泄漏重采样的测试集。如果验证分数被用于早停，这将导致有偏的性能估计。这是否可取取决于上下文：如果测试集被用来在 HPO 期间评估参数配置（即它充当验证集），这通常是可以的；然而，如果测试集的目的是提供无偏的性能估计，例如用来比较不同的学习器，那么这是不可以的。</p>
+</div>
+</div>
+<p>下面，我们配置 XGBoost 学习器使用其训练数据的 <span class="math inline">\(1/3\)</span> 进行验证：</p>
+<div class="cell">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_xgb</span><span class="op">$</span><span class="va">validate</span> <span class="op">=</span> <span class="fl">1</span><span class="op">/</span><span class="fl">3</span></span></code></pre></div>
+</div>
+<p>接下来，我们设置迭代次数（<code>nrounds</code>）以及要跟踪的度量（<code>eval_metric</code>），然后训练学习器。这里，来自训练任务的 <span class="math inline">\(1/3\)</span> 的观测将专门用于验证，其余 <span class="math inline">\(2/3\)</span> 用于训练。如果任务中启用了分层（stratification）或分组（grouping），这也会被遵守。更多细节参见<a href="../chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>。</p>
+<div class="cell">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_xgb</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">set_values</span><span class="op">(</span></span>
+<span>  nrounds <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>  eval_metric <span class="op">=</span> <span class="st">"logloss"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">lrn_xgb</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_sonar</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>由于 XGBoost 学习器记录了验证性能的日志，我们现在可以通过 <code>$model</code> 槽来访问它。该信息在模型中存储的确切位置取决于具体的学习算法。对 XGBoost 而言，历史记录存储在 <code>$evaluation_log</code> 中：</p>
+<div class="cell">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">tail</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attributes.html">attributes</a></span><span class="op">(</span><span class="va">lrn_xgb</span><span class="op">$</span><span class="va">model</span><span class="op">)</span><span class="op">$</span><span class="va">evaluation_log</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   iter test_logloss
+1:   95       0.6068
+2:   96       0.6062
+3:   97       0.6089
+4:   98       0.6080
+5:   99       0.6043
+6:  100       0.6056</code></pre>
+</div>
+</div>
+<p>验证损失随时间的变化在下图中可视化，x 轴是迭代次数，y 轴是验证 logloss：</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure"><p><img src="images/predsets_valid_inttune_files/figure-html/predsets_valid_inttune-011-1.png" class="img-fluid figure-img" style="width:70.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><code>mlr3</code> 还为最终验证性能提供了一个标准化的访问器。我们可以通过 <code>$internal_valid_scores</code> 字段访问它，这是一个命名列表，可能包含不止一个验证度量。</p>
+<div class="cell">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_xgb</span><span class="op">$</span><span class="va">internal_valid_scores</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$logloss
+[1] 0.6056</code></pre>
+</div>
+</div>
+<p>在某些情况下，人们可能希望对验证数据的构造有更多控制。例如，如果存在一个预定义的验证划分要与任务一起使用，这会很有用。这种对验证数据的细粒度控制可以通过把 <code>validate</code> 字段设置为 <code>"predefined"</code> 来实现。</p>
+<div class="cell">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_xgb</span><span class="op">$</span><span class="va">validate</span> <span class="op">=</span> <span class="st">"predefined"</span></span></code></pre></div>
+</div>
+<p>这使我们能够使用训练任务中定义的 <code>$internal_valid_task</code>。下面，我们把验证任务设置为使用 60 个随机采样的 id，并把它们从主任务中移除。</p>
+<div class="cell">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">valid_ids</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span><span class="op">(</span><span class="va">tsk_sonar</span><span class="op">$</span><span class="va">nrow</span>, <span class="fl">60</span><span class="op">)</span></span>
+<span><span class="va">tsk_valid</span> <span class="op">=</span> <span class="va">tsk_sonar</span><span class="op">$</span><span class="fu">clone</span><span class="op">(</span>deep <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">tsk_valid</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="va">valid_ids</span><span class="op">)</span></span>
+<span><span class="va">tsk_sonar</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html">setdiff</a></span><span class="op">(</span><span class="va">tsk_sonar</span><span class="op">$</span><span class="va">row_ids</span>, <span class="va">valid_ids</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">tsk_sonar</span><span class="op">$</span><span class="va">internal_valid_task</span> <span class="op">=</span> <span class="va">tsk_valid</span></span></code></pre></div>
+</div>
+<p>注意，我们本可以通过简单设置 <code>tsk_valid$internal_valid_task = valid_ids</code> 达到同样的效果，但为了完整起见，我们展示了这种显式的方式。相关的验证任务现在有 60 个观测，主任务有 148 个：</p>
+<div class="cell">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">tsk_sonar</span><span class="op">$</span><span class="va">internal_valid_task</span><span class="op">$</span><span class="va">nrow</span>, <span class="va">tsk_sonar</span><span class="op">$</span><span class="va">nrow</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1]  60 148</code></pre>
+</div>
+</div>
+<p>当我们现在训练时，学习器会在指定的附加任务上验证自己。注意，<code>$internal_valid_task</code> 槽总是被内部使用，即使你在 <code>learner$validate</code> 中设置了一个比例值，它也只是被自动构造（然后传下去）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_xgb</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_sonar</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>然而，在很多情况下，人们不只是训练一个单独的学习器，而是把它与其他（预处理）步骤组合在一个<a href="https://mlr3pipelines.mlr-org.com/reference/mlr_learners_graph.html"><code>GraphLearner</code></a>中，参见<a href="../chapter9/preprocessing.html" class="quarto-xref"><span>第 9 章</span></a>。在 <code>GraphLearner</code> 中进行验证仍然是可能的，因为预处理 <code>PipeOp</code> 也会处理验证任务。虽然 <code>PipeOp</code> 的<em>训练</em>逻辑应用于主任务，但<em>预测</em>逻辑应用于验证数据。这确保了当 XGBoost 学习器在验证数据上评估其性能时没有数据泄漏。下面，我们构造一个 <code>PipeOpPCA</code> 并把它应用于带验证任务的 sonar 任务。</p>
+<div class="cell">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">po_pca</span> <span class="op">=</span> <span class="fu">po</span><span class="op">(</span><span class="st">"pca"</span><span class="op">)</span></span>
+<span><span class="va">taskout</span> <span class="op">=</span> <span class="va">po_pca</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">tsk_sonar</span><span class="op">)</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">taskout</span><span class="op">$</span><span class="va">internal_valid_task</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;TaskClassif&gt; (60x61): Sonar: Mines vs. Rocks ────────────────────────
+• Target: Class
+• Properties: twoclass
+• Features (60):
+  • dbl (60): PC1, PC10, PC11, PC12, PC13, PC14, PC15, PC16, PC17, PC18,
+  PC19, PC2, PC20, PC21, PC22, PC23, PC24, PC25, PC26, PC27, PC28, PC29,
+  PC3, PC30, PC31, PC32, PC33, PC34, PC35, PC36, PC37, PC38, PC39, PC4,
+  PC40, PC41, PC42, PC43, PC44, PC45, PC46, PC47, PC48, PC49, PC5, PC50,
+  PC51, PC52, PC53, PC54, PC55, PC56, PC57, PC58, PC59, PC6, PC60, PC7,
+  PC8, PC9
+• Target classes: M (positive class, 57%), R (43%)</code></pre>
+</div>
+</div>
+<p>在 <code>$train()</code> 期间应用于 <code>$internal_valid_task</code> 的预处理，等价于对它做预测：</p>
+<div class="cell">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">po_pca</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">tsk_sonar</span><span class="op">$</span><span class="va">internal_valid_task</span><span class="op">)</span><span class="op">)</span><span class="op">[[</span><span class="fl">1L</span><span class="op">]</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;TaskClassif&gt; (60x61): Sonar: Mines vs. Rocks ────────────────────────
+• Target: Class
+• Properties: twoclass
+• Features (60):
+  • dbl (60): PC1, PC10, PC11, PC12, PC13, PC14, PC15, PC16, PC17, PC18,
+  PC19, PC2, PC20, PC21, PC22, PC23, PC24, PC25, PC26, PC27, PC28, PC29,
+  PC3, PC30, PC31, PC32, PC33, PC34, PC35, PC36, PC37, PC38, PC39, PC4,
+  PC40, PC41, PC42, PC43, PC44, PC45, PC46, PC47, PC48, PC49, PC5, PC50,
+  PC51, PC52, PC53, PC54, PC55, PC56, PC57, PC58, PC59, PC6, PC60, PC7,
+  PC8, PC9
+• Target classes: M (positive class, 57%), R (43%)</code></pre>
+</div>
+</div>
+<p>这意味着跟踪验证性能即使在复杂的图学习器中也能工作，而如果简单地设置 XGBoost 的 <code>watchlist</code> 参数则无法做到。下面，我们把 PCA 算子与 XGBoost 链接起来，并把它转换为一个学习器。</p>
+<div class="cell">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">glrn</span> <span class="op">=</span> <span class="fu">as_learner</span><span class="op">(</span><span class="va">po_pca</span> <span class="op">%&gt;&gt;%</span> <span class="va">lrn_xgb</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>虽然这几乎「开箱即用」，我们现在需要在两个层面上指定 <code>$validate</code> 字段：</p>
+<ol type="1">
+<li>对 <code>GraphLearner</code> 本身，即验证数据是在 <code>Task</code> 进入图之前如何创建的。</li>
+<li>哪些具有 <code>"validation"</code> 属性的 <code>PipeOp</code> 应该实际使用它。</li>
+</ol>
+<p>这个配置可以通过使用 <code>set_validate()</code> 来简化。当应用于 <code>GraphLearner</code> 时，我们可以指定参数 <code>validate</code>，它决定<em>如何</em>创建验证数据，还可以选择指定参数 <code>ids</code>，它决定<em>哪些</em> <code>PipeOp</code> 应该使用它。默认情况下，后者被设置为 <code>Graph</code> 的 <code>$base_learner()</code>，即最后一个学习器。这意味着下面两个调用是等价的：</p>
+<div class="cell">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">set_validate</span><span class="op">(</span><span class="va">glrn</span>, validate <span class="op">=</span> <span class="st">"predefined"</span><span class="op">)</span></span>
+<span><span class="fu">set_validate</span><span class="op">(</span><span class="va">glrn</span>, validate <span class="op">=</span> <span class="st">"predefined"</span>, ids <span class="op">=</span> <span class="st">"classif.xgboost"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>在包含预处理步骤的 <code>GraphLearner</code> 中，验证数据也必须经过与测试数据一致的变换流程，否则就会引入数据泄漏（data leakage）。以 PCA 为例：主成分载荷（loading）必须只从训练数据中学习，然后以「预测」逻辑（即用已学到的变换直接投影）施加到验证数据上，绝不能用验证数据重新拟合 PCA。mlr3 的 <code>PipeOp</code> 在处理主任务时应用 <code>$train()</code> 逻辑，而对验证任务自动应用 <code>$predict()</code> 逻辑，从而保证验证性能估计不被污染。这正是 mlr3 标准化的 <code>$validate</code> 接口比直接设置 XGBoost 的 <code>watchlist</code> 更强大的原因——后者无法感知上游预处理，也就无法保证验证数据经过了正确的变换。</p>
+</div>
+<p>我们现在可以像之前一样训练图学习器，并检查最终的验证度量，它现在以相应 <code>PipeOp</code> 的 ID 作为前缀。</p>
+<div class="cell">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">glrn</span><span class="op">$</span><span class="va">validate</span> <span class="op">=</span> <span class="st">"predefined"</span></span>
+<span><span class="va">glrn</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_sonar</span><span class="op">)</span></span>
+<span><span class="va">glrn</span><span class="op">$</span><span class="va">internal_valid_scores</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$classif.xgboost.logloss
+[1] 0.5764</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+<code>PipeOp</code> 的 <code>$validate</code> 字段
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>由于单个 <code>PipeOp</code> 无法控制验证数据是如何生成的，只能控制是否使用它，因此它们的 <code>$validate</code> 字段只能被设置为 <code>NULL</code> 或 <code>"predefined"</code>。这就是为什么运行 <code>as_pipeop(lrn("classif.xgboost", validate = 0.3))</code> 会报错。在 <code>GraphLearner</code> 中使用验证时，最好先构造不指定验证数据的学习器，然后使用 <code>set_validate()</code>。</p>
+</div>
+</div>
+</section><section id="sec-internal-tuning" class="level2" data-number="15.3"><h2 data-number="15.3" class="anchored" data-anchor-id="sec-internal-tuning">
+<span class="header-section-number">15.3</span> 内部调优</h2>
+<p>XGBoost 不仅能记录它的验证性能，还能监控它以<em>提前停止</em>训练，即在训练期间对 <code>nrounds</code> 超参数执行内部调优（internal tuning）。这由 <code>"internal_tuning"</code> 属性标记：</p>
+<div class="cell">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="st">"internal_tuning"</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">lrn_xgb</span><span class="op">$</span><span class="va">properties</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>mlr3 把「在训练过程中由算法内部优化超参数」称为内部调优（internal tuning），以区别于借助 mlr3tuning 在重采样外部进行的离线调优。典型的例子就是早停：XGBoost 在训练中自行决定 <code>nrounds</code> 的最优值。内部调优与外部调优可以组合使用：外部调优器负责较「昂贵」的结构性超参数（如学习率 <code>eta</code>），而内部机制负责迭代次数这类在训练过程中天然可见的参数。一个需要理解的技术细节是：内部调优参数的取值要跨重采样折（fold）聚合，因为每一折训练都可能产生不同的早停迭代数——默认规则是取平均，也可在创建 <code>to_tune()</code> token 时自定义。此外，由于每一折的早停轮数不同，内部调优本质上是在每一折内做一次「微型验证」，因此其性能信号与最终模型的迭代数并不完全一一对应。</p>
+</div>
+<p>XGBoost 的早停可以通过指定 <code>early_stopping_rounds</code> 参数来启用。这也被称为<em>耐心（patience）</em>，它指定验证损失必须连续多少轮没有改善，训练才会终止。用于早停的度量是我们传给 <code>eval_metric</code> 的第一个值，即 logloss。</p>
+<div class="cell">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_xgb</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">set_values</span><span class="op">(</span></span>
+<span>  early_stopping_rounds <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  nrounds <span class="op">=</span> <span class="fl">100</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>当我们现在训练学习器时，可以通过 <code>$internal_tuned_values</code> 字段访问内部优化的 <code>nrounds</code>。</p>
+<div class="cell">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_xgb</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_sonar</span><span class="op">)</span></span>
+<span><span class="va">lrn_xgb</span><span class="op">$</span><span class="va">internal_tuned_values</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$nrounds
+[1] 9</code></pre>
+</div>
+</div>
+<p>通过使用早停，我们能够在 19 次迭代之后就终止训练。下面，我们可视化验证损失随时间的变化，最优的 nrounds 用红色标记。我们可以看到 logloss 在 9 轮之后趋于平稳，但由于耐心设置，训练还会继续一段时间。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure"><p><img src="images/predsets_valid_inttune_files/figure-html/predsets_valid_inttune-025-1.png" class="img-fluid figure-img" style="width:70.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>到目前为止，我们只使用了 XGBoost 的早停实现来优化 <code>nrounds</code>，还没有调优任何其他超参数。这正是<a href="https://mlr3.mlr-org.com"><code>mlr3</code></a>发挥作用的地方，因为它允许我们把学习器的内部调优与通过<a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a>进行的（非内部）超参数调优结合起来。为此，我们把两个参数都设置为 <code>to_tune()</code>，但把 <code>nrounds</code> 标记为内部调优。</p>
+<div class="cell">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_xgb</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">set_values</span><span class="op">(</span></span>
+<span>  eta <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="fl">0.001</span>, <span class="fl">0.1</span>, logscale <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>  nrounds <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span>upper <span class="op">=</span> <span class="fl">500</span>, internal <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>在这样的场景中，人们常常希望使用相同的验证数据来优化 <code>eta</code> 和 <code>nrounds</code>。这可以通过指定 <code>validate</code> 字段的 <code>"test"</code> 选项来实现。这意味着在每次重采样迭代中，验证数据都会被设置为测试集，即同样用于评估参数配置（以调优 <code>eta</code>）的数据。</p>
+<div class="cell">
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_xgb</span><span class="op">$</span><span class="va">validate</span> <span class="op">=</span> <span class="st">"test"</span></span></code></pre></div>
+</div>
+<p>我们现在继续用一个简单的网格搜索（10 次评估）和 3 折 CV 作为内部重采样来调优 XGBoost。在内部，这将用 10 个不同的 <code>eta</code> 值训练 XGBoost，而 <code>nrounds</code> 参数固定在 500，即上面的上界。对每个 <code>eta</code> 值，将执行带早停的 3 折 CV，为每个 <code>eta</code> 值产生 3 个（可能不同的）早停 <code>nrounds</code> 值。这些值根据一个聚合规则组合成单个值，该规则默认设置为取平均，但在创建内部调优 token 时可以覆盖，更多信息参见<a href="https://paradox.mlr-org.com/reference/to_tune.html"><code>to_tune()</code></a>。</p>
+<p>当把内部调优与通过<a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a>进行的超参数优化结合时，我们需要指定两个性能度量：一个用于内部调优，一个用于 <code>Tuner</code>。因此，<code>mlr3</code> 要求显式设置内部调优度量，即使存在默认值。有两种方法可以为两类超参数优化使用同一个度量：</p>
+<ol type="1">
+<li>使用 <code>msr("internal_valid_scores", select = &lt;id&gt;)</code>，即最终的验证分数，作为调优度量。由于一个学习器可以有多个内部验证分数，该度量允许我们通过指定 <code>select</code> 参数来选择一个。如果未指定，将使用第一个验证度量。我们还需要指定该度量是否应被最小化。</li>
+<li>把 <code>eval_metric</code> 和调优度量都设置为同一个度量，例如 <code>eval_metric = "error"</code> 和 <code>measure = msr("classif.ce")</code>。有些学习器甚至允许把验证度量设置为一个 <code><a href="https://mlr3.mlr-org.com/reference/Measure.html">mlr3::Measure</a></code>。你可以通过查看它们相应的文档来找出哪些学习器支持这一特性。其中一个例子就是 XGBoost。</li>
+</ol>
+<p>使用第一个选项的优势在于可以跳过预测步骤，因为内部验证分数在训练期间已经被计算出来。从某种意义上说，这类似于在<a href="#sec-predict-sets" class="quarto-xref"><span>15.1 节</span></a>中用 OOB 误差评估随机森林。</p>
+<div class="cell">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_sonar</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"sonar"</span><span class="op">)</span></span>
+<span><span class="va">lrn_xgb</span><span class="op">$</span><span class="va">predict_sets</span> <span class="op">=</span> <span class="cn">NULL</span></span>
+<span></span>
+<span><span class="va">ti</span> <span class="op">=</span> <span class="fu">tune</span><span class="op">(</span></span>
+<span>  tuner <span class="op">=</span> <span class="fu">tnr</span><span class="op">(</span><span class="st">"grid_search"</span><span class="op">)</span>,</span>
+<span>  learner <span class="op">=</span> <span class="va">lrn_xgb</span>,</span>
+<span>  task <span class="op">=</span> <span class="va">tsk_sonar</span>,</span>
+<span>  resampling <span class="op">=</span> <span class="fu">rsmp</span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>,</span>
+<span>  measure <span class="op">=</span> <span class="fu">msr</span><span class="op">(</span><span class="st">"internal_valid_score"</span>,</span>
+<span>    select <span class="op">=</span> <span class="st">"logloss"</span>, minimize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>  term_evals <span class="op">=</span> <span class="fl">10L</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+警告
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>当使用 <code>GraphLearner</code> 时，内部验证分数的名称会以相应 <code>PipeOp</code> 的 ID 为前缀，因此 <code>select</code> 参数需要被设置为 <code>"&lt;pipeop id&gt;.&lt;measure id&gt;"</code>。</p>
+</div>
+</div>
+<p>调优结果包含为 <code>eta</code> 和 <code>nrounds</code> 两者找到的最佳配置。</p>
+<div class="cell">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ti</span><span class="op">$</span><span class="va">result_learner_param_vals</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"eta"</span>, <span class="st">"nrounds"</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$eta
+[1] 0.03594
+
+$nrounds
+[1] 258</code></pre>
+</div>
+</div>
+<p>我们现在展示如何从调优存档中提取不同的参数配置。所有内部调优的参数都可以通过 <code>$internal_tuned_values</code> 访问。这是一个列表列，因为可以在内部调优多个参数，例如在 <code>GraphLearner</code> 中。下面我们提取 <code>eta</code> 的值（从它的对数尺度变换回来）、<code>nrounds</code>（内部调优）和 logloss。后者是在内部验证任务上评估的，由于我们指定了 <code>validate = "test"</code>，这些内部验证任务对应于 <code>Resampling</code> 的测试集。通过可视化结果，我们可以看到两个调优参数之间存在反比关系：较小的步长（eta）需要更多的 boosting 迭代（nrounds）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">d</span> <span class="op">=</span> <span class="va">ti</span><span class="op">$</span><span class="va">archive</span><span class="op">$</span><span class="va">data</span></span>
+<span></span>
+<span><span class="va">d</span> <span class="op">=</span> <span class="fu">data.table</span><span class="op">(</span></span>
+<span>  eta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html">exp</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">eta</span><span class="op">)</span>,</span>
+<span>  nrounds <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html">unlist</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">internal_tuned_values</span><span class="op">)</span>,</span>
+<span>  logloss <span class="op">=</span> <span class="va">d</span><span class="op">$</span><span class="va">logloss</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">ggplot</span><span class="op">(</span>data <span class="op">=</span> <span class="va">d</span>, <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">eta</span>, y <span class="op">=</span> <span class="va">nrounds</span>, color <span class="op">=</span> <span class="va">logloss</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">geom_point</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu">theme_minimal</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure"><p><img src="images/predsets_valid_inttune_files/figure-html/predsets_valid_inttune-030-1.png" class="img-fluid figure-img" style="width:70.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>这也适用于一个<a href="https://mlr3tuning.mlr-org.com/reference/AutoTuner.html"><code>AutoTuner</code></a>，它将为最终的模型拟合同时使用内部优化的 <code>nrounds</code> 和离线调优的 <code>eta</code>。这意味着在训练最终模型时没有验证或早停，我们使用所有可用的数据。</p>
+<div class="cell">
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">at</span> <span class="op">=</span> <span class="fu">auto_tuner</span><span class="op">(</span></span>
+<span>  tuner <span class="op">=</span> <span class="fu">tnr</span><span class="op">(</span><span class="st">"grid_search"</span><span class="op">)</span>,</span>
+<span>  learner <span class="op">=</span> <span class="va">lrn_xgb</span>,</span>
+<span>  resampling <span class="op">=</span> <span class="fu">rsmp</span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>,</span>
+<span>  measure <span class="op">=</span> <span class="fu">msr</span><span class="op">(</span><span class="st">"internal_valid_score"</span>,</span>
+<span>    select <span class="op">=</span> <span class="st">"logloss"</span>, minimize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>  term_evals <span class="op">=</span> <span class="fl">10L</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">at</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_sonar</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>如果我们对上面的 <code>AutoTuner</code> 进行重采样，我们仍然会得到有效的性能估计。这是因为外部重采样的测试集<em>从不</em>被用作验证数据，因为最终的模型拟合不执行任何验证。超参数调优期间生成的验证数据使用内部重采样的测试集，它是外部重采样训练集的子集。</p>
+<p>然而，在把重采样的测试集用于验证时必须小心。这是否可以接受取决于重采样的上下文和目的。如果重采样的目的是获得算法的无偏性能估计，而其中一些算法早停、另一些不早停，那么这是不可以的。在这种情况下，前者会比后者有不公平的优势。下面的例子说明了这种两个学习器之间不构成公平比较的情形。</p>
+<div class="cell">
+<div class="sourceCode" id="cb45"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_xgb</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">set_values</span><span class="op">(</span></span>
+<span>  eta <span class="op">=</span> <span class="fl">0.1</span>, nrounds <span class="op">=</span> <span class="fl">500</span>, early_stopping_rounds <span class="op">=</span> <span class="fl">10</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">lrn_xgb</span><span class="op">$</span><span class="va">predict_sets</span> <span class="op">=</span> <span class="st">"test"</span></span>
+<span></span>
+<span><span class="va">design</span> <span class="op">=</span> <span class="fu">benchmark_grid</span><span class="op">(</span></span>
+<span>  <span class="va">tsk_sonar</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">lrn_xgb</span>, <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.rpart"</span><span class="op">)</span><span class="op">)</span>, <span class="fu">rsmp</span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">bmr</span> <span class="op">=</span> <span class="fu">benchmark</span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span>
+<span><span class="va">bmr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="fu">msr</span><span class="op">(</span><span class="st">"classif.ce"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   nr task_id      learner_id resampling_id iters classif.ce
+1:  1   sonar classif.xgboost            cv     3     0.1636
+2:  2   sonar   classif.rpart            cv     3     0.2547
+Hidden columns: resample_result</code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>把重采样的测试集当作验证集使用，相当于让模型在评估数据上做早停，这会形成数据泄漏。若两个学习器做公平比较——一个使用早停（因而「见过」测试集），另一个不使用——前者会获得不公平的优势，其性能估计被人为抬高。因此，<code>validate = "test"</code> 只适用于把测试集当作验证集来挑选超参数配置的调优场景（此时该集合的作用本就是验证集），而不适用于需要无偏性能估计的基准比较（benchmark）场景。原文上面的例子正是故意构造了一个「不公平」的对比：XGBoost 借助 <code>classif.ce</code> 得到 0.1636，明显优于未使用测试集信息的 <code>classif.rpart</code>（0.2547），但这并不能说明 XGBoost 本身更优。这也提醒我们：在报告性能时，必须明确说明数据划分与早停所用的验证数据来源。</p>
+</div>
+<p>最后，我们将介绍如何在用 <code>ps()</code> 函数而不是 <code>to_tune()</code> 机制手动指定搜索空间时启用内部调优。虽然后者更方便，因此通常被推荐，但手动定义搜索空间在参数变换方面给你更多的灵活性，参见例如<a href="../chapter4/hyperparameter_optimization.html#sec-tune-trafo" class="quarto-xref"><span>4.4.3 节</span></a>。我们可以把内部调优的参数包含在 <code>search_space</code> 中，但需要指定一个聚合函数，并把它们标记为 <code>"internal_tuning"</code>。</p>
+<div class="cell">
+<div class="sourceCode" id="cb47"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">search_space</span> <span class="op">=</span> <span class="fu">ps</span><span class="op">(</span></span>
+<span>  eta <span class="op">=</span> <span class="fu">p_dbl</span><span class="op">(</span><span class="fl">0.001</span>, <span class="fl">0.1</span>, logscale <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>  nrounds <span class="op">=</span> <span class="fu">p_int</span><span class="op">(</span>upper <span class="op">=</span> <span class="fl">500</span>, tags <span class="op">=</span> <span class="st">"internal_tuning"</span>,</span>
+<span>    aggr <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html">as.integer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html">unlist</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>这个搜索空间可以传给 <code>AutoTuner</code>，优化将像之前一样进行。</p>
+<div class="cell">
+<div class="sourceCode" id="cb48"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">at</span> <span class="op">=</span> <span class="fu">auto_tuner</span><span class="op">(</span></span>
+<span>  tuner <span class="op">=</span> <span class="fu">tnr</span><span class="op">(</span><span class="st">"grid_search"</span><span class="op">)</span>,</span>
+<span>  learner <span class="op">=</span> <span class="va">lrn_xgb</span>,</span>
+<span>  resampling <span class="op">=</span> <span class="fu">rsmp</span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>,</span>
+<span>  measure <span class="op">=</span> <span class="fu">msr</span><span class="op">(</span><span class="st">"internal_valid_score"</span>,</span>
+<span>    select <span class="op">=</span> <span class="st">"logloss"</span>, minimize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>  search_space <span class="op">=</span> <span class="va">search_space</span>,</span>
+<span>  term_evals <span class="op">=</span> <span class="fl">10L</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">at</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_sonar</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>用 <code>ps()</code> 手工构造搜索空间（Search Space）与 <code>to_tune()</code> 机制相比更灵活，但也更繁琐。网格搜索（grid search）按参数取值的笛卡尔积逐一尝试，适合参数个数少、取值范围有限的场景；而随机搜索（random search）从参数空间中随机采样，在高维空间中往往比网格搜索更高效——网格的评估点随维度指数增长，而随机采样可以更均匀地覆盖整个空间，且在总预算固定的情况下通常能更快找到好的配置。当参数之间自然相关时（例如本节中 <code>eta</code> 与 <code>nrounds</code> 的反比关系），随机/贝叶斯式采样能够更容易地探索到「小而多轮」与「大而少轮」这类组合。手动搜索空间还允许你为内部调优参数指定自定义聚合函数（<code>aggr</code>），例如本节把各折早停轮数先取均值再取整。</p>
+</div>
+</section><section id="conclusion" class="level2" data-number="15.4"><h2 data-number="15.4" class="anchored" data-anchor-id="conclusion">
+<span class="header-section-number">15.4</span> 结论</h2>
+<p>在本章中，我们首先学习了如何在不同预测集上评估机器学习方法，即<em>训练</em>集、<em>内部验证</em>集和<em>测试</em>集。然后我们学习了如何在验证集上跟踪一个迭代式学习过程的性能。这种技术在图学习器中也能无缝工作，唯一的区别是，你不仅要指定如何创建验证数据，还要指定哪些 PipeOp 应该使用它。此外，mlr3 的<em>内部调优</em>机制允许你把通过<a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a>进行的超参数调优与学习算法的内部调优结合起来，例如 XGBoost 的早停。</p>
+</section><section id="exercises" class="level2" data-number="15.5"><h2 data-number="15.5" class="anchored" data-anchor-id="exercises">
+<span class="header-section-number">15.5</span> 练习</h2>
+<ol type="1">
+<li><p>在 diabetes 任务上，手动 <code>$train()</code> 一个来自<a href="https://mlr3extralearners.mlr-org.com"><code>mlr3extralearners</code></a>的 LightGBM 分类器，使用 <span class="math inline">\(1/3\)</span> 的训练数据进行验证。由于 diabetes 任务有缺失值，从<a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a>中选择一种方法来插补它们。显式把评估度量设置为 logloss（<code>"binary_logloss"</code>），最大 boosting 迭代次数设置为 1000，耐心参数设置为 10，步长设置为 0.01。训练学习器之后，检查最终的验证分数以及早停的迭代次数。</p></li>
+<li><p>把练习 1）中的学习器包装在一个 <code>AutoTuner</code> 中，使用三折 CV 进行调优。同时把聚合不同 boosting 迭代的规则从取平均改为跨折取最大值。除了 <code>nrounds</code> 之外不要调优任何参数，这可以使用 <code>tnr("internal")</code> 来完成。使用内部验证度量作为调优度量。使用 10 折外部交叉验证，在分类准确率方面把这个学习器与一个 <code>lrn("classif.rpart")</code> 进行比较。</p></li>
+<li>
+<p>考虑下面的代码：</p>
+<div class="cell">
+<div class="sourceCode" id="cb49"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">branch_lrn</span> <span class="op">=</span> <span class="fu">as_learner</span><span class="op">(</span></span>
+<span>  <span class="fu">ppl</span><span class="op">(</span><span class="st">"branch"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span></span>
+<span>    <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.ranger"</span><span class="op">)</span>,</span>
+<span>    <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.xgboost"</span>,</span>
+<span>      early_stopping_rounds <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>      eval_metric <span class="op">=</span> <span class="st">"error"</span>,</span>
+<span>      eta <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="fl">0.001</span>, <span class="fl">0.1</span>, logscale <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>      nrounds <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span>upper <span class="op">=</span> <span class="fl">1000</span>, internal <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">set_validate</span><span class="op">(</span><span class="va">branch_lrn</span>, validate <span class="op">=</span> <span class="st">"test"</span>, ids <span class="op">=</span> <span class="st">"classif.xgboost"</span><span class="op">)</span></span>
+<span><span class="va">branch_lrn</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">set_values</span><span class="op">(</span>branch.selection <span class="op">=</span> <span class="fu">to_tune</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">at</span> <span class="op">=</span> <span class="fu">auto_tuner</span><span class="op">(</span></span>
+<span>  tuner <span class="op">=</span> <span class="fu">tnr</span><span class="op">(</span><span class="st">"grid_search"</span><span class="op">)</span>,</span>
+<span>  learner <span class="op">=</span> <span class="va">branch_lrn</span>,</span>
+<span>  resampling <span class="op">=</span> <span class="fu">rsmp</span><span class="op">(</span><span class="st">"holdout"</span>, ratio <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span>,</span>
+<span>  <span class="co"># 不能使用内部验证分数，因为 ranger 没有这一项</span></span>
+<span>  measure <span class="op">=</span> <span class="fu">msr</span><span class="op">(</span><span class="st">"classif.ce"</span><span class="op">)</span>,</span>
+<span>  term_evals <span class="op">=</span> <span class="fl">10L</span>,</span>
+<span>  store_models <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">tsk_sonar</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"sonar"</span><span class="op">)</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">100</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">rr</span> <span class="op">=</span> <span class="fu">resample</span><span class="op">(</span></span>
+<span>  <span class="va">tsk_sonar</span>, <span class="va">at</span>, <span class="fu">rsmp</span><span class="op">(</span><span class="st">"holdout"</span>, ratio <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span>, store_models <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>回答以下问题（最好在不运行代码的情况下）：</p>
+<p>3.1 在超参数优化期间，有多少观测用于训练 XGBoost 算法（不包括验证数据），又有多少用于随机森林？提示：不能使用验证数据的学习器会忽略它。3.2 如果选择了 XGBoost，最终模型会用多少观测来训练？如果选择了随机森林呢？3.3 如果我们把图学习器的 <code>$validate</code> 字段设为 <code>0.25</code> 而不是 <code>"test"</code>，最后两个问题的答案会如何变化？</p>
+</li>
+<li>
+<p>看看下面（有错误的）代码：</p>
+<div class="cell">
+<div class="sourceCode" id="cb50"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_sonar</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"sonar"</span><span class="op">)</span></span>
+<span><span class="va">glrn</span> <span class="op">=</span> <span class="fu">as_learner</span><span class="op">(</span></span>
+<span>  <span class="fu">po</span><span class="op">(</span><span class="st">"pca"</span><span class="op">)</span> <span class="op">%&gt;&gt;%</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.xgboost"</span>, validate <span class="op">=</span> <span class="fl">0.3</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>你能解释<em>为什么</em>代码会失败吗？提示：xgboost 用于验证的数据应该按照<em>训练</em>逻辑还是<em>预测</em>逻辑进行预处理？</p>
+</li>
+</ol></section><section id="citation" class="level2" data-number="15.6"><h2 data-number="15.6" class="anchored" data-anchor-id="citation">
+<span class="header-section-number">15.6</span> 引用</h2>
+<p>请按如下方式引用本章：</p>
+<p>Fischer S. (2024). Predict Sets, Validation and Internal Tuning (+). In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/predict_sets,_validation_and_internal_tuning_(+).html.</p>
+<div class="sourceCode" id="cb51"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="va">@incollection</span>{<span class="ot">citekey</span>,</span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span> = "<span class="st">Sebastian Fischer</span>",</span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span> = "<span class="st">Predict Sets, Validation and Internal Tuning (+)</span>",</span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">booktitle</span> = "<span class="st">Applied Machine Learning Using {m}lr3 in {R}</span>",</span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">publisher</span> = "<span class="st">CRC Press</span>", <span class="st">year</span> = "<span class="st">2024</span>",</span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">editor</span> = "<span class="st">Bernd Bischl and Raphael Sonabend and Lars Kotthoff and Michel Lang</span>",</span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">url</span> = "<span class="st">https://mlr3book.mlr-org.com/predict_sets,_validation_and_internal_tuning_(+).html</span>"</span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+
+
+<!-- -->
+
+</section>
+  </main>
+  <nav class="chnav">
+    <a class="" href="ch14-algorithmic-fairness.html"><span class="dir">上一章</span><span class="ch">第 14 章 算法公平性</span></a>
+    <a class="" href="ch16-paradox-hyperparameter.html"><span class="dir">下一章</span><span class="ch">第 16 章 使用 paradox 的高级超参数规范</span></a>
+  </nav>
+  <div class="footer">
+    <div>《Applied Machine Learning Using mlr3 in R》中文译本 · 非官方翻译</div>
+    <div class="lic">原文 © 2024 CRC Press（Bischl, Sonabend, Kotthoff &amp; Lang 主编，CC BY-NC-SA 4.0）· 本站由志愿翻译，仅供学习交流</div>
+  </div>
+</div>
+<script>
+MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] } };
+</script>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
+</body>
+</html>

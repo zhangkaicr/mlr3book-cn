@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>评估与基准测试（Evaluation and Benchmarking）</title>
+<script>
+(function(){
+  var saved = localStorage.getItem("mlr3-theme");
+  if (saved === null) saved = "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+})();
+</script>
+<style>
+:root {
+  --bg: #1e2228; --fg: #d8dee4; --muted: #9aa4b0;
+  --panel: #262c34; --panel2: #2e3540; --border: #3a4350;
+  --accent: #4ea1ff; --accent2: #8f7ae6;
+  --code-bg: #161a20; --code-fg: #d8dee4;
+  --note-bg: #2a3450; --note-border: #5a7fff;
+  --callout-bg: #2b3826; --callout-border: #6bbf59;
+  --table-head: #2e3540; --table-row: #262c34; --link: #6cb0ff;
+  --h-border: #3a4350;
+}
+[data-theme="light"] {
+  --bg: #f7f8fa; --fg: #24292f; --muted: #57606a;
+  --panel: #ffffff; --panel2: #f0f2f5; --border: #d9dee3;
+  --accent: #0969da; --accent2: #8250df;
+  --code-bg: #f3f4f6; --code-fg: #24292f;
+  --note-bg: #eef2ff; --note-border: #5a7fff;
+  --callout-bg: #eff7ec; --callout-border: #6bbf59;
+  --table-head: #eef1f4; --table-row: #ffffff; --link: #0969da;
+  --h-border: #d9dee3;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  line-height: 1.78; font-size: 16px;
+  transition: background .2s, color .2s;
+}
+.container { max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+/* 顶栏 */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+}
+.topbar .brand { font-weight: 600; font-size: 15px; color: var(--fg); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+.topbar .brand .logo { color: var(--accent); }
+.topbar .right { display: flex; align-items: center; gap: 10px; }
+.topbar .home-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+.topbar .home-link:hover { color: var(--accent); }
+.theme-toggle {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+/* 章头 */
+.header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
+.header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
+.header-block h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.35; }
+.header-block .subtitle { color: var(--muted); font-size: 14px; }
+/* 章节导航 */
+.chnav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0 6px; flex-wrap: wrap; }
+.chnav a {
+  background: var(--panel); border: 1px solid var(--border); color: var(--fg);
+  text-decoration: none; font-size: 14px; padding: 10px 16px; border-radius: 8px;
+  max-width: 46%; display: block;
+}
+.chnav a:hover { border-color: var(--accent); color: var(--accent); }
+.chnav .dir { color: var(--muted); font-size: 12px; display: block; }
+.chnav .ch { font-weight: 600; }
+.chnav a.disabled { opacity: .4; pointer-events: none; }
+/* 正文 */
+main { padding: 0 0 20px; }
+main h1 { font-size: 26px; margin: 40px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--h-border); }
+main h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--h-border); }
+main h3 { font-size: 18px; margin: 28px 0 10px; }
+main h4 { font-size: 16px; margin: 22px 0 8px; color: var(--accent); }
+main p { margin: 10px 0; }
+main a { color: var(--link); text-decoration: none; }
+main a:hover { text-decoration: underline; }
+main strong { font-weight: 600; }
+main ul, main ol { padding-left: 26px; }
+main li { margin: 5px 0; }
+main blockquote {
+  margin: 12px 0; padding: 10px 16px; border-left: 4px solid var(--border);
+  background: var(--panel2); color: var(--muted); border-radius: 0 6px 6px 0;
+}
+main hr { border: none; border-top: 1px solid var(--border); margin: 26px 0; }
+main img { max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 6px; }
+main table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+main th { background: var(--table-head); font-weight: 600; }
+main th, main td { border: 1px solid var(--border); padding: 7px 11px; }
+main tr:nth-child(even) td { background: var(--table-row); }
+/* 代码 */
+pre {
+  background: var(--code-bg); color: var(--code-fg);
+  padding: 14px 16px; border-radius: 8px; overflow-x: auto;
+  border: 1px solid var(--border); font-size: 13.5px; line-height: 1.6;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+code {
+  font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+  background: var(--panel2); color: var(--accent);
+  padding: 2px 5px; border-radius: 4px; font-size: 13.5px;
+}
+pre code { background: none; color: var(--code-fg); padding: 0; }
+/* 代码块容器（Quarto 结构） */
+.sourceCode { margin: 14px 0; }
+.sourceCode pre { margin: 0; }
+/* 输出块 */
+.cell { margin: 6px 0; }
+.cell-output { margin: 0 0 6px; }
+.cell-output pre { background: var(--panel2); border-style: dashed; }
+.cell-output-stderr { border-color: #d29922; }
+.cell-output-stdout pre { border-color: var(--border); }
+/* figure */
+figure { margin: 18px 0; text-align: center; }
+figure img { margin: 0 auto; }
+figcaption, .caption { color: var(--muted); font-size: 13px; margin-top: 6px; text-align: center; }
+.quarto-float { margin: 18px 0; }
+.quarto-figure { margin: 18px 0; text-align: center; }
+/* 背景与解释（译者注）框 */
+.bg-note {
+  background: var(--note-bg); border: 1px solid var(--note-border);
+  border-radius: 8px; padding: 14px 18px; margin: 18px 0;
+  font-size: 15px;
+}
+.bg-note p { margin: 6px 0; }
+.bg-note .bg-title { font-weight: 600; color: var(--accent); }
+/* 原书 callout 提示框 */
+.callout {
+  border-radius: 8px; padding: 12px 18px; margin: 16px 0;
+  border-left: 5px solid var(--accent); background: var(--panel2);
+}
+.callout-tip { border-left-color: #6bbf59; }
+.callout-note { border-left-color: var(--accent); }
+.callout-warning { border-left-color: #d29922; }
+.callout-important { border-left-color: #e05d5d; }
+.callout-header { font-weight: 600; margin-bottom: 4px; }
+.callout-title-container { display: inline; }
+.callout-body p { margin: 6px 0; }
+.callout-icon-container { display: none; }
+/* 脚注 */
+.footnote-ref { font-size: 12px; vertical-align: super; }
+/* 页脚 */
+.footer {
+  margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 13px; text-align: center;
+}
+.footer .lic { margin-top: 6px; font-size: 12px; }
+/* 表格滚动 */
+main table { display: block; overflow-x: auto; }
+/* banner 样式（原书 callout 可能以其他名目出现） */
+[class*="callout"] > p:first-child { margin-top: 4px; }
+</style>
+<script>
+function toggleTheme(){
+  var cur = document.documentElement.getAttribute("data-theme");
+  var next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("mlr3-theme", next);
+}
+</script>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <div class="right">
+    <a class="home-link" href="index.html">目录</a>
+    <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
+  </div>
+</div>
+<div class="container">
+  <div class="header-block">
+    <div class="part">第一部分 基础</div>
+    <h1>评估与基准测试（Evaluation and Benchmarking）</h1>
+    <div class="subtitle">《Applied Machine Learning Using mlr3 in R》中文翻译 · 章节 第 3 章 评估与基准测试</div>
+  </div>
+  <main>
+<p><strong>Giuseppe Casalicchio</strong> <br><em>慕尼黑大学（Ludwig-Maximilians-Universität München），慕尼黑机器学习中心（Munich Center for Machine Learning, MCML），以及 Essential Data Science Training GmbH</em></p>
+<p><strong>Lukas Burk</strong> <br><em>慕尼黑大学（Ludwig-Maximilians-Universität München），莱布尼茨预防研究与流行病学研究所（Leibniz Institute for Prevention Research and Epidemiology - BIPS），以及慕尼黑机器学习中心（Munich Center for Machine Learning, MCML）</em></p>
+<p><strong>Sebastian Fischer</strong> <br><em>慕尼黑大学（Ludwig-Maximilians-Universität München），慕尼黑机器学习中心（Munich Center for Machine Learning, MCML）</em> <br><br></p>
+<p>一个有监督的机器学习模型只有在具有良好的泛化性能（generalization performance）时才能实际部署使用，所谓泛化性能是指它对新的、未见过的数据也能很好地泛化。准确地估计泛化性能对于机器学习应用与研究的许多方面都至关重要——无论我们是想公平地将一个新算法与既有算法比较，还是想为某个特定任务找到最佳算法。性能估计（performance estimation）的概念提供了关于模型在新数据上泛化得有多好的信息，并在模型比较（<a href="#sec-benchmarking" class="quarto-xref"><span>3.3 节</span></a>）、模型选择与超参数调优（<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>）中扮演着重要角色。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">泛化性能（Generalization Performance）</span></div></div>
+<p>评估模型的泛化性能，首先要选择一个适合当前任务与评估目标的性能度量（performance measure）。正如我们在<a href="../chapter2/data_and_basic_modeling.html#sec-eval" class="quarto-xref"><span>2.3 节</span></a>中所见，性能度量通常计算一个数值得分，用于表示模型预测与真实标签（ground truth）的匹配程度（当然在<a href="../chapter2/data_and_basic_modeling.html#sec-basics-measures-tech" class="quarto-xref"><span>2.3.3 节</span></a>中也看到了一些技术性度量）。一旦我们确定了性能度量，下一步就是采用一种策略，规定如何利用现有数据来估计泛化性能。用同一份数据既训练又测试模型是一个糟糕的策略，因为它会导致过于乐观的性能估计。例如，一个过拟合（overfitted，拟合数据拟合得过于紧密）的模型可能仅仅通过死记硬背就在训练数据上作出完美预测，而对新数据只能随机猜测。在<a href="../chapter2/data_and_basic_modeling.html#sec-basics-partition" class="quarto-xref"><span>2.2.1.1 节</span></a>中我们介绍了<a href="https://mlr3.mlr-org.com/reference/partition.html"><code>partition()</code></a>，它把数据集划分成训练数据——用于训练模型的数据——和测试数据——用于测试模型并估计泛化性能的数据，这被称为留出法（holdout strategy，<a href="#sec-holdout-scoring" class="quarto-xref"><span>3.1 节</span></a>），也是本章的起点。随后我们将考虑更先进的泛化性能评估策略（<a href="#sec-resampling" class="quarto-xref"><span>3.2 节</span></a>），研究比较模型的稳健方法（<a href="#sec-benchmarking" class="quarto-xref"><span>3.3 节</span></a>），最后讨论针对二分类（binary classification）的专业化性能度量（<a href="#sec-roc" class="quarto-xref"><span>3.4 节</span></a>）。关于度量与性能估计的深入综述，我们推荐参考 Japkowicz 和 Shah（<a href="../references.html#ref-japkowicz2011evaluating" role="doc-biblioref">2011</a>）的著作。</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+重采样并不能避免模型过拟合（Resampling Does Not Avoid Model Overfitting）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>一个常见的<strong>误解</strong>是：留出法和其他更先进的重采样策略能够防止模型过拟合。事实上，这些方法只是让过拟合变得可见，因为我们可以分别评估训练集与测试集上的性能。重采样策略还使我们能够对泛化误差作出（近乎）无偏的估计。</p>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>这里点出了机器学习评估中一个极易混淆的核心概念：重采样（交叉验证、留出法等）的作用是<strong>估计</strong>泛化性能，而不是<strong>消除</strong>过拟合。过拟合是由模型复杂度与数据量、噪声之间的失衡造成的，属于学习算法与数据本身的属性；重采样只是通过把训练与评估数据分开，让我们能"看见"训练性能与测试性能之间的差距，从而诊断出过拟合。这一点在后续章节的超参数调优中尤为重要：如果只在训练集上选超参数，就会选择到过拟合的模型；而通过重采样估计出的性能来选模型，才能缓解这一问题。</p>
+</div>
+<section id="sec-holdout-scoring" class="level2 page-columns page-full" data-number="3.1"><h2 data-number="3.1" class="anchored" data-anchor-id="sec-holdout-scoring">
+<span class="header-section-number">3.1</span> 留出法与打分（Holdout and Scoring）</h2>
+<p>机器学习的一个重要目标是学习一个模型，以便用它对新数据作出预测。为了让这个模型尽可能准确，理想情况下我们应当用尽可能多的数据来训练它。然而数据是有限的，而且正如我们讨论过的，不能用同一份数据既训练又测试模型。在实践中，人们通常会创建一个中间模型（intermediate model），它用可用数据的一个子集训练，然后用剩余的数据测试。这个中间模型的性能——通过将模型预测与真实标签比较获得——就是对最终模型的泛化性能的估计，这里的最终模型指在所有数据上拟合的模型。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">中间模型（Intermediate Model）</span></div></div>
+<p>留出法（holdout strategy）是创建这种训练/测试数据集划分的简单方法：按一个设定比例把原始数据分成两份。理想情况下，训练数据集应尽可能大，以便中间模型尽可能好地代表最终模型。如果训练数据太小，中间模型不太可能表现得和最终模型一样好，从而导致带悲观偏倚（pessimistically biased）的性能估计。另一方面，如果训练数据太大，那么由于测试数据太少导致的高方差，我们将无法获得可靠的泛化性能估计。作为一种经验法则（rule of thumb），通常用 2/3 的数据训练、1/3 的数据测试，这在泛化性能估计的偏差与方差之间提供了合理的权衡 <span class="citation" data-cites="kohavi1995 dobbin2011">(<a href="../references.html#ref-kohavi1995" role="doc-biblioref">Kohavi 1995</a>; <a href="../references.html#ref-dobbin2011" role="doc-biblioref">Dobbin and Simon 2011</a>)</span>。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">留出法（Holdout）</span></div></div>
+<p>在<a href="../chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>中，我们用<a href="https://mlr3.mlr-org.com/reference/partition.html"><code>partition()</code></a>对<a href="https://mlr3.mlr-org.com/reference/Task.html"><code>Task</code></a>对象应用留出法。回顾一下，让我们以 2/3 留出（默认划分比例）来切分 <code>tsk("penguins")</code>：</p>
+<div class="cell">
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_penguins</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"penguins"</span><span class="op">)</span></span>
+<span><span class="va">splits</span> <span class="op">=</span> <span class="fu">partition</span><span class="op">(</span><span class="va">tsk_penguins</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span> <span class="op">=</span> <span class="fu">lrn</span><span class="op">(</span><span class="st">"classif.rpart"</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_penguins</span>, <span class="va">splits</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span><span class="va">prediction</span> <span class="op">=</span> <span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_penguins</span>, <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>现在我们可以通过评估中间模型预测的质量来估计最终模型的泛化性能。正如我们在<a href="../chapter2/data_and_basic_modeling.html#sec-eval" class="quarto-xref"><span>2.3 节</span></a>所见，这只需选择一个或多个度量并把它们传给 <code>$score()</code> 函数。因此，要估计最终模型的准确率，我们就把准确率度量传给中间模型：</p>
+<div class="cell">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="fu">msr</span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>classif.acc 
+     0.9386 </code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+为性能估计打乱观测（Permuting Observations for Performance Estimation）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>切分数据时，至关重要的是先对观测进行打乱（permute），以去除数据排序中编码的任何信息。在真实世界的数据集中，数据顺序往往具有信息量，例如医院数据很可能按病人入院时间排序。在 <code>tsk("penguins")</code> 中，数据是有序排列的：前 152 行的标签都是 'Adelie'，接下来 68 行是 'Chinstrap'，最后 124 行是 'Gentoo'；因此如果我们不打乱数据，最终得到的模型可能只在某一个或两个物种上训练过。</p>
+<p><code><a href="https://mlr3.mlr-org.com/reference/partition.html">partition()</a></code> 以及下文讨论的所有重采样策略都会自动随机切分数据以防止这类偏倚（所以别忘了设置随机种子以保证可复现性）。每个集合<em>内部</em>的数据由于实现细节可能仍然有序，但只要集合之间的数据被洗牌过，这就没有问题。</p>
+</div>
+</div>
+<p>许多性能度量基于"可分解损失"（decomposable losses），这意味着它们先在观测级别上计算预测值与真实标签值之间的差异，然后把测试集上的个体损失值聚合成一个数值得分。例如，分类准确率比较的是<a href="https://mlr3.mlr-org.com/reference/Prediction.html"><code>Prediction</code></a>对象中 <code>response</code> 列的预测值与 <code>truth</code> 列的真实标签值是否相同。因此，对每个观测而言，可分解损失取值为 <code>1</code>（当 <code>response</code> 与 <code>truth</code> 相同）或 <code>0</code>（否则）。<code>$score()</code> 方法把这些个体损失值汇总成一个平均值——即我们预测正确的百分比。其他不可分解的性能度量则作用于一组观测整体，我们会在 3.4 节讨论 AUC 度量时再详细回到这一点。 <a href="#fig-score" class="quarto-xref">图&nbsp;<span>3.1</span></a> 展示了 <code>$score()</code> 方法的输入-输出行为，我们会在转向更复杂的评估策略时再回到此图。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-score" class="quarto-float quarto-figure quarto-figure-center anchored" alt="一个漏斗形示意图：最左侧方框显示分类预测对象输出，包含 row_ids、truth 和 response 列。旁边是一个写着 '$score()' 的方框，再向右以漏斗形状过渡到写着 'classif.acc 0.920354' 的方框。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-score-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/mlr3book_figures-3.svg" class="img-fluid figure-img" style="width:80.0%" alt="一个漏斗形示意图：最左侧方框显示分类预测对象输出，包含 row_ids、truth 和 response 列。旁边是一个写着 '$score()' 的方框，再向右以漏斗形状过渡到写着 'classif.acc 0.920354' 的方框。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-score-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;3.1：<code>$score()</code> 方法示意图，它把预测对象中包含的多个观测的预测聚合为单个数值得分
+</figcaption></figure>
+</div>
+</div>
+</div>
+</section><section id="sec-resampling" class="level2 page-columns page-full" data-number="3.2"><h2 data-number="3.2" class="anchored" data-anchor-id="sec-resampling">
+<span class="header-section-number">3.2</span> 重采样（Resampling）</h2>
+<p>重采样策略反复地把所有可用数据切分成多个训练集与测试集，其中一次重复对应 <a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 中所说的一个"重采样迭代"（resampling iteration）。然后在每个训练集上训练一个中间模型，并用测试集度量每一次重采样迭代中的性能。最后通过在多次重采样迭代上聚合性能得分来估计泛化性能（<a href="#fig-ml-abstraction" class="quarto-xref">图&nbsp;<span>3.2</span></a>）。通过重复数据切分过程，数据点被反复用于训练和测试，从而能更高效地利用全部可用数据来估计性能。此外，较多的重采样迭代次数可以降低得分的方差，从而得到更可靠的性能估计。这意味着性能估计更不容易受到"运气不好"的划分（例如一个不能反映原始数据分布的划分）的影响。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-ml-abstraction" class="quarto-float quarto-figure quarto-figure-center anchored" alt="一个类似流程图的示意图，包含 3 个相互重叠的方框。左侧方框标注为'数据切分/重采样过程'，右上方框标注为'学习过程'，右下方框标注为'评估过程'。流程从左侧方框的'数据'开始，箭头指向'重采样策略'，它分成上下两个部分：上方为'训练集'，下方为'测试集'。'训练集'指向'学习器'方框，位于更大的'学习过程'方框内。写着'超参数'的方框也在'学习过程'内，并有一个箭头同样指向'学习器'。一个箭头从'学习器'指向一叠'中间模型'。一条粗箭头向下进入黄色方框指向一叠'预测'。一个箭头从那里指向'性能度量'。前面的'测试集'也有一个箭头指向'性能度量'。从那里，一条粗箭头指向'性能值'，它有一条虚线箭头指向'聚合后的性能'。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-ml-abstraction-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/mlr3book_figures-4.svg" class="img-fluid figure-img" style="width:100.0%" alt="一个类似流程图的示意图，包含 3 个相互重叠的方框。左侧方框标注为'数据切分/重采样过程'，右上方框标注为'学习过程'，右下方框标注为'评估过程'。流程从左侧方框的'数据'开始，箭头指向'重采样策略'，它分成上下两个部分：上方为'训练集'，下方为'测试集'。'训练集'指向'学习器'方框，位于更大的'学习过程'方框内。写着'超参数'的方框也在'学习过程'内，并有一个箭头同样指向'学习器'。一个箭头从'学习器'指向一叠'中间模型'。一条粗箭头向下进入黄色方框指向一叠'预测'。一个箭头从那里指向'性能度量'。前面的'测试集'也有一个箭头指向'性能度量'。从那里，一条粗箭头指向'性能值'，它有一条虚线箭头指向'聚合后的性能'。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ml-abstraction-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;3.2：性能估计过程的总体抽象。可用数据被（反复）切分为训练数据和测试数据（数据切分/重采样过程）。学习器在每个训练数据集上训练并产生中间模型（学习过程）。每个中间模型基于测试数据中的特征作出预测。性能度量把这些预测与测试数据的真实标签比较，并为每个测试数据集计算一个性能值。所有性能值被聚合为一个标量值来估计泛化性能（评估过程）。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>存在多种重采样策略，各有利弊，具体取决于可用样本的数量、任务的复杂度以及模型的类型。</p>
+<p>一种非常常见的策略是 k 折交叉验证（k-fold cross-validation, CV），它把数据随机划分成 <span class="math inline">\(k\)</span> 个不重叠的子集，称为"折"（folds，<a href="#fig-cv-illustration" class="quarto-xref">图&nbsp;<span>3.3</span></a>）。这 <span class="math inline">\(k\)</span> 个模型总是在其中 <span class="math inline">\(k-1\)</span> 折上训练，剩下的一折作为测试数据；这个过程重复进行，直到每一折恰好都充当过一次测试集。最后把每一折得到的 <span class="math inline">\(k\)</span> 个性能估计聚合起来，通常采用取平均的方式。CV 保证每个观测恰好会在某个测试集中出现一次，从而能高效利用可用数据进行性能估计。<span class="math inline">\(k\)</span> 的常见取值为 5 和 10，分别意味着每个训练集由原始数据的 4/5 或 9/10 组成。CV 有若干变体，包括重复 k 折交叉验证（repeated k-fold cross-validation，把 k 折过程重复多次），以及留一交叉验证（leave-one-out cross-validation, LOO-CV），其中折数等于观测数，因此每一折的测试集只包含一个观测。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">交叉验证（Cross-validation）</span></div></div>
+<p>子采样（subsampling）和自助法（bootstrapping）是两种相关的重采样策略。子采样从原始数据集中以<em>无放回</em>（without replacement）的方式随机抽取一定比例（常见为 4/5 和 9/10）的数据作为训练集。模型在这份数据上训练，然后在剩余数据上测试，这个过程重复 <span class="math inline">\(k\)</span> 次。它与 k 折 CV 的不同之处在于，测试数据的子集可能重叠。自助法遵循与子采样相同的过程，但数据是从原始数据集中<em>有放回</em>（with replacement）地抽取的。通常自助法样本的数量等于原始数据集的大小。这意味着一个观测可能在训练数据中被选中多次（从而被重复），（但每个测试数据集中至多出现一次）。平均而言，自助法过程中约 <span class="math inline">\(1 - e^{-1} \approx 63.2\%\)</span> 的数据点会出现在训练集中，称为"袋内"（in-bag）样本（其余 36.8% 称为"袋外"（out-of-bag）样本）。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">子采样（Subsampling）</span></div></div>
+<p>请注意，文献中关于重采样策略的术语并不一致，例如，子采样有时被称为"重复留出"（repeated holdout）或"蒙特卡洛交叉验证"（Monte Carlo cross-validation）。</p>
+<p>重采样策略的选择通常取决于手头的具体任务以及性能评估的目标，不过也有一些经验法则。如果可用数据相当少（<span class="math inline">\(N \leq 500\)</span>），可以使用大重复次数的重复交叉验证来保持性能估计的方差较低（10 折 10 次重复是一个不错的起点）。传统上，LOO-CV 也曾被推荐用于这种小样本场景，但这种估计方案相当昂贵（除非存在计算捷径的特殊情况），而且（反直觉地）方差相当高。此外，LOO-CV 在不平衡的二分类任务中也有问题，因为像分层（stratification，<a href="#sec-strat-group" class="quarto-xref"><span>3.2.6 节</span></a>）这样的概念无法应用。对于 <span class="math inline">\(500 \leq N \leq 50000\)</span> 的范围，通常推荐 5 到 10 折 CV。总的来说，数据集越大，需要的划分次数越少，但样本量问题仍然可能出现，例如由于数据不平衡。对于那些更关注严谨推断（如通过统计性能检验或置信区间）而不是单纯性能点估计的场景，通常会考虑自助法和子采样，并且通常使用较多的迭代次数。自助法已变得不那么常用，因为训练数据中的重复观测在一些机器学习设定下会带来问题，尤其是与模型选择方法和嵌套重采样（nested resampling）结合时（因为重复的观测可能会同时出现在嵌套方案的训练集和测试集中）。还要注意，在所有上述常见而简单的方案中，重采样性能估计之间并不是独立的，因为模型是在重叠的训练数据上拟合的，这使得严谨的推断并非易事，不过对这些问题的严谨处理超出了本书的讨论范围。更多细节与批判性讨论可参考相关文献，如 Molinaro, Simon, and Pfeiffer（<a href="../references.html#ref-molinaro2005prediction" role="doc-biblioref">2005</a>）、Kim（<a href="../references.html#ref-kim2009estimating" role="doc-biblioref">2009</a>）以及 Bischl et al.（<a href="../references.html#ref-bischl2012resampling" role="doc-biblioref">2012</a>）。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>这里涉及机器学习性能估计中两个最核心的权衡。其一是<strong>偏差-方差权衡</strong>（bias-variance tradeoff）：训练集太小会让中间模型远差于最终模型，产生"悲观偏倚"；测试集太小又会让估计结果受偶然划分影响，产生"高方差"。2/3 训练、1/3 测试的留出比例正是在二者之间取折中。其二是为何 CV 通常优于单次留出：单次留出只使用一次划分，估计的方差大；而 CV 让每个观测恰好充当一次测试，使全部数据都被利用，再通过平均多折结果降低方差。LOO-CV 反直觉地方差高，是因为相邻折的模型高度相似、相互重叠的训练数据使各折结果高度相关；而重复 CV 通过多次随机划分进一步稳定估计。另外，第 3 章正文还提示：小样本（N≤500）推荐重复 10 折×10 次的 CV，中等规模推荐 5~10 折 CV，这一经验法则与 Kohavi（1995）等经典研究的结论一致。</p>
+</div>
+<!-- Source: https://docs.google.com/presentation/d/1BJXJ365C9TWelojV93IeQJAtEiD3uZMFSfkhzgYH-n8/edit?usp=sharing -->
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-cv-illustration" class="quarto-float quarto-figure quarto-figure-center anchored" alt="大致三行组成的复杂流程图。顶行（迭代 1）显示 Dtrain 被切分成两个浅蓝色方框代表训练数据，并指向一个'学习器'，'学习器'指向一个'模型'。一个深蓝色方框代表测试数据，指向同一个'模型'以及'度量'。'模型'指向'预测'，'预测'也指向'度量'，'度量'接着指向'性能'，'性能'有一个箭头指向'平均性能'。第二、三行推断出相同的过程，只是深蓝与浅蓝方框不同，使得每个方框在三轮迭代中恰好有一次是深蓝色。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-cv-illustration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/mlr3book_figures-6.svg" class="img-fluid figure-img" style="width:100.0%" alt="大致三行组成的复杂流程图。顶行（迭代 1）显示 Dtrain 被切分成两个浅蓝色方框代表训练数据，并指向一个'学习器'，'学习器'指向一个'模型'。一个深蓝色方框代表测试数据，指向同一个'模型'以及'度量'。'模型'指向'预测'，'预测'也指向'度量'，'度量'接着指向'性能'，'性能'有一个箭头指向'平均性能'。第二、三行推断出相同的过程，只是深蓝与浅蓝方框不同，使得每个方框在三轮迭代中恰好有一次是深蓝色。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cv-illustration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;3.3：三折交叉验证示意图。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>在本节的其余部分，我们将介绍如何在 <code>mlr3</code> 中查询和构造重采样策略、实例化训练-测试划分，然后对学习器执行重采样。</p>
+<section id="sec-resampling-construct" class="level3 page-columns page-full" data-number="3.2.1"><h3 data-number="3.2.1" class="anchored" data-anchor-id="sec-resampling-construct">
+<span class="header-section-number">3.2.1</span> 构造重采样策略（Constructing a Resampling Strategy）</h3>
+<p>所有已实现的重采样策略都存储在 <a href="https://mlr3.mlr-org.com/reference/mlr_resamplings.html"><code>mlr_resamplings</code></a> 字典（dictionary）中。</p>
+<div class="cell">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">as.data.table</span><span class="op">(</span><span class="va">mlr_resamplings</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>            key                                                   label
+ 1:   bootstrap                                               Bootstrap
+ 2:      custom                                           Custom Splits
+ 3:   custom_cv                           Custom Split Cross-Validation
+ 4:          cv                                        Cross-Validation
+ 5:     holdout                                                 Holdout
+---                                                                    
+23:    spcv_env             Spatial 'environmental blocking' resampling
+24:  spcv_knndm     Spatial 'K-fold Nearest Neighbour Distance Matching
+25:  spcv_tiles                              Spatial 'tiles' resampling
+26:  sptcv_cstf Spatiotemporal 'Leave-location-and-time-out' resampling
+27: subsampling                                             Subsampling
+2 variables not shown: [params, iters]</code></pre>
+</div>
+</div>
+<p><code>params</code> 列显示每种重采样策略的参数（例如训练-测试切分的 <code>ratio</code> 比例或 <code>repeats</code> 重复次数），<code>iters</code> 则显示默认执行的重采样迭代次数。</p>
+<p><a href="https://mlr3.mlr-org.com/reference/Resampling.html"><code>Resampling</code></a> 对象可以通过把策略的"键"（key）传给便捷函数（sugar function）<a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html"><code>rsmp()</code></a> 来构造。例如，构造一个 4/5 划分的留出策略（默认是 2/3）：</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>Resampling</code></span><span class="margin-aside"><code><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">rsmp</span><span class="op">(</span><span class="st">"holdout"</span>, ratio <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;ResamplingHoldout&gt; : Holdout ────────────────────────────────────────
+• Iterations: 1
+• Instantiated: FALSE
+• Parameters: ratio=0.8</code></pre>
+</div>
+</div>
+<p>继承自 <code>Resampling</code> 的对象，其参数与度量、学习器的参数工作方式相同，可以相应地设置、获取和更新：</p>
+<div class="cell">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># three-fold CV</span></span>
+<span><span class="va">cv3</span> <span class="op">=</span> <span class="fu">rsmp</span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co"># Subsampling with 3 repeats and 9/10 ratio</span></span>
+<span><span class="va">ss390</span> <span class="op">=</span> <span class="fu">rsmp</span><span class="op">(</span><span class="st">"subsampling"</span>, repeats <span class="op">=</span> <span class="fl">3</span>, ratio <span class="op">=</span> <span class="fl">0.9</span><span class="op">)</span></span>
+<span><span class="co"># 2-repeats 5-fold CV</span></span>
+<span><span class="va">rcv25</span> <span class="op">=</span> <span class="fu">rsmp</span><span class="op">(</span><span class="st">"repeated_cv"</span>, repeats <span class="op">=</span> <span class="fl">2</span>, folds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>当构造一个 <code>"Resampling"</code> 对象时，它仅仅是一个关于数据切分过程在任务上如何执行的"定义"。不过，也可以在给定任务上手动实例化（instantiate）一个重采样策略，即生成所有训练-测试划分，方法是调用 <code>$instantiate()</code> 方法。继续我们的 <code>tsk("penguins")</code> 例子，我们可以实例化三折 CV 对象，然后用 <code>$train_set()</code> 和 <code>$test_set()</code> 分别查看每一折选入训练和测试的数据的行索引：</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>$instantiate()</code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">cv3</span><span class="op">$</span><span class="fu">instantiate</span><span class="op">(</span><span class="va">tsk_penguins</span><span class="op">)</span></span>
+<span><span class="co"># first 5 observations in first training set</span></span>
+<span><span class="va">cv3</span><span class="op">$</span><span class="fu">train_set</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1]  1  4  5  8 16</code></pre>
+</div>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># first 5 observations in third test set</span></span>
+<span><span class="va">cv3</span><span class="op">$</span><span class="fu">test_set</span><span class="op">(</span><span class="fl">3</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1]  2  6 10 13 19</code></pre>
+</div>
+</div>
+<p>当目标是公平地比较多个学习器时，最佳实践要求所有被比较的学习器使用相同的训练数据来构建模型，并使用相同的测试数据来评估模型性能。在使用 <code><a href="https://mlr3.mlr-org.com/reference/resample.html">resample()</a></code> 方法（我们接下来会讨论）时，重采样策略会为你自动实例化。因此，手动实例化重采样策略很少是必需的，但在调试或深入研究模型性能时可能很有用。</p>
+</section><section id="sec-resampling-exec" class="level3 page-columns page-full" data-number="3.2.2"><h3 data-number="3.2.2" class="anchored" data-anchor-id="sec-resampling-exec">
+<span class="header-section-number">3.2.2</span> 重采样实验（Resampling Experiments）</h3>
+<p><a href="https://mlr3.mlr-org.com/reference/resample.html"><code>resample()</code></a> 函数接收给定的 <code>Task</code>、<code>Learner</code> 和 <a href="https://mlr3.mlr-org.com/reference/Resampling.html"><code>Resampling</code></a> 对象来执行给定的重采样策略。<code><a href="https://mlr3.mlr-org.com/reference/resample.html">resample()</a></code> 反复在训练集上拟合模型，在对应的测试集上作出预测，并把它们存储在一个 <a href="https://mlr3.mlr-org.com/reference/ResampleResult.html"><code>ResampleResult</code></a> 对象中，该对象包含估计泛化性能所需的全部信息。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://mlr3.mlr-org.com/reference/resample.html">resample()</a></code></span><span class="margin-aside"><code>ResampleResult</code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rr</span> <span class="op">=</span> <span class="fu">resample</span><span class="op">(</span><span class="va">tsk_penguins</span>, <span class="va">lrn_rpart</span>, <span class="va">cv3</span><span class="op">)</span></span>
+<span><span class="va">rr</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;ResampleResult&gt; with 3 resampling iterations ────────────────────────
+  task_id    learner_id resampling_id iteration     prediction_test
+ penguins classif.rpart            cv         1 &lt;PredictionClassif&gt;
+ penguins classif.rpart            cv         2 &lt;PredictionClassif&gt;
+ penguins classif.rpart            cv         3 &lt;PredictionClassif&gt;
+2 variables not shown: [warnings, errors]</code></pre>
+</div>
+</div>
+<p>输出的每一行对应三次迭代/折中的一次。与 <code>Prediction</code> 对象类似，我们可以用 <code>$score()</code> 计算<em>每一次迭代</em>的得分：</p>
+<div class="cell">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">acc</span> <span class="op">=</span> <span class="va">rr</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="fu">msr</span><span class="op">(</span><span class="st">"classif.ce"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">acc</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">iteration</span>, <span class="va">classif.ce</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   iteration classif.ce
+1:         1    0.06087
+2:         2    0.05217
+3:         3    0.07018</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+评估训练集（Evaluating Train Sets）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>默认情况下，<code>$score()</code> 评估的是每次迭代<em>测试</em>集中的性能，不过你也可以评估<em>训练</em>集的性能，参见 <span class="quarto-unresolved-ref">?sec-valid-tuning</span>。</p>
+</div>
+</div>
+<p><code>$score()</code> 返回每次评估中的性能，而 <code>$aggregate()</code> 返回所有重采样迭代上的聚合得分。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">$aggregate()</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="fu">msr</span><span class="op">(</span><span class="st">"classif.ce"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>classif.ce 
+   0.06107 </code></pre>
+</div>
+</div>
+<p>默认情况下，大多数度量使用宏平均（macro average）来聚合得分，即先在每次重采样迭代中分别计算度量，然后对所有迭代的这些得分取平均。不过也可以使用微平均（micro average）来聚合得分，它把各重采样迭代的预测汇集到一个 <a href="https://mlr3.mlr-org.com/reference/Prediction.html"><code>Prediction</code></a> 对象中，然后直接在该对象上计算度量：</p>
+<div class="cell">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="fu">msr</span><span class="op">(</span><span class="st">"classif.ce"</span>, average <span class="op">=</span> <span class="st">"micro"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>classif.ce 
+   0.06105 </code></pre>
+</div>
+</div>
+<p>我们可以看到两种方法之间存在<em>微小</em>的差异。分类误差是一种可分解损失（<a href="#sec-holdout-scoring" class="quarto-xref"><span>3.1 节</span></a>），事实上，如果所有测试集大小相同，那么微平均和宏平均方法将完全相同（见下方提示框）。对于像 AUC 这样定义在整个观测集合上的误差，微平均与宏平均之间的差异会更大。默认的聚合方法可以通过查询 <a href="https://mlr3.mlr-org.com/reference/Measure.html"><code>Measure</code></a> 对象的 <code>$average</code> 字段找到。</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+宏平均与微平均（Macro- and Micro-Averaging）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>用一个简单例子来解释宏平均与微平均：考虑取一个向量的均值（微）与取两个分组均值的均值（宏）之间的差别：</p>
+<div class="cell">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># macro</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">5</span>, <span class="fl">9</span><span class="op">)</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 5.667</code></pre>
+</div>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># micro</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">5</span>, <span class="fl">9</span>, <span class="fl">1</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 4.6</code></pre>
+</div>
+</div>
+<p>在正文中使用 <code>tsk("penguins")</code> 的例子中，微平均与宏平均的分类误差存在差异，因为该数据集有 344 行，不能整除 3（折数），因此测试集大小并不相等。</p>
+<p>注意，"宏平均"与"微平均"这两个术语在文献中的用法并不一致，有时指不同的概念，例如在多分类任务中跨类别聚合性能的方式。</p>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>宏平均（macro）与微平均（micro）的区别值得仔细体会。宏平均"先逐折打分再平均"，每一折无论大小权重相同；微平均"先合并全部预测再统一打分"，样本数多的折贡献更大。对于可分解损失（如分类误差），两种方式只在各折测试集大小不等时出现微小差别；而对于 AUC、AUC 这类"基于整组观测排序"的度量，两种方式的差别会更明显。在多分类度量中，"宏/微平均"一词还可能指按类别平均（macro-averaged precision）而非按样本平均（micro-averaged precision）——在类别不平衡时这两个值会相差很大，中文资料与论文中常说的"宏平均 F1 / 微平均 F1"就是这个含义，阅读文献时要注意区分语境。</p>
+</div>
+<p><code>$aggregate()</code> 返回的聚合得分，就是使用 <code>Resampling</code> 对象中定义的重采样策略，在给定任务上对我们所选学习器的泛化性能的估计。虽然我们通常关注这个聚合得分，但查看每次重采样迭代的个体性能值（由 <code>$score()</code> 方法返回）也可能有用，例如看看是否有某次迭代产生了非常不同的性能结果。<a href="#fig-score-aggregate-resampling" class="quarto-xref">图&nbsp;<span>3.4</span></a> 基于 <code>"penguins"</code> 任务的小例子可视化了 <code>$score()</code> 与 <code>$aggregate()</code> 之间的关系。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-score-aggregate-resampling" class="quarto-float quarto-figure quarto-figure-center anchored" alt="一个漏斗形示意图。左侧：每次重采样迭代包含多行预测，共 3 次迭代。中间：$score() 把每次重采样迭代的预测约简为一个性能得分，共得到 3 个得分。右侧：$aggregate() 把跨所有重采样迭代的预测约简为单一性能得分。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-score-aggregate-resampling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/mlr3book_figures-5.svg" class="img-fluid figure-img" style="width:100.0%" alt="一个漏斗形示意图。左侧：每次重采样迭代包含多行预测，共 3 次迭代。中间：$score() 把每次重采样迭代的预测约简为一个性能得分，共得到 3 个得分。右侧：$aggregate() 把跨所有重采样迭代的预测约简为单一性能得分。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-score-aggregate-resampling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;3.4：<code>$score()</code> 与 <code>$aggregate()</code> 区别的一个例子：前者在每次重采样迭代内把预测聚合为单一得分，后者把所有重采样迭代的得分聚合起来。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>要可视化重采样结果，可以使用 <a href="https://mlr3viz.mlr-org.com/reference/autoplot.ResampleResult.html"><code>autoplot.ResampleResult()</code></a> 函数，把各折的得分绘制成箱线图（boxplot）或直方图（histogram，<a href="#fig-resamp-viz" class="quarto-xref">图&nbsp;<span>3.5</span></a>）。直方图有助于直观判断重采样迭代之间性能结果的方差，而箱线图常用于并排比较多个学习器（见<a href="#sec-benchmarking" class="quarto-xref"><span>3.3 节</span></a>）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rr</span> <span class="op">=</span> <span class="fu">resample</span><span class="op">(</span><span class="va">tsk_penguins</span>, <span class="va">lrn_rpart</span>, <span class="fu">rsmp</span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">rr</span>, measure <span class="op">=</span> <span class="fu">msr</span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span>, type <span class="op">=</span> <span class="st">"boxplot"</span><span class="op">)</span></span>
+<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">rr</span>, measure <span class="op">=</span> <span class="fu">msr</span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span>, type <span class="op">=</span> <span class="st">"histogram"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div id="fig-resamp-viz" class="quarto-layout-panel">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-resamp-viz-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="quarto-layout-row">
+<div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-resamp-viz" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div id="fig-resamp-viz-1" class="quarto-float quarto-figure quarto-figure-center anchored" alt="左侧：箱线图，范围从 0.875 到 1.0，四分位距在 0.925 与 0.7 之间。右侧：直方图，五根柱子大致呈正态分布，均值约 0.95，最小 0.875，最大 1.0。">
+<figure class="quarto-float quarto-subfloat-fig figure"><div aria-describedby="fig-resamp-viz-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/evaluation_and_benchmarking_files/figure-html/fig-resamp-viz-1.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-resamp-viz" alt="左侧：箱线图，范围从 0.875 到 1.0，四分位距在 0.925 与 0.7 之间。右侧：直方图，五根柱子大致呈正态分布，均值约 0.95，最小 0.875，最大 1.0。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-resamp-viz-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(a) 准确率得分的箱线图。
+</figcaption></figure>
+</div>
+</div>
+<div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-resamp-viz" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div id="fig-resamp-viz-2" class="quarto-float quarto-figure quarto-figure-center anchored" alt="左侧：箱线图，范围从 0.875 到 1.0，四分位距在 0.925 与 0.7 之间。右侧：直方图，五根柱子大致呈正态分布，均值约 0.95，最小 0.875，最大 1.0。">
+<figure class="quarto-float quarto-subfloat-fig figure"><div aria-describedby="fig-resamp-viz-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/evaluation_and_benchmarking_files/figure-html/fig-resamp-viz-2.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-resamp-viz" alt="左侧：箱线图，范围从 0.875 到 1.0，四分位距在 0.925 与 0.7 之间。右侧：直方图，五根柱子大致呈正态分布，均值约 0.95，最小 0.875，最大 1.0。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-resamp-viz-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(b) 准确率得分的直方图。
+</figcaption></figure>
+</div>
+</div>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-resamp-viz-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;3.5：准确率得分的箱线图与直方图。
+</figcaption></figure>
+</div>
+</section><section id="sec-resampling-ci" class="level3" data-number="3.2.3"><h3 data-number="3.2.3" class="anchored" data-anchor-id="sec-resampling-ci">
+<span class="header-section-number">3.2.3</span> 置信区间（Confidence Intervals，+）</h3>
+<p>除了仅仅依赖点估计（point estimates），置信区间（confidence intervals, CIs）还提供了这个估计的不确定性度量，使我们能够理解性能测量的可靠性。由于推断问题本身的复杂性，为泛化误差构造 CI 颇具挑战性，但已有一些方法在实践中表现良好 <span class="citation" data-cites="kuempelfischer2024ciforge">(<a href="../references.html#ref-kuempelfischer2024ciforge" role="doc-biblioref">Schulz-Kümpel et al. 2024</a>)</span>。使用这类方法时，重要的是要知道它们在有些情况下可能失效——例如存在离群值或不稳定的学习过程时——并且要知道由此得到的 CI 可能过于保守或过于宽松。</p>
+<p><a href="https://mlr3inferr.mlr-org.com"><code>mlr3inferr</code></a> 包为 <code>mlr3</code> 生态扩展了推断方法与新的重采样策略。推断方法以 <a href="https://mlr3.mlr-org.com/reference/Measure.html"><code>Measure</code></a> 对象的形式实现，它们接收另一个度量，为其计算 CI。下面我们演示如何使用 Bayle et al.（<a href="../references.html#ref-bayle2020cross" role="doc-biblioref">2020</a>）提出的推断方法来为上一节交叉验证的结果计算 CI。与其他 mlr3 度量不同，这里的结果不是标量，而是一个包含点估计以及指定 alpha 水平下 CI 上下界的向量。</p>
+<div class="cell">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3inferr.mlr-org.com">mlr3inferr</a></span><span class="op">)</span></span>
+<span><span class="co"># alpha = 0.05 is also the default</span></span>
+<span><span class="va">msr_ci</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"ci.wald_cv"</span>, <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span>, alpha <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
+<span><span class="va">rr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="va">msr_ci</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      classif.acc classif.acc.lower classif.acc.upper 
+           0.9448            0.9206            0.9689 </code></pre>
+</div>
+</div>
+<p>我们也可以使用 <code>msr("ci")</code>，它会针对给定的重采样策略自动选择合适的推断度量。可用推断方法的列表可以在该包的网站上找到：<a href="https://mlr3inferr.mlr-org.com/">https://mlr3inferr.mlr-org.com/</a>。</p>
+<div class="cell">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"ci"</span>, <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      classif.acc classif.acc.lower classif.acc.upper 
+           0.9448            0.9206            0.9689 </code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>为交叉验证估计构造置信区间在统计上并不平凡。直观的"把各折得分取均值再套用 t 分布"会低估不确定性，因为各折的模型在重叠的训练数据上拟合，得分之间并不独立（这正是前文强调的）。<code>mlr3inferr</code> 提供的 Wald 型 CV 推断（<code>ci.wald_cv</code>）基于 Bayle 等（2020）的理论结果，它把 CV 估计量的方差分解为"折内误差"与"折间因训练集重叠带来的协方差"两部分，从而得到渐近正确的区间。若训练过程不稳定（如小样本上的复杂模型），此类区间可能失效。读者在使用时可对比不同推断方法的结果，避免只报告单一方法的区间。</p>
+</div>
+</section><section id="sec-resampling-inspect" class="level3" data-number="3.2.4"><h3 data-number="3.2.4" class="anchored" data-anchor-id="sec-resampling-inspect">
+<span class="header-section-number">3.2.4</span> ResampleResult 对象（ResampleResult Objects）</h3>
+<p>除了用于估计泛化性能之外，<a href="https://mlr3.mlr-org.com/reference/ResampleResult.html"><code>ResampleResult</code></a> 对象还可以用于模型检查。我们可以用 <code>$predictions()</code> 方法获得一个 <a href="https://mlr3.mlr-org.com/reference/Prediction.html"><code>Prediction</code></a> 对象列表，它们对应每次重采样迭代的预测。这可以用来分析每次重采样迭代中各个中间模型的预测。为了更好地理解这个类，我们在这里用它手动计算一个宏平均的性能估计。</p>
+<div class="cell">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># list of prediction objects</span></span>
+<span><span class="va">rrp</span> <span class="op">=</span> <span class="va">rr</span><span class="op">$</span><span class="fu">predictions</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co"># print first two</span></span>
+<span><span class="va">rrp</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[1]]
+
+── &lt;PredictionClassif&gt; for 35 observations: ─────────────────────────────
+ row_ids     truth  response
+      20    Adelie Chinstrap
+      21    Adelie    Adelie
+      33    Adelie    Adelie
+     ---       ---       ---
+     307 Chinstrap    Adelie
+     322 Chinstrap Chinstrap
+     333 Chinstrap Chinstrap
+
+[[2]]
+
+── &lt;PredictionClassif&gt; for 35 observations: ─────────────────────────────
+ row_ids     truth  response
+       8    Adelie    Adelie
+      41    Adelie    Adelie
+      44    Adelie Chinstrap
+     ---       ---       ---
+     309 Chinstrap    Adelie
+     312 Chinstrap Chinstrap
+     331 Chinstrap    Adelie</code></pre>
+</div>
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># macro averaged performance</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">sapply</a></span><span class="op">(</span><span class="va">rrp</span>, <span class="kw">function</span><span class="op">(</span><span class="va">.x</span><span class="op">)</span> <span class="va">.x</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.05529</code></pre>
+</div>
+</div>
+<p><code>$prediction()</code> 方法可以用来提取一个单一的 <code>Prediction</code> 对象，它把每次重采样迭代中各个中间模型的预测跨所有迭代合并起来。这个合并的预测对象例如可以用来手动计算微平均的性能估计（关于更方便的微平均方式见<a href="#sec-resampling-exec" class="quarto-xref"><span>3.2.2 节</span></a>）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span> <span class="op">=</span> <span class="va">rr</span><span class="op">$</span><span class="fu">prediction</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">prediction</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionClassif&gt; for 344 observations: ────────────────────────────
+ row_ids     truth  response
+      20    Adelie Chinstrap
+      21    Adelie    Adelie
+      33    Adelie    Adelie
+     ---       ---       ---
+     330 Chinstrap Chinstrap
+     337 Chinstrap    Gentoo
+     340 Chinstrap    Gentoo</code></pre>
+</div>
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>classif.ce 
+   0.05523 </code></pre>
+</div>
+</div>
+<p>默认情况下，每次重采样迭代产生的中间模型在预测步骤之后会被丢弃，以降低 <code>ResampleResult</code> 对象的内存消耗（计算大多数性能度量只需要预测结果）。然而，有时检查、比较或从这些中间模型中提取信息是有用的。我们可以通过设置 <code>store_models = TRUE</code> 来配置 <a href="https://mlr3.mlr-org.com/reference/resample.html"><code>resample()</code></a> 函数保留拟合好的中间模型。然后可以通过 <code>$learners[[i]]$model</code> 访问在特定重采样迭代中训练的每个模型，其中 <code>i</code> 指第 <code>i</code> 次重采样迭代：</p>
+<div class="cell">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rr</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/resample.html">resample</a></span><span class="op">(</span><span class="va">tsk_penguins</span>, <span class="va">lrn_rpart</span>, <span class="va">cv3</span>, store_models <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co"># get the model from the first iteration</span></span>
+<span><span class="va">rr</span><span class="op">$</span><span class="va">learners</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">model</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>n= 229 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+ 1) root 229 122 Adelie (0.46725 0.18777 0.34498)  
+   2) bill_length&lt; 42.35 98   0 Adelie (1.00000 0.00000 0.00000) *
+   3) bill_length&gt;=42.35 131  52 Gentoo (0.06870 0.32824 0.60305)  
+     6) island=Dream,Torgersen 50   7 Chinstrap (0.14000 0.86000 0.00000)  
+      12) island=Torgersen 7   0 Adelie (1.00000 0.00000 0.00000) *
+      13) island=Dream 43   0 Chinstrap (0.00000 1.00000 0.00000) *
+     7) island=Biscoe 81   2 Gentoo (0.02469 0.00000 0.97531) *</code></pre>
+</div>
+</div>
+<p>在这个例子中，我们随后可以检查每次迭代中最主要的变量，以帮助我们更多地了解各个拟合模型：</p>
+<div class="cell">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># print 2nd and 3rd iteration</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="va">rr</span><span class="op">$</span><span class="va">learners</span><span class="op">[</span><span class="fl">2</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">variable.importance</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[1]]
+   bill_length flipper_length     bill_depth      body_mass 
+         84.81          80.59          67.52          57.39 
+        island 
+         49.11 
+
+[[2]]
+flipper_length    bill_length     bill_depth         island 
+         88.62          82.10          66.59          61.50 
+     body_mass 
+         60.37 </code></pre>
+</div>
+</div>
+</section>
+<section id="sec-resamp-custom" class="level3" data-number="3.2.5"><h3 data-number="3.2.5" class="anchored" data-anchor-id="sec-resamp-custom">
+<span class="header-section-number">3.2.5</span> 自定义重采样（Custom Resampling）</h3>
+<div class="callout callout-style-simple callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+本节涉及高级机器学习或技术细节。
+</div>
+</div>
+<div class="callout-body-container callout-body">
+
+</div>
+</div>
+<p>有时需要用自定义划分执行重采样，例如为了复现研究报告中使用了预定义折的结果。</p>
+<p>可以使用 <code>rsmp("custom")</code> 构造自定义留出重采样策略，其中用于训练和测试的观测行 ID 必须在用任务实例化时手动定义。在下面的例子中，我们先通过手动把行 ID 赋给 <code>$train</code> 和 <code>$test</code> 字段来构造一个自定义留出重采样策略，然后通过把行 ID 作为列表元素传入来构造一个具有两次迭代的重采样策略：</p>
+<div class="cell">
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rsmp_custom</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"custom"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># resampling strategy with two iterations</span></span>
+<span><span class="va">train_sets</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">153</span><span class="op">:</span><span class="fl">158</span>, <span class="fl">277</span><span class="op">:</span><span class="fl">280</span><span class="op">)</span></span>
+<span><span class="va">rsmp_custom</span><span class="op">$</span><span class="fu">instantiate</span><span class="op">(</span><span class="va">tsk_penguins</span>,</span>
+<span>  train <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">train_sets</span>, <span class="va">train_sets</span> <span class="op">+</span> <span class="fl">5</span><span class="op">)</span>,</span>
+<span>  test <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="va">train_sets</span> <span class="op">+</span> <span class="fl">15</span>, <span class="va">train_sets</span> <span class="op">+</span> <span class="fl">25</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/resample.html">resample</a></span><span class="op">(</span><span class="va">tsk_penguins</span>, <span class="va">lrn_rpart</span>, <span class="va">rsmp_custom</span><span class="op">)</span><span class="op">$</span><span class="fu">prediction</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionClassif&gt; for 30 observations: ─────────────────────────────
+ row_ids     truth response
+      16    Adelie   Gentoo
+      17    Adelie   Gentoo
+      18    Adelie   Gentoo
+     ---       ---      ---
+     303 Chinstrap   Gentoo
+     304 Chinstrap   Gentoo
+     305 Chinstrap   Gentoo</code></pre>
+</div>
+</div>
+<p>使用 <code>rsmp("custom_cv")</code> 可以更高效地构造自定义交叉验证策略。此时我们必须指定一个自定义的 <code>factor</code> 变量或数据中的一个 <code>factor</code> 列来确定折。在下面的例子中，我们使用 <code>tsk("penguins")</code> 的一个较小版本，并用一个名为 <code>folds</code> 的 <code>factor</code> 变量实例化一个自定义两折 CV 策略：第 1 行和第 3 行作为第 1 折的测试集，第 2 行和第 4 行作为第 2 折的测试集：</p>
+<div class="cell">
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_small</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"penguins"</span><span class="op">)</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">100</span>, <span class="fl">200</span>, <span class="fl">300</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">rsmp_customcv</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"custom_cv"</span><span class="op">)</span></span>
+<span><span class="va">folds</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">as.factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">rsmp_customcv</span><span class="op">$</span><span class="fu">instantiate</span><span class="op">(</span><span class="va">tsk_small</span>, f <span class="op">=</span> <span class="va">folds</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/resample.html">resample</a></span><span class="op">(</span><span class="va">tsk_small</span>, <span class="va">lrn_rpart</span>, <span class="va">rsmp_customcv</span><span class="op">)</span><span class="op">$</span><span class="fu">predictions</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[1]]
+
+── &lt;PredictionClassif&gt; for 2 observations: ──────────────────────────────
+ row_ids  truth response
+       1 Adelie   Adelie
+     200 Gentoo   Adelie
+
+[[2]]
+
+── &lt;PredictionClassif&gt; for 2 observations: ──────────────────────────────
+ row_ids     truth response
+     100    Adelie   Adelie
+     300 Chinstrap   Adelie</code></pre>
+</div>
+</div>
+</section><section id="sec-strat-group" class="level3" data-number="3.2.6"><h3 data-number="3.2.6" class="anchored" data-anchor-id="sec-strat-group">
+<span class="header-section-number">3.2.6</span> 分层与分组（Stratification and Grouping）</h3>
+<div class="callout callout-style-simple callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+本节涉及高级机器学习或技术细节。
+</div>
+</div>
+<div class="callout-body-container callout-body">
+
+</div>
+</div>
+<p>利用列角色（column roles，<a href="../chapter2/data_and_basic_modeling.html#sec-row-col-roles" class="quarto-xref"><span>2.6 节</span></a>），可以根据数据中的某个特定列对观测进行分组或分层。我们依次来看这两种方式。</p>
+<section id="grouped-resampling" class="level4 unlisted unnumbered"><h4 class="unlisted unnumbered anchored" data-anchor-id="grouped-resampling">分组重采样（Grouped Resampling）</h4>
+<p>在数据切分时把同一组的观测保持在一起可能很有用，有时甚至是必不可少的——空间分析（<a href="../chapter13/beyond_regression_and_classification.html#sec-spatiotemporal" class="quarto-xref"><span>13.5 节</span></a>）就是一个典型的例子，因为观测属于自然分组（例如国家）。当观测属于某个组时，我们需要确保同一组的所有观测要么全部在训练集中，要么全部在测试集中，以防止训练与测试之间的潜在信息泄漏（leakage）。例如，在纵向研究（longitudinal study）中，对同一个体在多个时间点进行测量。如果我们不把这些观测分组，就可能高估模型对未见个体的泛化能力，因为同一个体的观测可能同时出现在训练集和测试集中。在这种情境下，留一交叉验证策略可以粗化为"留一对象交叉验证"（leave-one-object-out cross-validation），即把与某个组相关的所有观测都留下（<a href="#fig-group" class="quarto-xref">图&nbsp;<span>3.6</span></a>）。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-group" class="quarto-float quarto-figure quarto-figure-center anchored" alt="三幅图，每幅图显示一个写着'训练'的绿色方框，其周围白色区域写着'测试'。左侧（迭代 1）：绿色方框内有蓝色和红色圆点，黄色圆点在方框外。中间（迭代 2）：绿色方框内有蓝色和黄色圆点，红色圆点在方框外。右侧（迭代 3）：绿色方框内有黄色和红色圆点，蓝色圆点在方框外。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-group-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/mlr3book_figures-7.svg" class="img-fluid figure-img" style="width:100.0%" alt="三幅图，每幅图显示一个写着'训练'的绿色方框，其周围白色区域写着'测试'。左侧（迭代 1）：绿色方框内有蓝色和红色圆点，黄色圆点在方框外。中间（迭代 2）：绿色方框内有蓝色和黄色圆点，红色圆点在方框外。右侧（迭代 3）：绿色方框内有黄色和红色圆点，蓝色圆点在方框外。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-group-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;3.6：对 3 组观测（用不同颜色突出显示）的留一对象交叉验证训练-测试划分示意图。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p><code>"group"</code> 列角色允许我们指定数据中定义观测组结构的列。在下面的代码中，我们构造一个留一重采样策略，把 <code>"group"</code> 角色赋给 <code>tsk("penguins")</code> 的 'year' 列，实例化该重采样策略，最后展示在第一折中年份是如何被干净地分开的。</p>
+<div class="cell">
+<div class="sourceCode" id="cb46"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rsmp_loo</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"loo"</span><span class="op">)</span></span>
+<span><span class="va">tsk_grp</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"penguins"</span><span class="op">)</span></span>
+<span><span class="va">tsk_grp</span><span class="op">$</span><span class="fu">set_col_roles</span><span class="op">(</span><span class="st">"year"</span>, <span class="st">"group"</span><span class="op">)</span></span>
+<span><span class="va">rsmp_loo</span><span class="op">$</span><span class="fu">instantiate</span><span class="op">(</span><span class="va">tsk_grp</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html">table</a></span><span class="op">(</span><span class="va">tsk_grp</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span>rows <span class="op">=</span> <span class="va">rsmp_loo</span><span class="op">$</span><span class="fu">train_set</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, cols <span class="op">=</span> <span class="st">"year"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>year
+2007 2008 
+ 110  114 </code></pre>
+</div>
+<div class="sourceCode" id="cb48"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html">table</a></span><span class="op">(</span><span class="va">tsk_grp</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span>rows <span class="op">=</span> <span class="va">rsmp_loo</span><span class="op">$</span><span class="fu">test_set</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, cols <span class="op">=</span> <span class="st">"year"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>year
+2009 
+ 120 </code></pre>
+</div>
+</div>
+<p>其他交叉验证技术也以类似方式工作，即折在组层面（而非观测层面）确定。</p>
+</section><section id="stratified-sampling" class="level4 unlisted unnumbered"><h4 class="unlisted unnumbered anchored" data-anchor-id="stratified-sampling">分层抽样（Stratified Sampling）</h4>
+<p>分层抽样（stratified sampling）确保训练集和测试集中一个或多个离散特征具有与包含所有观测的原始任务相似的分布。当一个离散特征高度不平衡，而我们希望确保该特征的分布（<a href="#fig-stratification" class="quarto-xref">图&nbsp;<span>3.7</span></a>）在每次重采样迭代中相似时，这一点尤其有用。我们也可以对目标特征进行分层，以确保每个中间模型都在训练数据上拟合，而训练数据中目标的类别分布能代表真实任务；这有助于防止目标类别在个别重采样迭代中因随机偶然而严重代表性不足，从而避免产生退化的泛化性能估计。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-stratification" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图中用黄色和绿色矩形分别表示多数类和少数类。左侧是任务切分之前的矩形，多数类（黄色）明显大于少数类（绿色）。这被标注为'不平衡的类别分布'。接下来的三个方框分别标注为'迭代 1-3'，其中多数类与少数类的大小差异被保留，即各迭代中多数类与少数类的大小差异相等。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-stratification-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/mlr3book_figures-8.svg" class="img-fluid figure-img" style="width:100.0%" alt="图中用黄色和绿色矩形分别表示多数类和少数类。左侧是任务切分之前的矩形，多数类（黄色）明显大于少数类（绿色）。这被标注为'不平衡的类别分布'。接下来的三个方框分别标注为'迭代 1-3'，其中多数类与少数类的大小差异被保留，即各迭代中多数类与少数类的大小差异相等。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-stratification-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;3.7：对一个不平衡二分类任务进行三折分层交叉验证的示意图，其中多数类大约是少数类的两倍。在每次重采样迭代中，可用数据的类别分布都被保留（这在未分层的交叉验证中不一定能保证）。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>与分组不同，使用 <code>"stratum"</code> 列角色（<a href="../chapter2/data_and_basic_modeling.html#sec-row-col-roles" class="quarto-xref"><span>2.6 节</span></a>）可以对多个离散特征进行分层。这种情况下，分层单元（strata）由被分层特征的每一种组合构成，例如两个被分层特征 A 和 B 分别有水平 Aa、Ab 和 Ba、Bb，那么创建的分层单元将有水平 AaBa、AaBb、AbBa、AbBb。</p>
+<p><code>tsk("penguins")</code> 在 <code>species</code> 列上显示出不平衡，如下面的输出所示：</p>
+<div class="cell">
+<div class="sourceCode" id="cb50"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/proportions.html">prop.table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html">table</a></span><span class="op">(</span><span class="va">tsk_penguins</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span>cols <span class="op">=</span> <span class="st">"species"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>species
+   Adelie Chinstrap    Gentoo 
+   0.4419    0.1977    0.3605 </code></pre>
+</div>
+</div>
+<p>如果不指定 <code>"stratum"</code> 列角色，<code>species</code> 列在各 CV 折中的类别分布可能差别很大，如下面的例子所示。</p>
+<div class="cell">
+<div class="sourceCode" id="cb52"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rsmp_cv10</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="va">rsmp_cv10</span><span class="op">$</span><span class="fu">instantiate</span><span class="op">(</span><span class="va">tsk_penguins</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">fold1</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/proportions.html">prop.table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html">table</a></span><span class="op">(</span><span class="va">tsk_penguins</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span>rows <span class="op">=</span> <span class="va">rsmp_cv10</span><span class="op">$</span><span class="fu">test_set</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>,</span>
+<span>  cols <span class="op">=</span> <span class="st">"species"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">fold2</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/proportions.html">prop.table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html">table</a></span><span class="op">(</span><span class="va">tsk_penguins</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span>rows <span class="op">=</span> <span class="va">rsmp_cv10</span><span class="op">$</span><span class="fu">test_set</span><span class="op">(</span><span class="fl">2</span><span class="op">)</span>,</span>
+<span>  cols <span class="op">=</span> <span class="st">"species"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html">rbind</a></span><span class="op">(</span><span class="st">"Fold 1"</span> <span class="op">=</span> <span class="va">fold1</span>, <span class="st">"Fold 2"</span> <span class="op">=</span> <span class="va">fold2</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       Adelie Chinstrap Gentoo
+Fold 1 0.6286    0.1143 0.2571
+Fold 2 0.5143    0.1714 0.3143</code></pre>
+</div>
+</div>
+<p>我们可以看到 Chinstrap 在各折中的代表性差异相当大（0.11 vs. 0.17）。</p>
+<p>当不平衡非常严重时，少数类可能完全不出现在某些训练集中。因此，这些重采样迭代中的中间模型将永远不会预测缺失的类别，导致任何未分层重采样策略的性能估计都具有误导性。下面的代码使用 <code>species</code> 作为 <code>"stratum"</code> 列角色来说明每个测试集中 <code>species</code> 的分布将非常接近原始分布：</p>
+<div class="cell">
+<div class="sourceCode" id="cb54"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_str</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"penguins"</span><span class="op">)</span></span>
+<span><span class="co"># set species to have both the 'target' and 'stratum' column role</span></span>
+<span><span class="va">tsk_str</span><span class="op">$</span><span class="fu">set_col_roles</span><span class="op">(</span><span class="st">"species"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"target"</span>, <span class="st">"stratum"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">rsmp_cv10</span><span class="op">$</span><span class="fu">instantiate</span><span class="op">(</span><span class="va">tsk_str</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">fold1</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/proportions.html">prop.table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html">table</a></span><span class="op">(</span><span class="va">tsk_str</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span>rows <span class="op">=</span> <span class="va">rsmp_cv10</span><span class="op">$</span><span class="fu">test_set</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>,</span>
+<span>  cols <span class="op">=</span> <span class="st">"species"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">fold2</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/proportions.html">prop.table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html">table</a></span><span class="op">(</span><span class="va">tsk_str</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span>rows <span class="op">=</span> <span class="va">rsmp_cv10</span><span class="op">$</span><span class="fu">test_set</span><span class="op">(</span><span class="fl">2</span><span class="op">)</span>,</span>
+<span>  cols <span class="op">=</span> <span class="st">"species"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html">rbind</a></span><span class="op">(</span><span class="st">"Fold 1"</span> <span class="op">=</span> <span class="va">fold1</span>, <span class="st">"Fold 2"</span> <span class="op">=</span> <span class="va">fold2</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       Adelie Chinstrap Gentoo
+Fold 1 0.4444    0.1944 0.3611
+Fold 2 0.4444    0.1944 0.3611</code></pre>
+</div>
+</div>
+<p>你可以使用 <code>Task</code> 对象的 <code>$strata</code> 字段查看落入每个分层单元的观测，当我们对多个分层单元感兴趣时，这会特别有用：</p>
+<div class="cell">
+<div class="sourceCode" id="cb56"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_str</span><span class="op">$</span><span class="fu">set_col_roles</span><span class="op">(</span><span class="st">"year"</span>, <span class="st">"stratum"</span><span class="op">)</span></span>
+<span><span class="va">tsk_str</span><span class="op">$</span><span class="va">strata</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    N                          row_id
+1: 50             1,2,3,4,5,6,...[50]
+2: 50       51,52,53,54,55,56,...[50]
+3: 52 101,102,103,104,105,106,...[52]
+4: 34 153,154,155,156,157,158,...[34]
+5: 46 187,188,189,190,191,192,...[46]
+6: 44 233,234,235,236,237,238,...[44]
+7: 26 277,278,279,280,281,282,...[26]
+8: 18 303,304,305,306,307,308,...[18]
+9: 24 321,322,323,324,325,326,...[24]</code></pre>
+</div>
+<div class="sourceCode" id="cb58"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># N above matches with numbers in table below</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html">table</a></span><span class="op">(</span><span class="va">tsk_penguins</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span>cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"species"</span>, <span class="st">"year"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           year
+species     2007 2008 2009
+  Adelie      50   50   52
+  Chinstrap   26   18   24
+  Gentoo      34   46   44</code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>分层（stratification）与分组（grouping）是两个容易被混用的概念。分层解决的是<strong>分布代表性</strong>问题：在类别不平衡时，随机切分可能让少数类在某折中占比畸高或缺失，导致性能估计失真；分层让每折的类别比例与总体一致。分组解决的是<strong>数据依赖/泄漏</strong>问题：当同一对象（病人、地块、用户、时间序列段）有多条观测时，若不把同一对象的全部观测归入同一侧，模型就可能在测试时"见过"训练时同一对象的信息，从而高估泛化能力。判别要点：分层针对"类别标签"，分组针对"观测之间的关联结构"。在多标签或多层结构数据（如嵌套的纵向数据）中，二者可同时使用。</p>
+</div>
+</section></section></section><section id="sec-benchmarking" class="level2" data-number="3.3"><h2 data-number="3.3" class="anchored" data-anchor-id="sec-benchmarking">
+<span class="header-section-number">3.3</span> 基准测试（Benchmarking）</h2>
+<p>有监督机器学习中的基准测试（benchmarking）指在一个或多个任务上比较不同的学习器。当在<em>单个任务</em>上或由多个相似任务组成的域（domain）上比较<em>多个学习器</em>时，主要目标通常是按预先定义的性能度量对学习器排序，并找出在所考虑任务或域上表现最好的学习器。当在<em>多个任务</em>上比较<em>多个学习器</em>时，主要目标通常更具科学性，例如了解不同学习器在不同数据情境下的表现，或者是否存在某些数据属性会严重影响某些学习器（或学习器的某些超参数）的表现。算法设计者在基准实验中分析新提出的学习算法相对于既有学习器的泛化性能或运行时间，是常见且良好的做法。由于基准测试通常由许多可以彼此独立运行的评估组成，<code>mlr3</code> 提供了自动并行化它们的能力，我们在<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-parallel-resample" class="quarto-xref"><span>10.1.2 节</span></a>中演示这一点。在本节中，我们将专注于适用于大多数用例的基本基准实验设置，在<a href="../chapter11/large-scale_benchmarking.html" class="quarto-xref"><span>第 11 章</span></a>中我们将研究更复杂、更大规模的基准实验。</p>
+<section id="sec-bm-design" class="level3" data-number="3.3.1"><h3 data-number="3.3.1" class="anchored" data-anchor-id="sec-bm-design">
+<span class="header-section-number">3.3.1</span> benchmark()</h3>
+<p><code>mlr3</code> 中的基准实验通过 <a href="https://mlr3.mlr-org.com/reference/benchmark.html"><code>benchmark()</code></a> 进行，它只是在每个任务和学习器上分别运行 <a href="https://mlr3.mlr-org.com/reference/resample.html"><code>resample()</code></a>，然后收集结果。提供的重采样策略会在每个任务上自动实例化，以确保所有学习器都针对相同的训练和测试数据进行比较。</p>
+<p>要使用 <code><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark()</a></code> 函数，我们首先调用 <a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html"><code>benchmark_grid()</code></a>，它构造一个穷举式的<em>设计</em>（design），描述基准实验中要使用的学习器、任务和重采样策略的全部组合，并实例化重采样策略。例如，下面我们建立一个设计，来看随机森林、决策树或无特征基线（featureless baseline，<a href="../chapter2/data_and_basic_modeling.html#sec-basics-featureless" class="quarto-xref"><span>2.2.4 节</span></a>）谁在两个分类任务上表现最好。</p>
+<div class="cell">
+<div class="sourceCode" id="cb60"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tasks</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsks</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"german_credit"</span>, <span class="st">"sonar"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">learners</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrns</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"classif.rpart"</span>, <span class="st">"classif.ranger"</span>,</span>
+<span>  <span class="st">"classif.featureless"</span><span class="op">)</span>, predict_type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span></span>
+<span><span class="va">rsmp_cv5</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">design</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html">benchmark_grid</a></span><span class="op">(</span><span class="va">tasks</span>, <span class="va">learners</span>, <span class="va">rsmp_cv5</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>            task             learner resampling
+1: german_credit       classif.rpart         cv
+2: german_credit      classif.ranger         cv
+3: german_credit classif.featureless         cv
+4:         sonar       classif.rpart         cv
+5:         sonar      classif.ranger         cv
+6:         sonar classif.featureless         cv</code></pre>
+</div>
+</div>
+<p>得到的设计本质上只是一个 <code>data.table</code>，如果你想删除特定组合可以修改它，甚至可以在不使用 <code><a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html">benchmark_grid()</a></code> 函数的情况下从头创建。注意，这个 <code>data.table</code> 有一些列表列，包含任务、学习器和重采样实例的 R6 对象。</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+使用 <code><a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html">benchmark_grid()</a></code> 时的可复现性（Reproducibility）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>默认情况下，<a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html"><code>benchmark_grid()</code></a> 会在任务上实例化重采样，这意味着会生成具体的训练-测试划分。由于这个过程是随机的，因此必须在调用 <code><a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html">benchmark_grid()</a></code> <strong>之前</strong>设置随机种子，以确保数据划分的可复现性。</p>
+</div>
+</div>
+<p>构造好的基准设计随后可以传给 <code><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark()</a></code> 来运行实验，结果是一个 <a href="https://mlr3.mlr-org.com/reference/BenchmarkResult.html"><code>BenchmarkResult</code></a> 对象：</p>
+<div class="cell">
+<div class="sourceCode" id="cb62"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">bmr</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark</a></span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span>
+<span><span class="va">bmr</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;BenchmarkResult&gt; of 30 rows with 6 resampling run ───────────────────
+ nr       task_id          learner_id resampling_id iters warnings
+  1 german_credit       classif.rpart            cv     5        0
+  2 german_credit      classif.ranger            cv     5        0
+  3 german_credit classif.featureless            cv     5        0
+  4         sonar       classif.rpart            cv     5        0
+  5         sonar      classif.ranger            cv     5        0
+  6         sonar classif.featureless            cv     5        0
+1 variable not shown: [errors]</code></pre>
+</div>
+</div>
+<p>由于 <code><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark()</a></code> 只是 <code><a href="https://mlr3.mlr-org.com/reference/resample.html">resample()</a></code> 的扩展，我们可以再次使用 <code>$score()</code> 或 <code>$aggregate()</code>（取决于你的使用场景），不过请注意，在这种情况下 <code>$score()</code> 将返回每个学习器/任务/重采样组合的每一折上的结果。</p>
+<div class="cell">
+<div class="sourceCode" id="cb64"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">bmr</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">7</span>, <span class="fl">13</span><span class="op">)</span>, <span class="fu">.</span><span class="op">(</span><span class="va">iteration</span>, <span class="va">task_id</span>, <span class="va">learner_id</span>, <span class="va">classif.ce</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   iteration       task_id          learner_id classif.ce
+1:         1 german_credit       classif.rpart      0.245
+2:         2 german_credit      classif.ranger      0.170
+3:         3 german_credit classif.featureless      0.315</code></pre>
+</div>
+<div class="sourceCode" id="cb66"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">bmr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">task_id</span>, <span class="va">learner_id</span>, <span class="va">classif.ce</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>         task_id          learner_id classif.ce
+1: german_credit       classif.rpart     0.2620
+2: german_credit      classif.ranger     0.2220
+3: german_credit classif.featureless     0.3000
+4:         sonar       classif.rpart     0.3365
+5:         sonar      classif.ranger     0.1871
+6:         sonar classif.featureless     0.5388</code></pre>
+</div>
+</div>
+<p>这就完成了一个基本的基准实验，你可以从中对模型性能作出初步结论，在本例中我们可能会得出随机森林在两个任务上都是三个模型中最好的。我们在这里下结论时很谨慎，因为我们没有运行任何统计检验，也没有包含度量的标准误，所以我们不能确切地说一个模型是否优于另一个模型。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>基准测试（benchmarking）中的一个常见陷阱是"跨任务平均性能"。当各任务的难度与数据分布差异很大时，把性能直接平均会掩盖"在简单任务上谁更好、在困难任务上谁更好"这类重要信息。更稳健的做法是先按任务排序（rank），再平均每个学习器的秩。这样做等价于在任务内先做相对比较，消去了任务本身的难度差异。但代价是丢失数值差异信息：两个学习器在某个任务上相差 0.01 还是 0.1，在排序中并无区别。第 11 章还会引入 Friedman 检验、临界差图（critical difference diagrams）等正式的统计比较方法。此外，<code>mlr3</code> 的基准设计是"任务 × 学习器 × 重采样"的穷举笛卡尔积，也可以用 <code>data.table</code> 手工构造或删减行，这为实现非对称设计（例如不同学习器用不同重采样）提供了灵活性。</p>
+</div>
+<p>由于 <code>$score()</code> 和 <code>$aggregate()</code> 的结果以 <code>data.table</code> 形式返回，你可以以任何想要的方式对结果进行后处理和分析。一个常见的<em>错误</em>是当各任务差异显著时，把所有任务上的学习器性能取平均。这样做是错误的，因为平均性能会遗漏关于学习器在"较容易"或"较困难"的预测问题中如何比较的重要洞见。一种更稳健的、用于跨多个任务比较整体算法性能的替代方法是：在每个任务上分别计算每个学习器的排名，然后计算平均排名。这能提供更好的比较，因为在跨任务比较之前先在任务内部比较学习器，从而把任务特有的"怪癖"考虑进去。然而，使用排名会丢失关于计算所得性能得分之间数值差异的信息。基准实验的分析（包括统计检验）在<a href="../chapter11/large-scale_benchmarking.html#sec-benchmark-analysis" class="quarto-xref"><span>11.3 节</span></a>有更详细的讨论。</p>
+</section><section id="sec-bm-resamp" class="level3" data-number="3.3.2"><h3 data-number="3.3.2" class="anchored" data-anchor-id="sec-bm-resamp">
+<span class="header-section-number">3.3.2</span> BenchmarkResult 对象（BenchmarkResult Objects）</h3>
+<p>一个 <a href="https://mlr3.mlr-org.com/reference/BenchmarkResult.html"><code>BenchmarkResult</code></a> 对象是多个 <a href="https://mlr3.mlr-org.com/reference/ResampleResult.html"><code>ResampleResult</code></a> 对象的集合。</p>
+<div class="cell">
+<div class="sourceCode" id="cb68"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">bmrdt</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">bmr</span><span class="op">)</span></span>
+<span><span class="va">bmrdt</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, <span class="fu">.</span><span class="op">(</span><span class="va">task</span>, <span class="va">learner</span>, <span class="va">resampling</span>, <span class="va">iteration</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                          task                             learner
+1: &lt;TaskClassif:german_credit&gt; &lt;LearnerClassifRpart:classif.rpart&gt;
+2: &lt;TaskClassif:german_credit&gt; &lt;LearnerClassifRpart:classif.rpart&gt;
+2 variables not shown: [resampling, iteration]</code></pre>
+</div>
+</div>
+<p><code>BenchmarkResult</code> 与 <code>ResampleResult</code>（<a href="#sec-resampling-inspect" class="quarto-xref"><span>3.2.4 节</span></a>）的内容几乎相同，存储的 <code>ResampleResult</code> 可以通过 <code>$resample_result(i)</code> 方法提取，其中 <code>i</code> 是所执行重采样实验的索引。这使我们能够像<a href="#sec-resampling" class="quarto-xref"><span>3.2 节</span></a>所示那样检查提取出的 <code>ResampleResult</code> 和各个重采样迭代，也可以用 <code>$resample_result(i)$predictions()</code> 查看每一折的预测。</p>
+<div class="cell">
+<div class="sourceCode" id="cb70"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rr1</span> <span class="op">=</span> <span class="va">bmr</span><span class="op">$</span><span class="fu">resample_result</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">rr1</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;ResampleResult&gt; with 5 resampling iterations ────────────────────────
+       task_id    learner_id resampling_id iteration     prediction_test
+ german_credit classif.rpart            cv         1 &lt;PredictionClassif&gt;
+ german_credit classif.rpart            cv         2 &lt;PredictionClassif&gt;
+ german_credit classif.rpart            cv         3 &lt;PredictionClassif&gt;
+ german_credit classif.rpart            cv         4 &lt;PredictionClassif&gt;
+ german_credit classif.rpart            cv         5 &lt;PredictionClassif&gt;
+2 variables not shown: [warnings, errors]</code></pre>
+</div>
+<div class="sourceCode" id="cb72"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rr2</span> <span class="op">=</span> <span class="va">bmr</span><span class="op">$</span><span class="fu">resample_result</span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>此外，<a href="https://mlr3.mlr-org.com/reference/as_benchmark_result.html"><code>as_benchmark_result()</code></a> 可用于把 <code>ResampleResult</code> 对象转换成 <code>BenchmarkResult</code>。<code><a href="https://rdrr.io/r/base/c.html">c()</a></code> 方法可用于合并多个 <code>BenchmarkResult</code> 对象，这在跨多台机器开展实验时很有用：</p>
+<div class="cell">
+<div class="sourceCode" id="cb73"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">bmr1</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/as_benchmark_result.html">as_benchmark_result</a></span><span class="op">(</span><span class="va">rr1</span><span class="op">)</span></span>
+<span><span class="va">bmr2</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/as_benchmark_result.html">as_benchmark_result</a></span><span class="op">(</span><span class="va">rr2</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">bmr1</span>, <span class="va">bmr2</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;BenchmarkResult&gt; of 10 rows with 2 resampling run ───────────────────
+ nr       task_id     learner_id resampling_id iters warnings errors
+  1 german_credit  classif.rpart            cv     5        0      0
+  2 german_credit classif.ranger            cv     5        0      0</code></pre>
+</div>
+</div>
+<p>箱线图最常用于可视化基准实验，因为它能直观地同时汇总跨任务与学习器的结果。</p>
+<div class="cell">
+<div class="sourceCode" id="cb75"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">autoplot</span><span class="op">(</span><span class="va">bmr</span>, measure <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-benchmark-box" class="quarto-float quarto-figure quarto-figure-center anchored" alt="九个箱线图，每个对应一个任务/学习器组合。在所有情况下随机森林表现最好，无特征基线最差。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-benchmark-box-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/evaluation_and_benchmarking_files/figure-html/fig-benchmark-box-1.png" class="img-fluid figure-img" style="width:70.0%" alt="九个箱线图，每个对应一个任务/学习器组合。在所有情况下随机森林表现最好，无特征基线最差。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-benchmark-box-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;3.8：每个学习器在重采样迭代上与三个任务上的准确率得分箱线图。随机森林（<code>lrn("classif.ranger")</code>）始终优于其他学习器。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>也可以通过把图形类型设置为 <code>"ci"</code> 来绘制置信区间。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-benchmark-ci" class="quarto-float quarto-figure quarto-figure-center anchored" alt="九个置信区间，每个对应一个任务/学习器组合。在所有情况下随机森林表现最好，无特征基线最差。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-benchmark-ci-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/evaluation_and_benchmarking_files/figure-html/fig-benchmark-ci-1.png" class="img-fluid figure-img" style="width:100.0%" alt="九个置信区间，每个对应一个任务/学习器组合。在所有情况下随机森林表现最好，无特征基线最差。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-benchmark-ci-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;3.9：每个学习器在重采样迭代上与三个任务上的准确率得分置信区间。随机森林（<code>lrn("classif.ranger")</code>）始终优于其他学习器。
+</figcaption></figure>
+</div>
+</div>
+</div>
+</section></section>
+<section id="sec-roc" class="level2 page-columns page-full" data-number="3.4"><h2 data-number="3.4" class="anchored" data-anchor-id="sec-roc">
+<span class="header-section-number">3.4</span> 二分类器的评估（Evaluation of Binary Classifiers）</h2>
+<p>在<a href="../chapter2/data_and_basic_modeling.html#sec-basics-classif-learner" class="quarto-xref"><span>2.5.3 节</span></a>中我们接触了混淆矩阵（confusion matrix）的概念，以及如何用它更细致地分解分类错误。在本节中，我们将更详细地考察针对二分类的专业化性能度量。我们首先回到混淆矩阵，讨论可以从中推导出的度量，然后考察建立在这些度量之上的 ROC 分析。关于 ROC 度量的更详细介绍，可参考 Provost 和 Fawcett（<a href="../references.html#ref-provost2013" role="doc-biblioref">2013</a>）著作的第 7 章和第 8 章。</p>
+<section id="confusion-matrix" class="level3" data-number="3.4.1"><h3 data-number="3.4.1" class="anchored" data-anchor-id="confusion-matrix">
+<span class="header-section-number">3.4.1</span> 混淆矩阵（Confusion Matrix）</h3>
+<p>回顾一下，混淆矩阵在二维列联表（contingency table）中汇总以下数量（另见图 <a href="#fig-confusion" class="quarto-xref">3.10</a>）：</p>
+<ul>
+<li>真正例（True positives, TPs）：被正确分类为正类的正类实例。</li>
+<li>真负例（True negatives, TNs）：被正确分类为负类的负类实例。</li>
+<li>假正例（False positives, FPs）：被错误分类为正类的负类实例。</li>
+<li>假负例（False negatives, FNs）：被错误分类为负类的正类实例。</li>
+</ul>
+<p>不同的应用可能对上述某一（或某几个）数量特别关注。例如，<code>tsk("spam")</code> 分类任务关心的是判断邮件是垃圾邮件（正类）还是不是（负类）。在这种情况下，我们很可能愿意接受 FNs（一些垃圾邮件被分类为正常邮件），只要 FPs 数量低（正常且可能重要的邮件被分类为垃圾邮件）。在另一个例子中，假设我们要预测在机场安检中旅行包内是否装有武器（正类）或没有（负类）。这个分类器必须有非常高的 TPs（因为 FNs 完全不可接受），即使以更多的 FPs（误报警）为代价。</p>
+<p>正如我们在<a href="../chapter2/data_and_basic_modeling.html#sec-basics-classif-learner" class="quarto-xref"><span>2.5.3 节</span></a>中所见，分类器可能有很好的分类准确率，却忽略完整混淆矩阵所提供的细微信息，如下面的 <code>tsk("german_credit")</code> 例子所示：</p>
+<div class="cell">
+<div class="sourceCode" id="cb76"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_german</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"german_credit"</span><span class="op">)</span></span>
+<span><span class="va">lrn_ranger</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.ranger"</span>, predict_type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span></span>
+<span><span class="va">splits</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/partition.html">partition</a></span><span class="op">(</span><span class="va">tsk_german</span>, ratio <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">lrn_ranger</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_german</span>, <span class="va">splits</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span><span class="va">prediction</span> <span class="op">=</span> <span class="va">lrn_ranger</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_german</span>, <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span>
+<span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>classif.acc 
+      0.795 </code></pre>
+</div>
+<div class="sourceCode" id="cb78"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span><span class="op">$</span><span class="va">confusion</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        truth
+response good bad
+    good  131  34
+    bad     7  28</code></pre>
+</div>
+</div>
+<p>分类准确率只考虑了 TPs 和 TNs，而混淆矩阵提供了分类器性能更全面的画面。</p>
+<p>单独来看，当存在类别不平衡时，混淆矩阵中的绝对数字可能不那么有用。相反，可以推导出几个归一化的度量（<a href="#fig-confusion" class="quarto-xref">图&nbsp;<span>3.10</span></a>）：</p>
+<ul>
+<li>
+<strong>真正例率（True Positive Rate, TPR）</strong>，<strong>灵敏度（Sensitivity）</strong>或<strong>召回率（Recall）</strong>：真正的正类中，我们预测为正类的比例是多少？</li>
+<li>
+<strong>真负例率（True Negative Rate, TNR）</strong>或<strong>特异度（Specificity）</strong>：真正的负类中，我们预测为负类的比例是多少？</li>
+<li>
+<strong>假正例率（False Positive Rate, FPR）</strong>，或 <span class="math inline">\(1 -\)</span> <strong>特异度（Specificity）</strong>：真正的负类中，我们预测为正类的比例是多少？</li>
+<li>
+<strong>阳性预测值（Positive Predictive Value, PPV）</strong>或<strong>精确率（Precision）</strong>：如果我们预测为正类，它真正是正类的可能性有多大？</li>
+<li>
+<strong>阴性预测值（Negative Predictive Value, NPV）</strong>：如果我们预测为负类，它真正是负类的可能性有多大？</li>
+<li>
+<strong>准确率（Accuracy, ACC）</strong>：正确分类的实例占全部实例的比例。</li>
+<li>
+<strong>F1 分数（F1-score）</strong>：精确率与召回率的调和平均，它平衡了精确率与召回率之间的权衡。计算公式为 <span class="math inline">\(2 \times \frac{Precision \times Recall}{Precision + Recall}\)</span>。</li>
+</ul>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-confusion" class="quarto-float quarto-figure quarto-figure-center anchored" alt="混淆矩阵的表示：当'真实类别 y'为'+'且'预测类别 yhat'为'+'时条目为'TP'，当两者都是'-'时为'TN'，当真实为'-'而预测为'+'时为'FP'，最后当真实为'+'而预测为'-'时为'FN'。边缘标注为'PPV = TP/(TP+FP)'、'NPV = TN/(FN+TN)'、'ACC=(TP+TN)/(TP+FP+FN+TN)'、'TNR=TN/(FP+TN)'、'TPR=TP/(TP+FN)'。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-confusion-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/confusion_matrix.svg" class="img-fluid figure-img" style="width:100.0%" alt="混淆矩阵的表示：当'真实类别 y'为'+'且'预测类别 yhat'为'+'时条目为'TP'，当两者都是'-'时为'TN'，当真实为'-'而预测为'+'时为'FP'，最后当真实为'+'而预测为'-'时为'FN'。边缘标注为'PPV = TP/(TP+FP)'、'NPV = TN/(FN+TN)'、'ACC=(TP+TN)/(TP+FP+FN+TN)'、'TNR=TN/(FP+TN)'、'TPR=TP/(TP+FN)'。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-confusion-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;3.10：真实类别 vs. 预测类别的二分类混淆矩阵。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>混淆矩阵派生的四个核心比率可以从"行"与"列"两个视角记忆。按列（以真实类别为条件）看：TPR = TP/(TP+FN) 回答"正类里抓回了多少"，TNR = TN/(TN+FP) 回答"负类里放对了多少"，二者也称召回率/特异度。按行（以预测类别为条件）看：PPV = TP/(TP+FP) 回答"说它是正类，准不准"，即精确率；NPV = TN/(TN+FN) 对称地回答"说它是负类，准不准"。准确率 ACC 与 F1 是两个综合指标：ACC 在所有类别均衡时直观易用，但在类别高度不平衡时会被多数类主导；F1 是精确率与召回率的调和平均，对少数类更敏感，在信息检索、异常检测等"关注正类"的场景更常用。F1 用调和平均而非算术平均，是因为它惩罚精确率与召回率之间的悬殊差距——只有当二者都高时 F1 才高。</p>
+</div>
+<p><a href="https://cran.r-project.org/package=mlr3measures"><code>mlr3measures</code></a> 包允许你使用 <a href="https://www.rdocumentation.org/packages/mlr3measures/topics/confusion_matrix"><code>confusion_matrix()</code></a> 函数计算几种常见的基于混淆矩阵的度量：</p>
+<div class="cell">
+<div class="sourceCode" id="cb80"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">mlr3measures</span><span class="fu">::</span><span class="fu"><a href="https://mlr3measures.mlr-org.com/reference/confusion_matrix.html">confusion_matrix</a></span><span class="op">(</span>truth <span class="op">=</span> <span class="va">prediction</span><span class="op">$</span><span class="va">truth</span>,</span>
+<span>  response <span class="op">=</span> <span class="va">prediction</span><span class="op">$</span><span class="va">response</span>, positive <span class="op">=</span> <span class="va">tsk_german</span><span class="op">$</span><span class="va">positive</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        truth
+response good bad
+    good  131  34
+    bad     7  28
+acc :  0.7950; ce  :  0.2050; dor :  15.4118; f1  :  0.8647 
+fdr :  0.2061; fnr :  0.0507; fomr:  0.2000; fpr :  0.5484 
+mcc :  0.4880; npv :  0.8000; ppv :  0.7939; tnr :  0.4516 
+tpr :  0.9493 </code></pre>
+</div>
+</div>
+<p>现在我们更好地了解了随机森林在 <code>tsk("german_credit")</code> 上的预测情况，特别是假正例率相当高。一般来说，很难同时达到高 TPR 和低 FPR，因为这两个比率之间通常存在权衡。当二分类器预测概率而不是离散类别时（<code>predict_type = "prob"</code>），我们可以设置一个阈值（threshold）来截断概率，从而改变我们如何把观测归入正类/负类（见<a href="../chapter2/data_and_basic_modeling.html#sec-classif-prediction" class="quarto-xref"><span>2.5.4 节</span></a>）。提高识别正类的阈值，会导致负类预测数量增加、正类预测数量减少，从而得到更低（更好）的 FPR，但 TPR 也更低（更差）——如果我们降低阈值，则情况相反。与其任意改变阈值来"玩弄"这两个数字，一种更稳健的在 TPR 与 FPR 之间权衡的方法是使用 ROC 分析，下面就来讨论。</p>
+</section><section id="sec-roc-space" class="level3 page-columns page-full" data-number="3.4.2"><h3 data-number="3.4.2" class="anchored" data-anchor-id="sec-roc-space">
+<span class="header-section-number">3.4.2</span> ROC 分析（ROC Analysis）</h3>
+<p>ROC（受试者工作特征，Receiver Operating Characteristic）分析被广泛用于通过可视化 TPR 与 FPR 之间的权衡来评估二分类器。</p>
+<p>ROC 曲线是以 TPR 为纵轴、FPR 为横轴的线图。要理解这条曲线的用处，首先考虑硬标注分类器（hard labeling classifier，<code>predict_type = "response"</code>）的简单情形，它把观测分为正类或负类。这个分类器在 ROC 空间中表示为单个点（见<a href="#fig-roc" class="quarto-xref">图&nbsp;<span>3.11</span></a>面板 (a)）。最好的分类器位于左上角，那里 TPR 为 <span class="math inline">\(1\)</span>、FPR 为 <span class="math inline">\(0\)</span>。位于对角线上的分类器是随机预测类别标签的（按不同类别比例）。例如，如果每个正类实例（忽略特征）以 25% 的概率被随机分类为正类，我们会得到 0.25 的 TPR。如果我们把每个负类实例随机指派给正类，就会得到 0.25 的 FPR。在实践中，我们永远不应该得到对角线以下的分类器，ROC 空间中位于对角线以下的点可能表明该分类器把正类和负类的标签弄反了。</p>
+<div class="cell">
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in geom_text(aes(x = 0.5, y = 0.5, hjust = 0.5, vjust = -0.5, label = "random classifiers"), : All aesthetics have length 1, but the data has 2 rows.
+ℹ Please consider using `annotate()` or provide this layer with data
+  containing a single row.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in geom_text(aes(x = 0.5, y = 0.5, hjust = 0.5, vjust = -0.5, label = "baseline"), : All aesthetics have length 1, but the data has 2 rows.
+ℹ Please consider using `annotate()` or provide this layer with data
+  containing a single row.</code></pre>
+</div>
+<div class="cell-output-display">
+<div id="fig-roc" class="quarto-float quarto-figure quarto-figure-center anchored" alt="两个标为 (a) 和 (b) 的图。两者 x 轴都是 0-1 的'FPR'，y 轴都是 0-1 的'TPR'，两者都有一条对角线 y=x，标注'基线（随机分类器）'。(a)：左上角 (0,1) 处有一个绿点。有一个三角形标为 C1，约在 (0.1,0.75)；一个正方形标为 C2，约在 (0.24,0.75)；一个加号标为 C3，约在 (0.25,0.8)。(b) 与 (a) 相同，只是现在有三条虚线，使得 (a) 中的每个点都位于其中一条线上。这些线大致从 (0,0) 弯向 (0,1)，然后到 (1,1)。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-roc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/evaluation_and_benchmarking_files/figure-html/fig-roc-1.png" class="img-fluid figure-img" style="width:100.0%" alt="两个标为 (a) 和 (b) 的图。两者 x 轴都是 0-1 的'FPR'，y 轴都是 0-1 的'TPR'，两者都有一条对角线 y=x，标注'基线（随机分类器）'。(a)：左上角 (0,1) 处有一个绿点。有一个三角形标为 C1，约在 (0.1,0.75)；一个正方形标为 C2，约在 (0.24,0.75)；一个加号标为 C3，约在 (0.25,0.8)。(b) 与 (a) 相同，只是现在有三条虚线，使得 (a) 中的每个点都位于其中一条线上。这些线大致从 (0,0) 弯向 (0,1)，然后到 (1,1)。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-roc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;3.11：面板 (a)：ROC 空间，包含最优离散分类器、两个基线分类器——一个总是预测正类，一个从不预测正类——以及三个"真实"分类器 C1、C2、C3。我们无法判断 C1 与 C3 哪个更好，因为两者各在一个度量上更优。C2 显然比 C1 和 C3 差，而 C1 和 C3 至少在一个度量上优于 C2，且在其它度量上不差于 C2。面板 (b)：最优分类器（AUC = 1）、随机猜测分类器（AUC = 0.5）以及分类器 C1、C3、C2 的 ROC 曲线。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>现在考虑预测概率而非离散类别的分类器。使用不同的阈值来截断预测概率并把它们归入正类与负类，会产生不同的 TPR 和 FPR；通过把所有阈值下这些值绘制出来，我们可以刻画一个二分类器的行为——这就是 ROC 曲线。例如，我们可以用之前的 <a href="https://mlr3.mlr-org.com/reference/Prediction.html"><code>Prediction</code></a> 对象，通过在全部可能阈值上对预测概率设阈值，计算所有可能的 TPR 和 FPR 组合；这恰恰就是 <code><a href="https://mlr3viz.mlr-org.com/reference/autoplot.PredictionClassif.html">mlr3viz::autoplot.PredictionClassif</a></code> 在选定 <code>type = "roc"</code> 时要做的事：</p>
+<div class="cell">
+<div class="sourceCode" id="cb84"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">autoplot</span><span class="op">(</span><span class="va">prediction</span>, type <span class="op">=</span> <span class="st">"roc"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-basics-roc-ranger" class="quarto-float quarto-figure quarto-figure-center anchored" alt="ROC 曲线，x 轴为'1 - 特异度'（0-1），y 轴为'灵敏度'（0-1）。有一条线从约 (0,0) 到 (0.3,0.75) 再到 (1,1)。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-basics-roc-ranger-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/evaluation_and_benchmarking_files/figure-html/fig-basics-roc-ranger-1.png" class="img-fluid figure-img" style="width:70.0%" alt="ROC 曲线，x 轴为'1 - 特异度'（0-1），y 轴为'灵敏度'（0-1）。有一条线从约 (0,0) 到 (0.3,0.75) 再到 (1,1)。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-basics-roc-ranger-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;3.12：基于 <code>german_credit</code> 数据集和 <code>classif.ranger</code> 随机森林学习器的 ROC 曲线。回顾一下，FPR = <span class="math inline">\(1 -\)</span> 特异度，TPR = 灵敏度。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>ROC 空间的几个关键点值得牢记。左上角 (0,1) 是理想点（TPR=1、FPR=0，分类完全正确）；右下角 (1,0) 是最差情形；对角线（y=x）代表随机猜测。两个"基线分类器"很有意思：总是预测正类的分类器位于 (1,1)，从不预测正类的位于 (0,0)——它们都表现"差"，但位于对角线上方。一个位于对角线以下的点通常提示标签被反了（把正类当负类、负类当正类），简单翻转预测即可纠正。ROC 曲线本质上是把连续概率输出在 <span class="math inline">\([0,1]\)</span> 的所有阈值上扫描，把每个阈值对应的 (FPR, TPR) 连成曲线：阈值越高，被判为正的样本越少，FPR 与 TPR 同时下降。正因如此，ROC 曲线完整刻画了分类器"在不牺牲太多 TPR 的情况下能压到多低 FPR"的能力。</p>
+</div>
+<p>从 ROC 曲线自然推导出的性能度量是曲线下面积（area under the curve, AUC），在 <code>msr("classif.auc")</code> 中实现。AUC 可以解释为：随机选取一个正类实例，其被预测属于正类的概率高于随机选取一个负类实例的概率。因此，更高的值（更接近 <span class="math inline">\(1\)</span>）表示更好的性能。随机分类器（如无特征基线）的 AUC 总是（在经验评估时近似）0.5（见<a href="#fig-roc" class="quarto-xref">图&nbsp;<span>3.11</span></a>面板 (b)）。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">曲线下面积（area under the curve）</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb85"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.auc"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>classif.auc 
+     0.8319 </code></pre>
+</div>
+</div>
+<p>在 <code>tsk("german_credit")</code> 上评估我们的随机森林，得到的 AUC 约为 0.83，这可以接受，但还有提升空间。</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+多分类 ROC 与 AUC（Multiclass ROC and AUC）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>存在面向多分类器的 ROC 分析扩展 <span class="citation" data-cites="hand2001simple">(参见例如 <a href="../references.html#ref-hand2001simple" role="doc-biblioref">Hand and Till 2001</a>)</span>，但本书只讨论更常见的二分类情形。AUC 度量到多分类的推广已在 <code>mlr3</code> 中实现，参见 <code>msr("classif.mauc_au1p")</code>。</p>
+</div>
+</div>
+<p>我们还可以绘制精确率-召回率曲线（precision-recall curve, PRC），它可视化 PPV/精确率与 TPR/召回率的关系。ROC 曲线与 PR 曲线的主要区别在于，后者忽略了真负例的数量。这在正类稀有的不平衡总体中很有用，在这种情形下，即使 TPR 很高的分类器也可能信息量不大且 PPV 很低。关于 PRC 与 ROC 曲线关系的详细讨论，参见 Davis 和 Goadrich（<a href="../references.html#ref-davis2006relationship" role="doc-biblioref">2006</a>）。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">精确率-召回率曲线（Precision-recall Curve）</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb87"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">autoplot</span><span class="op">(</span><span class="va">prediction</span>, type <span class="op">=</span> <span class="st">"prc"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-basics-prc-ranger" class="quarto-float quarto-figure quarto-figure-center anchored" alt="线图，x 轴为'召回率'（0-1），y 轴为'精确率'（0-1）。有一条大致通过 y=0.74 的水平线。还有一条从 (0,1) 递减到 (1,0.74) 的线。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-basics-prc-ranger-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/evaluation_and_benchmarking_files/figure-html/fig-basics-prc-ranger-1.png" class="img-fluid figure-img" style="width:70.0%" alt="线图，x 轴为'召回率'（0-1），y 轴为'精确率'（0-1）。有一条大致通过 y=0.74 的水平线。还有一条从 (0,1) 递减到 (1,0.74) 的线。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-basics-prc-ranger-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;3.13：基于 <code>tsk("german_credit")</code> 与 <code>lrn("classif.ranger")</code> 的精确率-召回率曲线。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>ROC 曲线与 PR 曲线在类别不平衡时结论可能完全不同，这是实践中最常踩的坑。ROC 曲线同时使用 TPR（分母是全部正类）与 FPR（分母是全部负类），当负类占绝大多数时，FPR 被大量真负例"稀释"，曲线看起来仍然很好；而 PR 曲线只用 PPV（分母是预测的正类）与召回率，在正类稀少时，哪怕少量假正例也会让精确率暴跌。因此在欺诈检测、罕见病诊断、异常检测等正类稀少的任务中，PR 曲线（以及 PR-AUC）往往比 ROC-AUC 更能反映真实性能。Davis 与 Goadrich（2006）证明：对同一个分类器，若在 ROC 空间中一条曲线占优，其在 PR 空间中未必占优，反之亦然。</p>
+</div>
+<p>另一个思考分类器性能的有用方式是可视化某个性能度量随阈值变化的关系，例如，参见<a href="#fig-basics-fpracc-ranger" class="quarto-xref">图&nbsp;<span>3.14</span></a>，检查所有可能阈值下的 FPR 与准确率：</p>
+<div class="cell">
+<div class="sourceCode" id="cb88"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">autoplot</span><span class="op">(</span><span class="va">prediction</span>, type <span class="op">=</span> <span class="st">"threshold"</span>, measure <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.fpr"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">prediction</span>, type <span class="op">=</span> <span class="st">"threshold"</span>, measure <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div id="fig-basics-fpracc-ranger" class="quarto-layout-panel">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-basics-fpracc-ranger-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="quarto-layout-row">
+<div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-basics-fpracc-ranger" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div id="fig-basics-fpracc-ranger-1" class="quarto-float quarto-figure quarto-figure-center anchored" alt="两个线图，x 轴都是 0-1 的'概率阈值'。左侧：y 轴为'classif.fpr'。线从 (0,1) 缓慢下降到 (1,0)。右侧：y 轴为'classif.acc'。线从 (0,0.7) 到 (0.25,0.7) 再到 (0.4,0.75) 再到 (1,0.3)。">
+<figure class="quarto-float quarto-subfloat-fig figure"><div aria-describedby="fig-basics-fpracc-ranger-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/evaluation_and_benchmarking_files/figure-html/fig-basics-fpracc-ranger-1.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-basics-fpracc-ranger" alt="两个线图，x 轴都是 0-1 的'概率阈值'。左侧：y 轴为'classif.fpr'。线从 (0,1) 缓慢下降到 (1,0)。右侧：y 轴为'classif.acc'。线从 (0,0.7) 到 (0.25,0.7) 再到 (0.4,0.75) 再到 (1,0.3)。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-basics-fpracc-ranger-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(a) FPR
+</figcaption></figure>
+</div>
+</div>
+<div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-basics-fpracc-ranger" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div id="fig-basics-fpracc-ranger-2" class="quarto-float quarto-figure quarto-figure-center anchored" alt="两个线图，x 轴都是 0-1 的'概率阈值'。左侧：y 轴为'classif.fpr'。线从 (0,1) 缓慢下降到 (1,0)。右侧：y 轴为'classif.acc'。线从 (0,0.7) 到 (0.25,0.7) 再到 (0.4,0.75) 再到 (1,0.3)。">
+<figure class="quarto-float quarto-subfloat-fig figure"><div aria-describedby="fig-basics-fpracc-ranger-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/evaluation_and_benchmarking_files/figure-html/fig-basics-fpracc-ranger-2.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-basics-fpracc-ranger" alt="两个线图，x 轴都是 0-1 的'概率阈值'。左侧：y 轴为'classif.fpr'。线从 (0,1) 缓慢下降到 (1,0)。右侧：y 轴为'classif.acc'。线从 (0,0.7) 到 (0.25,0.7) 再到 (0.4,0.75) 再到 (1,0.3)。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-basics-fpracc-ranger-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(b) 准确率（Accuracy）
+</figcaption></figure>
+</div>
+</div>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-basics-fpracc-ranger-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;3.14：在 <code>tsk("german_credit")</code> 上训练的随机森林的阈值与 FPR（左）以及阈值与准确率（右）的比较。
+</figcaption></figure>
+</div>
+<p>这个可视化会告诉我们：把阈值从默认的 0.5 提高到例如 0.7，将大幅降低 FPR，而准确率只下降几个百分点。取决于手头的问题，这可能是一个完全理想的权衡。</p>
+<p>这些可视化同样适用于 <a href="https://mlr3.mlr-org.com/reference/ResampleResult.html"><code>ResampleResult</code></a> 对象。在这种情况下，各重采样迭代的预测在计算 ROC 或 PR 曲线之前会被合并（微平均）：</p>
+<div class="cell">
+<div class="sourceCode" id="cb89"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rr</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/resample.html">resample</a></span><span class="op">(</span></span>
+<span>  task <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"german_credit"</span><span class="op">)</span>,</span>
+<span>  learner <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.ranger"</span>, predict_type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span>,</span>
+<span>  resampling <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">rr</span>, type <span class="op">=</span> <span class="st">"roc"</span><span class="op">)</span></span>
+<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">rr</span>, type <span class="op">=</span> <span class="st">"prc"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div id="fig-basics-rocpr-ranger" class="quarto-layout-panel">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-basics-rocpr-ranger-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="quarto-layout-row">
+<div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-basics-rocpr-ranger" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div id="fig-basics-rocpr-ranger-1" class="quarto-float quarto-figure quarto-figure-center anchored" alt="两个线图。左侧是 ROC 曲线，'最佳'点靠近 (0.25,0.75)。右侧是 PR 曲线，止于 0.74。">
+<figure class="quarto-float quarto-subfloat-fig figure"><div aria-describedby="fig-basics-rocpr-ranger-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/evaluation_and_benchmarking_files/figure-html/fig-basics-rocpr-ranger-1.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-basics-rocpr-ranger" alt="两个线图。左侧是 ROC 曲线，'最佳'点靠近 (0.25,0.75)。右侧是 PR 曲线，止于 0.74。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-basics-rocpr-ranger-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(a) ROC
+</figcaption></figure>
+</div>
+</div>
+<div class="cell-output-display quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-basics-rocpr-ranger" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div id="fig-basics-rocpr-ranger-2" class="quarto-float quarto-figure quarto-figure-center anchored" alt="两个线图。左侧是 ROC 曲线，'最佳'点靠近 (0.25,0.75)。右侧是 PR 曲线，止于 0.74。">
+<figure class="quarto-float quarto-subfloat-fig figure"><div aria-describedby="fig-basics-rocpr-ranger-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/evaluation_and_benchmarking_files/figure-html/fig-basics-rocpr-ranger-2.png" class="img-fluid figure-img" style="width:100.0%" data-ref-parent="fig-basics-rocpr-ranger" alt="两个线图。左侧是 ROC 曲线，'最佳'点靠近 (0.25,0.75)。右侧是 PR 曲线，止于 0.74。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-basics-rocpr-ranger-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(b) PR 曲线（PR Curve）
+</figcaption></figure>
+</div>
+</div>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-basics-rocpr-ranger-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;3.15：在 <code>tsk("german_credit")</code> 上训练的随机森林的 ROC（左）与 PR 曲线（右）比较。
+</figcaption></figure>
+</div>
+<p>最后，我们可以为 <a href="https://mlr3.mlr-org.com/reference/BenchmarkResult.html"><code>BenchmarkResult</code></a> 可视化 ROC/PR 曲线，以在同一 <a href="https://mlr3.mlr-org.com/reference/Task.html"><code>Task</code></a> 上比较多个学习器：</p>
+<div class="cell">
+<div class="sourceCode" id="cb90"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com">patchwork</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">design</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html">benchmark_grid</a></span><span class="op">(</span></span>
+<span>  tasks <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"german_credit"</span><span class="op">)</span>,</span>
+<span>  learners <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrns</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"classif.rpart"</span>, <span class="st">"classif.ranger"</span><span class="op">)</span>,</span>
+<span>    predict_type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span>,</span>
+<span>  resamplings <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">bmr</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark</a></span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span>
+<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">bmr</span>, type <span class="op">=</span> <span class="st">"roc"</span><span class="op">)</span> <span class="op">+</span> <span class="fu">autoplot</span><span class="op">(</span><span class="va">bmr</span>, type <span class="op">=</span> <span class="st">"prc"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://patchwork.data-imaginist.com/reference/plot_layout.html">plot_layout</a></span><span class="op">(</span>guides <span class="op">=</span> <span class="st">"collect"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-basics-rocpr-bmr" class="quarto-float quarto-figure quarto-figure-center anchored" alt="两个线图，每个都有决策树与随机森林两条线。左侧是 ROC 曲线，显示随机森林的 TPR/FPR 权衡始终更好。右侧是 PR 曲线，显示随机森林的精确率/召回率权衡更好。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-basics-rocpr-bmr-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/evaluation_and_benchmarking_files/figure-html/fig-basics-rocpr-bmr-1.png" class="img-fluid figure-img" style="width:100.0%" alt="两个线图，每个都有决策树与随机森林两条线。左侧是 ROC 曲线，显示随机森林的 TPR/FPR 权衡始终更好。右侧是 PR 曲线，显示随机森林的精确率/召回率权衡更好。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-basics-rocpr-bmr-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;3.16：使用 ROC 与 PR 曲线比较随机森林（绿色）与决策树（紫色）。
+</figcaption></figure>
+</div>
+</div>
+</div>
+</section></section><section id="conclusion" class="level2" data-number="3.5"><h2 data-number="3.5" class="anchored" data-anchor-id="conclusion">
+<span class="header-section-number">3.5</span> 结论（Conclusion）</h2>
+<p>在本章中，我们学习了如何通过重采样策略（从留出法到交叉验证和自助法）估计模型的泛化性能，以及如何在基准实验中自动化地比较多个学习器。我们还覆盖了二分类性能度量的基础，包括混淆矩阵、ROC 分析与精确率-召回率曲线。这些主题在有监督学习中至关重要，并将在本书中不断被深化。特别是，<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>会在自动化模型调优中利用评估来提升性能，<a href="../chapter11/large-scale_benchmarking.html" class="quarto-xref"><span>第 11 章</span></a>会研究大型基准测试及其统计分析，而在<a href="../chapter13/beyond_regression_and_classification.html" class="quarto-xref"><span>第 13 章</span></a>中我们将考察需要不同重采样策略的专门任务。</p>
+<div id="tbl-api-performance" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-api-performance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+表&nbsp;3.1：本章涉及的重要类与函数，包括底层类（如适用）、类构造器或函数，以及重要的类字段与方法（如适用）。
+</figcaption><div aria-describedby="tbl-api-performance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead><tr class="header">
+<th>类（Class）</th>
+<th>构造器/函数（Constructor/Function）</th>
+<th>字段/方法（Fields/Methods）</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://mlr3.mlr-org.com/reference/PredictionClassif.html"><code>PredictionClassif</code></a></td>
+<td><code>classif_lrn$predict()</code></td>
+<td>
+<a href="https://www.rdocumentation.org/packages/mlr3measures/topics/confusion_matrix"><code>confusion_matrix()</code></a>; <code>autoplot(some_prediction_classif, type = "roc")</code>
+</td>
+</tr>
+<tr class="even">
+<td>-</td>
+<td><a href="https://mlr3.mlr-org.com/reference/partition.html"><code>partition()</code></a></td>
+<td>-</td>
+</tr>
+<tr class="odd">
+<td><a href="https://mlr3.mlr-org.com/reference/Resampling.html"><code>Resampling</code></a></td>
+<td><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html"><code>rsmp()</code></a></td>
+<td><code>$instantiate()</code></td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3.mlr-org.com/reference/ResampleResult.html"><code>ResampleResult</code></a></td>
+<td><a href="https://mlr3.mlr-org.com/reference/resample.html"><code>resample()</code></a></td>
+<td>
+<code>$score()</code>; <code>$aggregate()</code>; <code>$predictions()</code>; <code><a href="https://mlr3.mlr-org.com/reference/as_benchmark_result.html">as_benchmark_result()</a></code>; <code>autoplot(some_resample_result, type = "roc")</code>
+</td>
+</tr>
+<tr class="odd">
+<td>-</td>
+<td><a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html"><code>benchmark_grid()</code></a></td>
+<td>-</td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3.mlr-org.com/reference/BenchmarkResult.html"><code>BenchmarkResult</code></a></td>
+<td><a href="https://mlr3.mlr-org.com/reference/benchmark.html"><code>benchmark()</code></a></td>
+<td>
+<code>$aggregate()</code>; <code>$resample_result()</code>; <code>$score()</code>; <code>autoplot(some_benchmark_result, type = "roc")</code>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section><section id="exercises" class="level2" data-number="3.6"><h2 data-number="3.6" class="anchored" data-anchor-id="exercises">
+<span class="header-section-number">3.6</span> 练习（Exercises）</h2>
+<ol type="1">
+<li><p>在 <code>tsk("mtcars")</code> 上应用重复交叉验证重采样策略，并评估 <code>lrn("regr.rpart")</code> 的性能。使用 5 次重复、每次 3 折。计算每次迭代的 MSE 并可视化结果。最后计算聚合的性能得分。</p></li>
+<li><p>使用 <code>tsk("spam")</code> 和五折 CV，针对 AUC 基准测试 <code>lrn("classif.ranger")</code>、<code>lrn("classif.log_reg")</code> 与 <code>lrn("classif.xgboost", nrounds = 100)</code>。哪个学习器看起来表现最好？你对这个结论有多大把握？思考结果的稳定性，并用不同的随机种子重跑实验来考察这一点。可以做些什么来改进？</p></li>
+<li><p>一位同事报告使用 <code>lrn("classif.rpart")</code> 在 <code>tsk("penguins_simple")</code> 上取得了 93.1% 的分类准确率。你想复现他们的结果，于是询问他们使用的重采样策略。他们说使用了自定义三折 CV，折分配为 <code>factor(task$row_ids %% 3)</code>。看看你能否复现他们的结果。</p></li>
+<li><p>(*) 不使用 <code>mlr3</code> 的 <code>autoplot()</code> 函数，自己编写一个 ROC 绘图函数。你的函数签名应为 <code>my_roc_plot(task, learner, train_indices, test_indices)</code>。你的函数应使用 <code>Prediction</code> 的 <code>$set_threshold()</code> 方法，以及 <code>mlr3measures</code>。</p></li>
+</ol></section><section id="citation" class="level2" data-number="3.7"><h2 data-number="3.7" class="anchored" data-anchor-id="citation">
+<span class="header-section-number">3.7</span> 引用（Citation）</h2>
+<p>请按如下方式引用本章：</p>
+<p>Casalicchio G, Burk L, Fischer S. (2024). Evaluation and Benchmarking. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/evaluation_and_benchmarking.html.</p>
+<div class="sourceCode" id="cb91"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a><span class="va">@incollection</span>{<span class="ot">citekey</span>,</span>
+<span id="cb91-2"><a href="#cb91-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span> = "<span class="st">Giuseppe Casalicchio and Lukas Burk and Sebastian Fischer</span>",</span>
+<span id="cb91-3"><a href="#cb91-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span> = "<span class="st">Evaluation and Benchmarking</span>",</span>
+<span id="cb91-4"><a href="#cb91-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">booktitle</span> = "<span class="st">Applied Machine Learning Using {m}lr3 in {R}</span>",</span>
+<span id="cb91-5"><a href="#cb91-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">publisher</span> = "<span class="st">CRC Press</span>", <span class="st">year</span> = "<span class="st">2024</span>",</span>
+<span id="cb91-6"><a href="#cb91-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">editor</span> = "<span class="st">Bernd Bischl and Raphael Sonabend and Lars Kotthoff and Michel Lang</span>",</span>
+<span id="cb91-7"><a href="#cb91-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">url</span> = "<span class="st">https://mlr3book.mlr-org.com/evaluation_and_benchmarking.html</span>"</span>
+<span id="cb91-8"><a href="#cb91-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+
+
+<!-- -->
+
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-bayle2020cross" class="csl-entry" role="listitem">
+Bayle, Pierre, Alexandre Bayle, Lucas Janson, and Lester Mackey. 2020. <span>"Cross-Validation Confidence Intervals for Test Error."</span> <em>Advances in Neural Information Processing Systems</em> 33: 16339–50.
+</div>
+<div id="ref-bischl2012resampling" class="csl-entry" role="listitem">
+Bischl, Bernd, Olaf Mersmann, Heike Trautmann, and Claus Weihs. 2012. <span>"Resampling Methods for Meta-Model Validation with Recommendations for Evolutionary Computation."</span> <em>Evolutionary Computation</em> 20 (2): 249–75. <a href="https://doi.org/10.1162/EVCO_a_00069%20">https://doi.org/10.1162/EVCO_a_00069 </a>.
+</div>
+<div id="ref-davis2006relationship" class="csl-entry" role="listitem">
+Davis, Jesse, and Mark Goadrich. 2006. <span>"The Relationship Between Precision-Recall and ROC Curves."</span> In <em>Proceedings of the 23rd International Conference on Machine Learning</em>, 233–40. <a href="https://doi.org/10.1145/1143844.1143874">https://doi.org/10.1145/1143844.1143874</a>.
+</div>
+<div id="ref-dobbin2011" class="csl-entry" role="listitem">
+Dobbin, Kevin K., and Richard M. Simon. 2011. <span>"Optimally Splitting Cases for Training and Testing High Dimensional Classifiers."</span> <em>BMC Medical Genomics</em> 4 (1): 31. <a href="https://doi.org/10.1186/1755-8794-4-31">https://doi.org/10.1186/1755-8794-4-31</a>.
+</div>
+<div id="ref-hand2001simple" class="csl-entry" role="listitem">
+Hand, David J, and Robert J Till. 2001. <span>"A Simple Generalisation of the Area Under the ROC Curve for Multiple Class Classification Problems."</span> <em>Machine Learning</em> 45: 171–86. <a href="https://doi.org/10.1023/A:1010920819831">https://doi.org/10.1023/A:1010920819831</a>.
+</div>
+<div id="ref-japkowicz2011evaluating" class="csl-entry" role="listitem">
+Japkowicz, Nathalie, and Mohak Shah. 2011. <em>Evaluating Learning Algorithms: A Classification Perspective</em>. Cambridge University Press. <a href="https://doi.org/10.1017/CBO9780511921803">https://doi.org/10.1017/CBO9780511921803</a>.
+</div>
+<div id="ref-kim2009estimating" class="csl-entry" role="listitem">
+Kim, Ji-Hyun. 2009. <span>"Estimating Classification Error Rate: Repeated Cross-Validation, Repeated Hold-Out and Bootstrap."</span> <em>Computational Statistics &amp; Data Analysis</em> 53 (11): 3735–45. <a href="https://doi.org/10.1016/j.csda.2009.04.009">https://doi.org/10.1016/j.csda.2009.04.009</a>.
+</div>
+<div id="ref-kohavi1995" class="csl-entry" role="listitem">
+Kohavi, Ron. 1995. <span>"A Study of Cross-Validation and Bootstrap for Accuracy Estimation and Model Selection."</span> In <em>Proceedings of the 14th International Joint Conference on <span>Artificial</span> Intelligence - <span>Volume</span> 2</em>, 1137–43. <span>IJCAI</span>'95. <span>San Francisco, CA, USA</span>: <span>Morgan Kaufmann Publishers Inc.</span>
+</div>
+<div id="ref-molinaro2005prediction" class="csl-entry" role="listitem">
+Molinaro, Annette M, Richard Simon, and Ruth M Pfeiffer. 2005. <span>"Prediction Error Estimation: A Comparison of Resampling Methods."</span> <em>Bioinformatics</em> 21 (15): 3301–7. <a href="https://doi.org/10.1093/bioinformatics/bti499">https://doi.org/10.1093/bioinformatics/bti499</a>.
+</div>
+<div id="ref-provost2013" class="csl-entry" role="listitem">
+Provost, Foster, and Tom Fawcett. 2013. <em>Data Science for Business: What You Need to Know about Data Mining and Data-Analytic Thinking</em>. O'Reilly Media.
+</div>
+<div id="ref-kuempelfischer2024ciforge" class="csl-entry" role="listitem">
+Schulz-Kümpel, Hannah, Sebastian Fischer, Thomas Nagler, Anne-Laure Boulesteix, Bernd Bischl, and Roman Hornung. 2024. <span>"Constructing Confidence Intervals for 'the' Generalization Error – a Comprehensive Benchmark Study."</span> <a href="https://arxiv.org/abs/2409.18836">https://arxiv.org/abs/2409.18836</a>.
+</div>
+</div>
+</section>
+
+  </main>
+  <nav class="chnav">
+    <a class="" href="ch02-data-basic-modeling.html"><span class="dir">上一章</span><span class="ch">第 2 章 数据与基础建模</span></a>
+    <a class="" href="ch04-hyperparameter-optimization.html"><span class="dir">下一章</span><span class="ch">第 4 章 超参数优化</span></a>
+  </nav>
+  <div class="footer">
+    <div>《Applied Machine Learning Using mlr3 in R》中文译本 · 非官方翻译</div>
+    <div class="lic">原文 © 2024 CRC Press（Bischl, Sonabend, Kotthoff &amp; Lang 主编，CC BY-NC-SA 4.0）· 本站由志愿翻译，仅供学习交流</div>
+  </div>
+</div>
+<script>
+MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] } };
+</script>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
+</body>
+</html>

@@ -59,6 +59,50 @@ body {
   border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
 }
 .theme-toggle:hover { border-color: var(--accent); }
+/* 搜索 */
+.search-box { position: relative; display: flex; align-items: center; }
+.search-box input {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 5px 10px 5px 28px; font-size: 13px; width: 190px;
+  font-family: inherit; outline: none;
+}
+.search-box input:focus { border-color: var(--accent); width: 240px; }
+.search-box .ico { position: absolute; left: 9px; color: var(--muted); font-size: 12px; pointer-events: none; }
+.search-panel {
+  display: none; position: absolute; top: calc(100% + 6px); right: 0; width: 460px;
+  max-width: 90vw; max-height: 66vh; overflow-y: auto; z-index: 200;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 12px 34px rgba(0,0,0,.42); padding: 6px;
+}
+.search-panel.open { display: block; }
+.search-panel .s-head {
+  padding: 8px 11px 7px; font-size: 12px; color: var(--muted);
+  border-bottom: 1px solid var(--border); margin-bottom: 5px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.search-panel .s-hint { font-size: 12px; color: var(--muted); padding: 18px 12px; text-align: center; }
+.s-item { display: block; padding: 8px 11px; border-radius: 7px; text-decoration: none; color: var(--fg); }
+.s-item:hover, .s-item.sel { background: var(--panel2); }
+.s-item .s-ch { font-size: 11px; color: var(--accent2); margin-bottom: 2px; }
+.s-item .s-sec { font-size: 12px; color: var(--accent); margin-bottom: 3px; }
+.s-item .s-txt { font-size: 13px; line-height: 1.6; color: var(--fg); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.s-item mark { background: rgba(255, 200, 0, .32); color: inherit; border-radius: 2px; padding: 0 1px; }
+[data-theme="light"] .s-item mark { background: rgba(255, 200, 0, .45); }
+/* 搜索结果页 */
+.search-page-box { margin: 26px 0 0; }
+.search-page-box input {
+  width: 100%; background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 8px; padding: 12px 15px; font-size: 15px; font-family: inherit; outline: none;
+}
+.search-page-box input:focus { border-color: var(--accent); }
+.s-meta { color: var(--muted); font-size: 13px; margin: 14px 0 8px; }
+.s-list { list-style: none; margin: 0; padding: 0; }
+.s-list .s-item { border: 1px solid var(--border); margin: 8px 0; }
+@media (max-width: 640px) {
+  .search-box input { width: 130px; }
+  .search-box input:focus { width: 170px; }
+  .search-panel { width: 84vw; }
+}
 /* 章头 */
 .header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
 .header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
@@ -170,9 +214,14 @@ function toggleTheme(){
 </head>
 <body>
 <div class="topbar">
-  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <a class="brand" href="../index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
   <div class="right">
-    <a class="home-link" href="index.html">目录</a>
+    <div class="search-box">
+      <span class="ico">&#128269;</span>
+      <input type="search" id="mlr3-search" placeholder="搜索全书…（按 /）" autocomplete="off" aria-label="全书搜索">
+      <div class="search-panel" id="mlr3-search-panel"></div>
+    </div>
+    <a class="home-link" href="../index.html">目录</a>
     <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
   </div>
 </div>
@@ -183,8 +232,8 @@ function toggleTheme(){
     <div class="subtitle">《Applied Machine Learning Using mlr3 in R》中文翻译 · 章节 附录 A 习题解答</div>
   </div>
   <main>
-<!-- ENSURE ONLINE ONLY AND REFERENCE IN PREFACE --><section id="solutions-to-sec-basics" class="level2" data-number="A.1"><h2 data-number="A.1" class="anchored" data-anchor-id="solutions-to-sec-basics">
-<span class="header-section-number">A.1</span> <a href="../chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>习题解答
+<!-- ENSURE ONLINE ONLY AND REFERENCE IN PREFACE --><section id="solutions-to-sec-basics" class="level2" data-number="A.1"><h2 data-number="A.1" class="anchored" data-anchor-id="solutions-to-sec-basics" id="solutions-to-sec-basics">
+<span class="header-section-number">A.1</span> <a href="https://mlr3book.mlr-org.com/chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>习题解答
 </h2>
 <ol type="1">
 <li>在合成的 “diabetes”（糖尿病）数据集上，用 <code>classif.rpart</code> 学习器（learner）训练一个分类模型。不要使用 <code>tsk("diabetes")</code>，而应改为从 <code>mlbench</code> 包中的数据集构造任务（task）：<code>data("SynthDiabetes2", package = "mlbench")</code>。务必把 <code>pos</code> 这一结果定义为正类。用给定数据随机抽取的 80% 子集训练模型，并在剩余数据上用分类错误率（classification error）度量其性能。（注意该数据集的特征中含有缺失值 NA。你可以依赖 <code>rpart</code> 内部处理缺失值的能力（“替代分裂”，surrogate splits），也可以用 <code>na.omit</code> 在构造初始 <code>data.frame</code> 时将其删除。）</li>
@@ -416,8 +465,8 @@ response pos neg
      0.3265 </code></pre>
 </div>
 </div>
-<p>当假负例率为 0.37 时，我们漏掉了大量患有糖尿病却被预测为「没有患病」的人，这可能给人带来虚假的安全感。通过降低阈值，我们可以减少假负例率。</p></section><section id="solutions-to-sec-performance" class="level2" data-number="A.2"><h2 data-number="A.2" class="anchored" data-anchor-id="solutions-to-sec-performance">
-<span class="header-section-number">A.2</span> <a href="../chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>习题解答
+<p>当假负例率为 0.37 时，我们漏掉了大量患有糖尿病却被预测为「没有患病」的人，这可能给人带来虚假的安全感。通过降低阈值，我们可以减少假负例率。</p></section><section id="solutions-to-sec-performance" class="level2" data-number="A.2"><h2 data-number="A.2" class="anchored" data-anchor-id="solutions-to-sec-performance" id="solutions-to-sec-performance">
+<span class="header-section-number">A.2</span> <a href="https://mlr3book.mlr-org.com/chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>习题解答
 </h2>
 <ol type="1">
 <li>在 <code>tsk("mtcars")</code> 上应用重复交叉验证（repeated cross-validation）重采样策略，并评估 <code>lrn("regr.rpart")</code> 的性能。采用 5 次重复、每次 3 折。计算每次迭代的 MSE 并将结果可视化。最后计算聚合后的性能分数。</li>
@@ -495,7 +544,7 @@ Hidden columns: task, learner, resampling, prediction_test</code></pre>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-010-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-010-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -506,7 +555,7 @@ Hidden columns: task, learner, resampling, prediction_test</code></pre>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-010-2.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-010-2.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -516,7 +565,7 @@ Hidden columns: task, learner, resampling, prediction_test</code></pre>
 <div class="sourceCode" id="cb45"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">rr</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-011-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-011-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -526,7 +575,7 @@ Hidden columns: task, learner, resampling, prediction_test</code></pre>
 </div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-011-2.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-011-2.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -597,7 +646,7 @@ Hidden columns: task, learner, resampling, prediction_test</code></pre>
 <div class="sourceCode" id="cb58"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">bmr</span>, measure <span class="op">=</span> <span class="fu">msr</span><span class="op">(</span><span class="st">"classif.auc"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-017-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-017-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -616,12 +665,12 @@ Hidden columns: task, learner, resampling, prediction_test</code></pre>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">bmr</span>, measure <span class="op">=</span> <span class="fu">msr</span><span class="op">(</span><span class="st">"classif.auc"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-018-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-018-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>总体趋势大致不变，但我们能信任这些结果吗？请注意，我们对 <code>lrn("classif.log_reg")</code> 和 <code>lrn("classif.ranger")</code> 都只是使用了各自的初始参数。<code>lrn("classif.log_reg")</code> 确实没有需要调的超参数，而 <code>lrn("classif.ranger")</code> 却有好几个，其中至少有一个（<code>mtry</code>）通常是需要调节的。至于 <code>lrn("classif.xgboost")</code>，我们随意选了 <code>nrounds = 100</code>，而不是沿用其初始值 <code>nrounds = 1</code>（后者等价于一棵单决策树）。要基于本实验作出任何推广性结论，都必须系统地、恰当地调优所有相关超参数。我们在<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>中会讨论这些内容以及更多。</p>
+<p>总体趋势大致不变，但我们能信任这些结果吗？请注意，我们对 <code>lrn("classif.log_reg")</code> 和 <code>lrn("classif.ranger")</code> 都只是使用了各自的初始参数。<code>lrn("classif.log_reg")</code> 确实没有需要调的超参数，而 <code>lrn("classif.ranger")</code> 却有好几个，其中至少有一个（<code>mtry</code>）通常是需要调节的。至于 <code>lrn("classif.xgboost")</code>，我们随意选了 <code>nrounds = 100</code>，而不是沿用其初始值 <code>nrounds = 1</code>（后者等价于一棵单决策树）。要基于本实验作出任何推广性结论，都必须系统地、恰当地调优所有相关超参数。我们在<a href="https://mlr3book.mlr-org.com/chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>中会讨论这些内容以及更多。</p>
 <ol start="3" type="1">
 <li>一位同事报告说，他们用 <code>lrn("classif.rpart")</code> 在 <code>tsk("penguins_simple")</code> 上得到了 93.1% 的分类准确率。你想复现他们的结果，于是询问其重采样策略。他们说自己用的是自定义三折交叉验证，折的分配方式为 <code>factor(task$row_ids %% 3)</code>。看看你能否复现他们的结果。</li>
 </ol>
@@ -718,7 +767,7 @@ Hidden columns: task, learner, resampling, prediction_test</code></pre>
 <span><span class="fu">my_roc_plot</span><span class="op">(</span><span class="va">task</span>, <span class="va">learner</span>, <span class="va">split</span><span class="op">$</span><span class="va">train</span>, <span class="va">split</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-023-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-023-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -730,13 +779,13 @@ Hidden columns: task, learner, resampling, prediction_test</code></pre>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">pred</span>, type <span class="op">=</span> <span class="st">"roc"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-024-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-024-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>请注意两条曲线之间的细微差异。这是由 <code>mlr3viz</code> 中实现该功能所用的 <code>precrec</code> 包在实现细节上有所不同所致。绘制 ROC 曲线有多种不同方法，我们上面这个实现只是其中较简单的一种！</p></section><section id="solutions-to-sec-optimization" class="level2" data-number="A.3"><h2 data-number="A.3" class="anchored" data-anchor-id="solutions-to-sec-optimization">
-<span class="header-section-number">A.3</span> <a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>习题解答
+<p>请注意两条曲线之间的细微差异。这是由 <code>mlr3viz</code> 中实现该功能所用的 <code>precrec</code> 包在实现细节上有所不同所致。绘制 ROC 曲线有多种不同方法，我们上面这个实现只是其中较简单的一种！</p></section><section id="solutions-to-sec-optimization" class="level2" data-number="A.3"><h2 data-number="A.3" class="anchored" data-anchor-id="solutions-to-sec-optimization" id="solutions-to-sec-optimization">
+<span class="header-section-number">A.3</span> <a href="https://mlr3book.mlr-org.com/chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>习题解答
 </h2>
 <ol type="1">
 <li>在 <code>tsk("mtcars")</code> 上调节 <code>lrn("regr.ranger")</code> 的 <code>mtry</code>、<code>sample.fraction</code> 和 <code>num.trees</code> 这三个超参数。采用简单的随机搜索，评估 50 次。使用三折交叉验证和均方根误差作为评估度量。用简单的边际图（marginal plot，即绘制单个超参数与交叉验证 MSE 之间关系）来可视化每个超参数对性能的影响。</li>
@@ -794,7 +843,7 @@ Hidden columns: task, learner, resampling, prediction_test</code></pre>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">instance</span>, type <span class="op">=</span> <span class="st">"incumbent"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-025-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-025-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -802,21 +851,21 @@ Hidden columns: task, learner, resampling, prediction_test</code></pre>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">instance</span>, type <span class="op">=</span> <span class="st">"marginal"</span>, cols_x <span class="op">=</span> <span class="st">"mtry"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-025-2.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-025-2.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
 <div class="sourceCode" id="cb76"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">instance</span>, type <span class="op">=</span> <span class="st">"marginal"</span>, cols_x <span class="op">=</span> <span class="st">"sample.fraction"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-025-3.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-025-3.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
 <div class="sourceCode" id="cb77"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">instance</span>, type <span class="op">=</span> <span class="st">"marginal"</span>, cols_x <span class="op">=</span> <span class="st">"num.trees"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-025-4.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-025-4.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -1073,11 +1122,11 @@ Hidden columns: resample_result</code></pre>
 <pre><code>      eta max_depth nrounds learner_param_vals  x_domain regr.rmse
 1: 0.3046         1      91          &lt;list[7]&gt; &lt;list[3]&gt;     2.992</code></pre>
 </div>
-</div></section><section id="solutions-to-sec-optimization-advanced" class="level2" data-number="A.4"><h2 data-number="A.4" class="anchored" data-anchor-id="solutions-to-sec-optimization-advanced">
-<span class="header-section-number">A.4</span> <a href="../chapter5/advanced_tuning_methods_and_black_box_optimization.html" class="quarto-xref"><span>第 5 章</span></a>习题解答
+</div></section><section id="solutions-to-sec-optimization-advanced" class="level2" data-number="A.4"><h2 data-number="A.4" class="anchored" data-anchor-id="solutions-to-sec-optimization-advanced" id="solutions-to-sec-optimization-advanced">
+<span class="header-section-number">A.4</span> <a href="https://mlr3book.mlr-org.com/chapter5/advanced_tuning_methods_and_black_box_optimization.html" class="quarto-xref"><span>第 5 章</span></a>习题解答
 </h2>
 <ol type="1">
-<li>在 <code>tsk("mtcars")</code> 上调节 <code>lrn("regr.ranger")</code> 的 <code>mtry</code>、<code>sample.fraction</code> 和 <code>num.trees</code> 超参数，并用三折交叉验证与均方根误差进行评估（与<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>练习 1 相同）。使用 <code>tnr("mbo")</code> 并评估 50 次。把它与<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>练习 1 中随机搜索的性能进展作比较。绘制性能随迭代次数的进展图，并为这两种算法可视化所评估超参数配置的空间分布。</li>
+<li>在 <code>tsk("mtcars")</code> 上调节 <code>lrn("regr.ranger")</code> 的 <code>mtry</code>、<code>sample.fraction</code> 和 <code>num.trees</code> 超参数，并用三折交叉验证与均方根误差进行评估（与<a href="https://mlr3book.mlr-org.com/chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>练习 1 相同）。使用 <code>tnr("mbo")</code> 并评估 50 次。把它与<a href="https://mlr3book.mlr-org.com/chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>练习 1 中随机搜索的性能进展作比较。绘制性能随迭代次数的进展图，并为这两种算法可视化所评估超参数配置的空间分布。</li>
 </ol>
 <p>我们先构造学习器、任务、重采样、度量和终止器，然后构造实例（instance）。</p>
 <div class="cell">
@@ -1151,7 +1200,7 @@ Hidden columns: resample_result</code></pre>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"bottom"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-033-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-033-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -1176,14 +1225,14 @@ Hidden columns: resample_result</code></pre>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"bottom"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-034-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-034-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>我们观察到，随机搜索是均匀随机采样的——正如预期。而 BO 则聚焦于树的数量在 350 至 400 之间、样本比例较高且 <code>mtry</code> 取值在 5 到 8 附近的搜索空间区域，这也正是 BO 最终返回结果所在的位置。不过 BO 也仍在探索搜索空间，例如沿着样本比例接近 1 的那条线。</p>
 <ol start="2" type="1">
-<li>用 BO（通过 <code><a href="https://mlr3mbo.mlr-org.com/reference/mlr_loop_functions_ego.html">bayesopt_ego()</a></code> 实现的标准序贯单目标 BO）最小化二维 Rastrigin 函数 <span class="math inline">\(f: [-5.12, 5.12] \times [-5.12, 5.12] \rightarrow \mathbb{R}\)</span>，<span class="math inline">\(\mathbf{x} \mapsto 10 D+\sum_{i=1}^D\left[x_i^2-10 \cos \left(2 \pi x_i\right)\right]\)</span>，<span class="math inline">\(D = 2\)</span>；采集函数（acquisition function）使用带 <code>lambda = 1</code> 的下置信界（lower confidence bound），采集函数优化器使用通过 <code>opt("nloptr")</code> 指定的 <code>"NLOPT_GN_ORIG_DIRECT"</code>。函数评估预算为 40 次。分别用「默认」的高斯过程（Gaussian Process）代理模型（配 Matérn 5/2 核）和「默认」的随机森林代理模型运行。比较它们的 anytime 性能（与<a href="../chapter5/advanced_tuning_methods_and_black_box_optimization.html#fig-bayesian-sinusoidal_bo_rs" class="quarto-xref">图&nbsp;<span>5.7</span></a>类似）。代理模型可以用以下代码按默认设置构造：</li>
+<li>用 BO（通过 <code><a href="https://mlr3mbo.mlr-org.com/reference/mlr_loop_functions_ego.html">bayesopt_ego()</a></code> 实现的标准序贯单目标 BO）最小化二维 Rastrigin 函数 <span class="math inline">\(f: [-5.12, 5.12] \times [-5.12, 5.12] \rightarrow \mathbb{R}\)</span>，<span class="math inline">\(\mathbf{x} \mapsto 10 D+\sum_{i=1}^D\left[x_i^2-10 \cos \left(2 \pi x_i\right)\right]\)</span>，<span class="math inline">\(D = 2\)</span>；采集函数（acquisition function）使用带 <code>lambda = 1</code> 的下置信界（lower confidence bound），采集函数优化器使用通过 <code>opt("nloptr")</code> 指定的 <code>"NLOPT_GN_ORIG_DIRECT"</code>。函数评估预算为 40 次。分别用「默认」的高斯过程（Gaussian Process）代理模型（配 Matérn 5/2 核）和「默认」的随机森林代理模型运行。比较它们的 anytime 性能（与<a href="https://mlr3book.mlr-org.com/chapter5/advanced_tuning_methods_and_black_box_optimization.html#fig-bayesian-sinusoidal_bo_rs" class="quarto-xref">图&nbsp;<span>5.7</span></a>类似）。代理模型可以用以下代码按默认设置构造：</li>
 </ol>
 <div class="cell">
 <div class="sourceCode" id="cb95"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">surrogate_gp</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3mbo.mlr-org.com/reference/srlrn.html">srlrn</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3mbo.mlr-org.com/reference/default_gp.html">default_gp</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
@@ -1281,7 +1330,7 @@ Hidden columns: resample_result</code></pre>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"bottom"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-041-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-041-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -1360,7 +1409,7 @@ Hidden columns: resample_result</code></pre>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-045-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-045-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -1368,11 +1417,11 @@ Hidden columns: resample_result</code></pre>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>Rastrigin 函数是优化算法（尤其是黑箱优化与 BO）评测中的经典测试函数：它表面布满周期性起伏的「波纹」，使得随机搜索很容易陷入局部极小，而其全局最优 <span class="math inline">\(D = 2\)</span> 时恰在原点处取到 <span class="math inline">\(0\)</span>。上面输出中两次优化都返回 <code>x1 = 0, x2 = 0, y = 0</code>，说明在这 40 次评估的小预算下，两种代理模型都成功找到了全局最优。</p>
 <p><strong>译者注：</strong>代码运行时会提示 <code>OptimInstanceSingleCrit is deprecated</code> 与 <code>OptimInstanceMultiCrit is deprecated</code>。这是因为这两类在较新版本的 <code>bbotk</code> 中已被 <code>OptimInstanceBatchSingleCrit</code> 与 <code>OptimInstanceBatchMultiCrit</code> 取代。原文代码仍可运行，此处仅为提示读者在新环境中改用批式版本。</p>
-</div></section><section id="solutions-to-sec-feature-selection" class="level2" data-number="A.5"><h2 data-number="A.5" class="anchored" data-anchor-id="solutions-to-sec-feature-selection">
-<span class="header-section-number">A.5</span> <a href="../chapter6/feature_selection.html" class="quarto-xref"><span>第 6 章</span></a>习题解答
+</div></section><section id="solutions-to-sec-feature-selection" class="level2" data-number="A.5"><h2 data-number="A.5" class="anchored" data-anchor-id="solutions-to-sec-feature-selection" id="solutions-to-sec-feature-selection">
+<span class="header-section-number">A.5</span> <a href="https://mlr3book.mlr-org.com/chapter6/feature_selection.html" class="quarto-xref"><span>第 6 章</span></a>习题解答
 </h2>
 <ol type="1">
-<li>在 <code>tsk("mtcars")</code> 上计算相关性过滤器（correlation filter）的分数，并用该过滤器选出与目标变量相关性最强的 5 个特征。分别在完整数据集和缩减后的数据集上重采样 <code>lrn("regr.kknn")</code>，并用 10 折交叉验证就 MSE 而言比较两者的性能。注意：这里我们在交叉验证之外做特征过滤，这通常不是一个好主意，因为它会使交叉验证的性能估计产生偏差。要正确地做，过滤应当通过管道嵌入到交叉验证内部——读完<a href="../chapter8/non-sequential_pipelines_and_tuning.html" class="quarto-xref"><span>第 8 章</span></a>后再回来实现一个偏差更小的版本。</li>
+<li>在 <code>tsk("mtcars")</code> 上计算相关性过滤器（correlation filter）的分数，并用该过滤器选出与目标变量相关性最强的 5 个特征。分别在完整数据集和缩减后的数据集上重采样 <code>lrn("regr.kknn")</code>，并用 10 折交叉验证就 MSE 而言比较两者的性能。注意：这里我们在交叉验证之外做特征过滤，这通常不是一个好主意，因为它会使交叉验证的性能估计产生偏差。要正确地做，过滤应当通过管道嵌入到交叉验证内部——读完<a href="https://mlr3book.mlr-org.com/chapter8/non-sequential_pipelines_and_tuning.html" class="quarto-xref"><span>第 8 章</span></a>后再回来实现一个偏差更小的版本。</li>
 </ol>
 <div class="cell">
 <div class="sourceCode" id="cb113"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
@@ -1417,7 +1466,7 @@ Hidden columns: resample_result</code></pre>
 </div>
 <p>经过过滤的任务上 <code>"mse"</code> 明显更低。</p>
 <ol start="2" type="1">
-<li>对 <code>tsk("penguins")</code> 用 <code>lrn("classif.rpart")</code> 和留出重采样、以分类准确率为度量，应用向后选择（backward selection）。同时运行<a href="../chapter6/feature_selection.html#sec-fs-wrapper-example" class="quarto-xref"><span>第 6.2.1 节</span></a>中的向前选择，把两者结果作比较。所选特征有差别吗？哪种特征选择方法在其 <code>$result</code> 中报告了更高的分类准确率？</li>
+<li>对 <code>tsk("penguins")</code> 用 <code>lrn("classif.rpart")</code> 和留出重采样、以分类准确率为度量，应用向后选择（backward selection）。同时运行<a href="https://mlr3book.mlr-org.com/chapter6/feature_selection.html#sec-fs-wrapper-example" class="quarto-xref"><span>第 6.2.1 节</span></a>中的向前选择，把两者结果作比较。所选特征有差别吗？哪种特征选择方法在其 <code>$result</code> 中报告了更高的分类准确率？</li>
 </ol>
 <div class="cell">
 <div class="sourceCode" id="cb119"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
@@ -1688,8 +1737,8 @@ Hidden columns: resample_result</code></pre>
 <span>  resampling <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>,</span>
 <span>  measure <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-</div></section><section id="solutions-to-sec-pipelines" class="level2" data-number="A.6"><h2 data-number="A.6" class="anchored" data-anchor-id="solutions-to-sec-pipelines">
-<span class="header-section-number">A.6</span> <a href="../chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>习题解答
+</div></section><section id="solutions-to-sec-pipelines" class="level2" data-number="A.6"><h2 data-number="A.6" class="anchored" data-anchor-id="solutions-to-sec-pipelines" id="solutions-to-sec-pipelines">
+<span class="header-section-number">A.6</span> <a href="https://mlr3book.mlr-org.com/chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>习题解答
 </h2>
 <ol type="1">
 <li>用 <code>%&gt;&gt;%</code> 把练习中列出的各个 PipeOp 拼接起来。得到的 <a href="https://mlr3pipelines.mlr-org.com/reference/Graph.html"><code>Graph</code></a> 随后可通过 <a href="https://mlr3pipelines.mlr-org.com/reference/as_learner.html"><code>as_learner()</code></a> 转换为一个 <a href="https://mlr3pipelines.mlr-org.com/reference/Learner.html"><code>Learner</code></a>。</li>
@@ -1768,8 +1817,8 @@ Hidden columns: resample_result</code></pre>
 </div>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>三种访问管道内部模型的写法（<code>$model$classif.log_reg$model</code>、<code>$base_learner()$model</code>、<code>$graph_model$pipeops$classif.log_reg$learner_model$model</code>）得到的系数完全一致，可见它们指向同一个对象。实际使用时推荐 <code>$base_learner()</code>：它不依赖具体 id 命名，管道节点增删后也不会失效；而 <code>$model$...</code> 的键名依赖于学习器 id，一旦给 <code>lrn()</code> 指定了 <code>id =</code>（如练习 A.5 中的 <code>classif.rpart.sfs</code>），这条路径就会改变。</p>
-</div></section><section id="solutions-to-sec-pipelines-nonseq" class="level2" data-number="A.7"><h2 data-number="A.7" class="anchored" data-anchor-id="solutions-to-sec-pipelines-nonseq">
-<span class="header-section-number">A.7</span> <a href="../chapter8/non-sequential_pipelines_and_tuning.html" class="quarto-xref"><span>第 8 章</span></a>习题解答
+</div></section><section id="solutions-to-sec-pipelines-nonseq" class="level2" data-number="A.7"><h2 data-number="A.7" class="anchored" data-anchor-id="solutions-to-sec-pipelines-nonseq" id="solutions-to-sec-pipelines-nonseq">
+<span class="header-section-number">A.7</span> <a href="https://mlr3book.mlr-org.com/chapter8/non-sequential_pipelines_and_tuning.html" class="quarto-xref"><span>第 8 章</span></a>习题解答
 </h2>
 <ol type="1">
 <li>用 <code>po("pca")</code> 把数值列替换为它们的 PCA 变换结果。若要把该算子限制为只作用于没有缺失值的列，可以使用 <code>affect_columns</code> 配合一个拟装的 <a href="https://mlr3pipelines.mlr-org.com/reference/Selector.html"><code>Selector</code></a>：用 <code><a href="https://mlr3pipelines.mlr-org.com/reference/Selector.html">selector_missing()</a></code> 选出<em>含</em>缺失值的列，再与起反转作用的 <code><a href="https://mlr3pipelines.mlr-org.com/reference/Selector.html">selector_invert()</a></code> 组合。由于 <code>po("pca")</code> 只作用于数值列，因此不必再用 <code>Selector</code> 去挑选数值列。</li>
@@ -1875,7 +1924,7 @@ AIC: 25.5 </code></pre>
 </div>
 </div>
 <ol start="3" type="1">
-<li>一种完全不需要指定目标类别的方案，是使用自定义的 <a href="https://mlr3pipelines.mlr-org.com/reference/Selector.html"><code>Selector</code></a>，正如<a href="../chapter8/non-sequential_pipelines_and_tuning.html#sec-pipelines-bagging" class="quarto-xref"><span>第 8.3.1 节</span></a>所示：</li>
+<li>一种完全不需要指定目标类别的方案，是使用自定义的 <a href="https://mlr3pipelines.mlr-org.com/reference/Selector.html"><code>Selector</code></a>，正如<a href="https://mlr3book.mlr-org.com/chapter8/non-sequential_pipelines_and_tuning.html#sec-pipelines-bagging" class="quarto-xref"><span>第 8.3.1 节</span></a>所示：</li>
 </ol>
 <div class="cell">
 <div class="sourceCode" id="cb157"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">selector_remove_one_prob_column</span> <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">task</span><span class="op">)</span> <span class="op">{</span></span>
@@ -1884,7 +1933,7 @@ AIC: 25.5 </code></pre>
 <span>  <span class="fu">selector_use</span><span class="op">(</span><span class="va">task</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 </div>
-<p>在<a href="../chapter8/non-sequential_pipelines_and_tuning.html#sec-pipelines-stack" class="quarto-xref"><span>第 8.3.2 节</span></a>中，如果使用这个 selector，得到的堆叠学习器就能用于任何具有任意目标类别的分类任务。它可以作为练习 2 中所用 <code>Selector</code> 的替代方案：</p>
+<p>在<a href="https://mlr3book.mlr-org.com/chapter8/non-sequential_pipelines_and_tuning.html#sec-pipelines-stack" class="quarto-xref"><span>第 8.3.2 节</span></a>中，如果使用这个 selector，得到的堆叠学习器就能用于任何具有任意目标类别的分类任务。它可以作为练习 2 中所用 <code>Selector</code> 的替代方案：</p>
 <div class="cell">
 <div class="sourceCode" id="cb158"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">drop_one_alt</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"select"</span>, selector <span class="op">=</span> <span class="va">selector_remove_one_prob_column</span><span class="op">)</span></span>
 <span></span>
@@ -1938,7 +1987,7 @@ AIC: 47.4 </code></pre>
 <span><span class="va">full_graph</span><span class="op">$</span><span class="fu">plot</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-063-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-063-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -2018,8 +2067,8 @@ Hidden columns: resample_result</code></pre>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>输出显示 AutoTuner 只在 <code>diabetes</code> 这一个任务上胜出（0.238 对 0.255），在 <code>breast_cancer</code> 和 <code>sonar</code> 上都劣于未调优的随机森林。这并不奇怪：AutoTuner 只用了 30 次评估的极小预算，而分支超参数 <code>*.branch.selection</code> 的取值空间被 <code>depends</code> 约束，优化器很可能还没来得及探索到好的组合；此外随机森林本身无需调参往往就是很强的基线。结论应是「在如此预算下 AutoML 并不总能赢过精调过的默认模型」，而不是相反。</p>
 </div>
-<p>在一个任务上，<code>AutoTuner</code> 的表现优于未经调优的随机森林。当然，这只是一个用于演示 <code>mlr3pipelines</code> 与 <code>mlr3tuning</code> 包组合能力的玩具示例。要把这类设置用于真实世界数据，还需要设法让流程更稳健，例如使用 <code>ppl("robustify")</code> 管道以及回退学习器（fallback learner）。</p></section><section id="solutions-for-sec-preprocessing" class="level2" data-number="A.8"><h2 data-number="A.8" class="anchored" data-anchor-id="solutions-for-sec-preprocessing">
-<span class="header-section-number">A.8</span> <a href="../chapter9/preprocessing.html" class="quarto-xref"><span>第 9 章</span></a>习题解答
+<p>在一个任务上，<code>AutoTuner</code> 的表现优于未经调优的随机森林。当然，这只是一个用于演示 <code>mlr3pipelines</code> 与 <code>mlr3tuning</code> 包组合能力的玩具示例。要把这类设置用于真实世界数据，还需要设法让流程更稳健，例如使用 <code>ppl("robustify")</code> 管道以及回退学习器（fallback learner）。</p></section><section id="solutions-for-sec-preprocessing" class="level2" data-number="A.8"><h2 data-number="A.8" class="anchored" data-anchor-id="solutions-for-sec-preprocessing" id="solutions-for-sec-preprocessing">
+<span class="header-section-number">A.8</span> <a href="https://mlr3book.mlr-org.com/chapter9/preprocessing.html" class="quarto-xref"><span>第 9 章</span></a>习题解答
 </h2>
 <p>我们将考虑一个与本章类似的预测问题，但改用 King County 房价回归数据（可通过 <code>tsk("kc_housing")</code> 获得）。为评估模型，我们同样使用 10 折交叉验证、平均绝对误差和 <code>lrn("regr.glmnet")</code>。目前我们先忽略 <code>date</code> 列，直接把它删去：</p>
 <div class="cell">
@@ -2092,12 +2141,12 @@ Hidden columns: resample_result</code></pre>
 <span><span class="va">graph_preproc</span><span class="op">$</span><span class="fu">plot</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-072-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-072-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
 </div>
-<p><code>glmnet</code> 不支持因子，也不支持缺失值。因此我们的管道需要同时处理这两者。首先我们用 <code>fixfactors</code> 固定因子水平，以确保全部 70 个邮政编码都被固定。我们认为 70 个水平算高基数，因此采用影响编码（impact encoding）。插补策略则与<a href="../chapter9/preprocessing.html" class="quarto-xref"><span>第 9 章</span></a>相同。</p>
+<p><code>glmnet</code> 不支持因子，也不支持缺失值。因此我们的管道需要同时处理这两者。首先我们用 <code>fixfactors</code> 固定因子水平，以确保全部 70 个邮政编码都被固定。我们认为 70 个水平算高基数，因此采用影响编码（impact encoding）。插补策略则与<a href="https://mlr3book.mlr-org.com/chapter9/preprocessing.html" class="quarto-xref"><span>第 9 章</span></a>相同。</p>
 <div class="cell">
 <div class="sourceCode" id="cb173"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">graph_robustify</span> <span class="op">=</span></span>
 <span>  <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/mlr_graphs_robustify.html">pipeline_robustify</a></span><span class="op">(</span>task <span class="op">=</span> <span class="va">task</span>, learner <span class="op">=</span> <span class="va">lrn_glmnet</span><span class="op">)</span> <span class="op"><a href="https://mlr3pipelines.mlr-org.com/reference/grapes-greater-than-greater-than-grapes.html">%&gt;&gt;%</a></span></span>
@@ -2106,7 +2155,7 @@ Hidden columns: resample_result</code></pre>
 <span><span class="va">graph_robustify</span><span class="op">$</span><span class="fu">plot</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-073-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-073-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -2187,8 +2236,8 @@ Hidden columns: resample_result</code></pre>
 Hidden columns: resample_result</code></pre>
 </div>
 </div>
-<p>我们只是简单地把 <code>date</code> 特征转换为数值时间戳，好让 <code>glmnet</code> 能够处理它。另外新增了一个特征，即到西雅图市中心的距离。这让模型的平均误差进一步降低了约 1400 美元。</p></section><section id="solutions-to-sec-technical" class="level2" data-number="A.9"><h2 data-number="A.9" class="anchored" data-anchor-id="solutions-to-sec-technical">
-<span class="header-section-number">A.9</span> <a href="../chapter10/advanced_technical_aspects_of_mlr3.html" class="quarto-xref"><span>第 10 章</span></a>习题解答
+<p>我们只是简单地把 <code>date</code> 特征转换为数值时间戳，好让 <code>glmnet</code> 能够处理它。另外新增了一个特征，即到西雅图市中心的距离。这让模型的平均误差进一步降低了约 1400 美元。</p></section><section id="solutions-to-sec-technical" class="level2" data-number="A.9"><h2 data-number="A.9" class="anchored" data-anchor-id="solutions-to-sec-technical" id="solutions-to-sec-technical">
+<span class="header-section-number">A.9</span> <a href="https://mlr3book.mlr-org.com/chapter10/advanced_technical_aspects_of_mlr3.html" class="quarto-xref"><span>第 10 章</span></a>习题解答
 </h2>
 <ol type="1">
 <li>考虑下面这个例子：我们在 4 个 worker 上用 multisession 后端重采样一个学习器（debug 学习器，在 <code>$train()</code> 期间会睡眠 3 秒）：</li>
@@ -3428,7 +3477,7 @@ ERROR [12:48:36.339] [mlr3] train:
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-087-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-087-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -4502,7 +4551,7 @@ ERROR [12:48:57.644] [mlr3] train:
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-090-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-090-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -4518,11 +4567,11 @@ ERROR [12:48:57.644] [mlr3] train:
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>这是本章最容易让人困惑、也最值得记住的一点：在 <code>"evaluate"</code> 封装下，回退学习器只在主学习器<em>训练失败</em>时才被启用，因此本例中被评分的其实是回退分类树的性能。区间 [0, 1] 时，调优器把 <code>error_train</code> 推到 0.98，几乎每次训练都失败，于是「准确率高」其实是分类树好；区间收窄到 [0.3, 0.7] 后出错率被压低，主学习器（预测众数的 debug learner）参与得更多，最优值退回到 0.57。换句话说，调优算法可能在利用「让主学习器崩掉」这条捷径，这属于典型的奖励黑客（reward hacking），实务中应像原文最后一段提醒的那样，事后人工检查档案。</p>
 </div>
-<p>这说明当使用回退学习器时，调优结果不仅受调优参数对主学习者的直接影响，也受它们对主学习者出错概率的影响。因此，我们始终建议事后手工检查调优结果。请注意，在大多数现实场景中，回退学习者的表现都不如主学习者，因此这里展示的效应通常是反过来的。</p></section><section id="solutions-to-sec-large-benchmarking" class="level2" data-number="A.10"><h2 data-number="A.10" class="anchored" data-anchor-id="solutions-to-sec-large-benchmarking">
-<span class="header-section-number">A.10</span> <a href="../chapter11/large-scale_benchmarking.html" class="quarto-xref"><span>第 11 章</span></a>习题解答
+<p>这说明当使用回退学习器时，调优结果不仅受调优参数对主学习者的直接影响，也受它们对主学习者出错概率的影响。因此，我们始终建议事后手工检查调优结果。请注意，在大多数现实场景中，回退学习者的表现都不如主学习者，因此这里展示的效应通常是反过来的。</p></section><section id="solutions-to-sec-large-benchmarking" class="level2" data-number="A.10"><h2 data-number="A.10" class="anchored" data-anchor-id="solutions-to-sec-large-benchmarking" id="solutions-to-sec-large-benchmarking">
+<span class="header-section-number">A.10</span> <a href="https://mlr3book.mlr-org.com/chapter11/large-scale_benchmarking.html" class="quarto-xref"><span>第 11 章</span></a>习题解答
 </h2>
 <ol type="1">
-<li>载入 ID 为 269 的 OpenML 集合，它包含来自 AutoML 基准<span class="citation" data-cites="amlb2022">（<a href="../references.html#ref-amlb2022" role="doc-biblioref">Gijsbers 等人 2022</a>）</span>的回归任务。先浏览一下这个套件，研究其中包含的数据集及其特征。然后找出所有观测数少于 4000 的任务，并把它们转换成 <code>mlr3</code> 任务。</li>
+<li>载入 ID 为 269 的 OpenML 集合，它包含来自 AutoML 基准<span class="citation" data-cites="amlb2022">（<a href="https://mlr3book.mlr-org.com/references.html#ref-amlb2022" role="doc-biblioref">Gijsbers 等人 2022</a>）</span>的回归任务。先浏览一下这个套件，研究其中包含的数据集及其特征。然后找出所有观测数少于 4000 的任务，并把它们转换成 <code>mlr3</code> 任务。</li>
 </ol>
 <p>我们用 <a href="https://mlr3oml.mlr-org.com/reference/ocl.html"><code>ocl()</code></a> 函数访问 ID 为 269 的 AutoML 基准套件。</p>
 <div class="cell">
@@ -4718,7 +4767,7 @@ Hidden columns: resample_result</code></pre>
 <div class="sourceCode" id="cb247"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">bma</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions_large-scale_benchmarking-021-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions_large-scale_benchmarking-021-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -4737,8 +4786,8 @@ Friedman chi-squared = 1.6, df = 1, p-value = 0.2</code></pre>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>请注意表中的 MSE 数值跨越了近 12 个数量级（从 <code>quake</code> 的 3.8e-02 到 <code>house_prices_nominal</code> 的 1.05e+09）。若不做按任务归一化，Friedman 检验实质上会被少数尺度极大的任务主导，这也是 <code>mlr3benchmark</code> 提供 <code>rank_data</code>、<code>normalize</code> 等选项的原因。此外，10 个任务、3 折交叉验证得到的 Friedman 检验功效很低，p = 0.2 更可能是「样本不足」而非「两者真的等价」的证据。</p>
 </div>
-<p>这个实验设计未能检测到 5% 水平上的显著差异，因此我们不能拒绝「回归树与随机森林表现相当」这一原假设。</p></section><section id="solutions-to-sec-interpretation" class="level2" data-number="A.11"><h2 data-number="A.11" class="anchored" data-anchor-id="solutions-to-sec-interpretation">
-<span class="header-section-number">A.11</span> <a href="../chapter12/model_interpretation.html" class="quarto-xref"><span>第 12 章</span></a>习题解答
+<p>这个实验设计未能检测到 5% 水平上的显著差异，因此我们不能拒绝「回归树与随机森林表现相当」这一原假设。</p></section><section id="solutions-to-sec-interpretation" class="level2" data-number="A.11"><h2 data-number="A.11" class="anchored" data-anchor-id="solutions-to-sec-interpretation" id="solutions-to-sec-interpretation">
+<span class="header-section-number">A.11</span> <a href="https://mlr3book.mlr-org.com/chapter12/model_interpretation.html" class="quarto-xref"><span>第 12 章</span></a>习题解答
 </h2>
 <ol type="1">
 <li>为 <code>fifa</code> 数据准备一个 <code>mlr3</code> 回归任务。只选择描述球员年龄与技能的变量。为该任务训练任意一个预测模型，例如 <code>lrn("regr.ranger")</code>。</li>
@@ -4795,7 +4844,7 @@ R squared (OOB):                  0.5671 </code></pre>
 <span><span class="va">effect</span><span class="op">$</span><span class="fu">plot</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-093-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-093-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -4823,7 +4872,7 @@ R squared (OOB):                  0.5671 </code></pre>
 <div class="sourceCode" id="cb255"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html">plot</a></span><span class="op">(</span><span class="va">ranger_effect</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-094-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-094-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -4839,7 +4888,7 @@ R squared (OOB):                  0.5671 </code></pre>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html">plot</a></span><span class="op">(</span><span class="va">effect</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-095-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-095-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -4852,7 +4901,7 @@ R squared (OOB):                  0.5671 </code></pre>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html">plot</a></span><span class="op">(</span><span class="va">ranger_profiles</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-096-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-096-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -4869,7 +4918,7 @@ R squared (OOB):                  0.5671 </code></pre>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html">plot</a></span><span class="op">(</span><span class="va">shapley</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-098-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-098-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -4882,15 +4931,15 @@ R squared (OOB):                  0.5671 </code></pre>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html">plot</a></span><span class="op">(</span><span class="va">ranger_shap</span>, show_boxplots <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-099-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-099-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
 </div>
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>练习 2 中 <code>age</code> 排在所有技能特征之前，看似反直觉，但这在 FIFA 数据上其实很合理：年龄是市场对球员「剩余职业生涯长度」定价的最强代理变量，而各项技能评分彼此高度相关、存在冗余，因此在置换后单个技能对模型预测的边际破坏反而较小。这就是共线性下特征重要性排序的典型现象——它衡量的是「该特征在给定其他特征之后的增量贡献」，而非该特征与目标的绝对关联强度。</p>
-</div></section><section id="solutions-to-sec-special" class="level2" data-number="A.12"><h2 data-number="A.12" class="anchored" data-anchor-id="solutions-to-sec-special">
-<span class="header-section-number">A.12</span> <a href="../chapter13/beyond_regression_and_classification.html" class="quarto-xref"><span>第 13 章</span></a>习题解答
+</div></section><section id="solutions-to-sec-special" class="level2" data-number="A.12"><h2 data-number="A.12" class="anchored" data-anchor-id="solutions-to-sec-special" id="solutions-to-sec-special">
+<span class="header-section-number">A.12</span> <a href="https://mlr3book.mlr-org.com/chapter13/beyond_regression_and_classification.html" class="quarto-xref"><span>第 13 章</span></a>习题解答
 </h2>
 <ol type="1">
 <li>在 <code>tsk("german_credit")</code> 上做一次基准实验，使用 <code>lrn("classif.featureless")</code>、<code>lrn("classif.log_reg")</code> 和 <code>lrn("classif.ranger")</code>。通过把它们封装进 <code>po("learner_cv")</code>（采用两折交叉验证）并接上一个 <code>po("tunethreshold")</code>，来调节所有学习器的预测阈值。使用 <code>msr("classif.costs", costs = costs)</code>，其中 <code>costs</code> 矩阵如下：真正例为 <code>-10</code>，真负例为 <code>-1</code>，假正例为 <code>2</code>，假负例为 <code>3</code>。在 <code>po("tunethreshold")</code> 中使用这个度量，并在评估基准实验时也用它。</li>
@@ -5081,8 +5130,8 @@ Properties: asymmetric</code></pre>
 <pre><code>q0.95
  9152 </code></pre>
 </div>
-</div></section><section id="solutions-to-sec-fairness" class="level2" data-number="A.13"><h2 data-number="A.13" class="anchored" data-anchor-id="solutions-to-sec-fairness">
-<span class="header-section-number">A.13</span> <a href="../chapter14/algorithmic_fairness.html" class="quarto-xref"><span>第 14 章</span></a>习题解答
+</div></section><section id="solutions-to-sec-fairness" class="level2" data-number="A.13"><h2 data-number="A.13" class="anchored" data-anchor-id="solutions-to-sec-fairness" id="solutions-to-sec-fairness">
+<span class="header-section-number">A.13</span> <a href="https://mlr3book.mlr-org.com/chapter14/algorithmic_fairness.html" class="quarto-xref"><span>第 14 章</span></a>习题解答
 </h2>
 <ol type="1">
 <li>在 <code>tsk("adult_train")</code> 上训练一个你选择的模型，并在 <code>tsk("adult_test")</code> 上测试它，用任意度量评估你的预测。假设我们的目标是在受保护属性 ‘sex’ 上实现假遗漏率（false omission rate）平价。构造一个编码了这一要求的公平性度量并评估你的模型。为获得更深入的理解，查看 <a href="https://mlr3fairness.mlr-org.com/reference/groupwise_metrics.html"><code>groupwise_metrics</code></a> 函数，以获得各组内的性能。</li>
@@ -5179,7 +5228,7 @@ Hidden columns: resample_result</code></pre>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure class="figure"><p><img src="images/solutions_files/figure-html/solutions-118-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figure class="figure"><p><img src="../images/solutions_files/figure-html/solutions-118-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
 </figure>
 </div>
 </div>
@@ -5334,8 +5383,8 @@ race                 Female Male
 <div class="bg-note">
 <p><strong>背景与解释（译者注）：</strong>练习 4 的问题清单只给了三条，但公平性实践中最容易被忽视的一点是：公平性指标之间往往互相冲突。假遗漏率平价要求各群组的「精度差异」相等，而机会均等要求「召回率差异」相等；在多数真实数据上（如本例中类别极不平衡的 Adult 数据），二者不可能同时满足。因此「降低偏差」本身并不是一个定义良好的单一目标——实务中必须先明确「我们要公平到哪一条准则上」，再谈优化。</p>
 </div>
-<section id="solutions-to-sec-predsets-valid-inttune" class="level2" data-number="A.14"><h2 data-number="A.14" class="anchored" data-anchor-id="solutions-to-sec-predsets-valid-inttune">
-<span class="header-section-number">A.14</span> <a href="../chapter15/predsets_valid_inttune.html" class="quarto-xref"><span>第 15 章</span></a>习题解答
+<section id="solutions-to-sec-predsets-valid-inttune" class="level2" data-number="A.14"><h2 data-number="A.14" class="anchored" data-anchor-id="solutions-to-sec-predsets-valid-inttune" id="solutions-to-sec-predsets-valid-inttune">
+<span class="header-section-number">A.14</span> <a href="https://mlr3book.mlr-org.com/chapter15/predsets_valid_inttune.html" class="quarto-xref"><span>第 15 章</span></a>习题解答
 </h2>
 <ol type="1">
 <li>在 diabetes 任务上用 <span class="math inline">\(1/3\)</span> 的训练数据作验证集，手工 <code>$train()</code> 一个来自 <a href="https://mlr3extralearners.mlr-org.com"><code>mlr3extralearners</code></a> 的 LightGBM 分类器。由于 diabetes 任务含有缺失值，请从 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 中选择一种方法来插补。显式把评估指标设为 logloss（<code>"binary_logloss"</code>）、最大提升迭代次数设为 1000、patience 参数设为 10、步长设为 0.01。训练完学习器后，检查最终的验证分数以及早停时的迭代次数。</li>
@@ -5551,5 +5600,6 @@ MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }
 <script type="text/javascript" id="MathJax-script" async
   src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
 </script>
+<script src="../search.js"></script>
 </body>
 </html>

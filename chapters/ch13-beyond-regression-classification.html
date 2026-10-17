@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>超越回归与分类（Beyond Regression and Classification）</title>
+<script>
+(function(){
+  var saved = localStorage.getItem("mlr3-theme");
+  if (saved === null) saved = "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+})();
+</script>
+<style>
+:root {
+  --bg: #1e2228; --fg: #d8dee4; --muted: #9aa4b0;
+  --panel: #262c34; --panel2: #2e3540; --border: #3a4350;
+  --accent: #4ea1ff; --accent2: #8f7ae6;
+  --code-bg: #161a20; --code-fg: #d8dee4;
+  --note-bg: #2a3450; --note-border: #5a7fff;
+  --callout-bg: #2b3826; --callout-border: #6bbf59;
+  --table-head: #2e3540; --table-row: #262c34; --link: #6cb0ff;
+  --h-border: #3a4350;
+}
+[data-theme="light"] {
+  --bg: #f7f8fa; --fg: #24292f; --muted: #57606a;
+  --panel: #ffffff; --panel2: #f0f2f5; --border: #d9dee3;
+  --accent: #0969da; --accent2: #8250df;
+  --code-bg: #f3f4f6; --code-fg: #24292f;
+  --note-bg: #eef2ff; --note-border: #5a7fff;
+  --callout-bg: #eff7ec; --callout-border: #6bbf59;
+  --table-head: #eef1f4; --table-row: #ffffff; --link: #0969da;
+  --h-border: #d9dee3;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  line-height: 1.78; font-size: 16px;
+  transition: background .2s, color .2s;
+}
+.container { max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+/* 顶栏 */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+}
+.topbar .brand { font-weight: 600; font-size: 15px; color: var(--fg); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+.topbar .brand .logo { color: var(--accent); }
+.topbar .right { display: flex; align-items: center; gap: 10px; }
+.topbar .home-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+.topbar .home-link:hover { color: var(--accent); }
+.theme-toggle {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+/* 章头 */
+.header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
+.header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
+.header-block h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.35; }
+.header-block .subtitle { color: var(--muted); font-size: 14px; }
+/* 章节导航 */
+.chnav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0 6px; flex-wrap: wrap; }
+.chnav a {
+  background: var(--panel); border: 1px solid var(--border); color: var(--fg);
+  text-decoration: none; font-size: 14px; padding: 10px 16px; border-radius: 8px;
+  max-width: 46%; display: block;
+}
+.chnav a:hover { border-color: var(--accent); color: var(--accent); }
+.chnav .dir { color: var(--muted); font-size: 12px; display: block; }
+.chnav .ch { font-weight: 600; }
+.chnav a.disabled { opacity: .4; pointer-events: none; }
+/* 正文 */
+main { padding: 0 0 20px; }
+main h1 { font-size: 26px; margin: 40px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--h-border); }
+main h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--h-border); }
+main h3 { font-size: 18px; margin: 28px 0 10px; }
+main h4 { font-size: 16px; margin: 22px 0 8px; color: var(--accent); }
+main p { margin: 10px 0; }
+main a { color: var(--link); text-decoration: none; }
+main a:hover { text-decoration: underline; }
+main strong { font-weight: 600; }
+main ul, main ol { padding-left: 26px; }
+main li { margin: 5px 0; }
+main blockquote {
+  margin: 12px 0; padding: 10px 16px; border-left: 4px solid var(--border);
+  background: var(--panel2); color: var(--muted); border-radius: 0 6px 6px 0;
+}
+main hr { border: none; border-top: 1px solid var(--border); margin: 26px 0; }
+main img { max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 6px; }
+main table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+main th { background: var(--table-head); font-weight: 600; }
+main th, main td { border: 1px solid var(--border); padding: 7px 11px; }
+main tr:nth-child(even) td { background: var(--table-row); }
+/* 代码 */
+pre {
+  background: var(--code-bg); color: var(--code-fg);
+  padding: 14px 16px; border-radius: 8px; overflow-x: auto;
+  border: 1px solid var(--border); font-size: 13.5px; line-height: 1.6;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+code {
+  font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+  background: var(--panel2); color: var(--accent);
+  padding: 2px 5px; border-radius: 4px; font-size: 13.5px;
+}
+pre code { background: none; color: var(--code-fg); padding: 0; }
+/* 代码块容器（Quarto 结构） */
+.sourceCode { margin: 14px 0; }
+.sourceCode pre { margin: 0; }
+/* 输出块 */
+.cell { margin: 6px 0; }
+.cell-output { margin: 0 0 6px; }
+.cell-output pre { background: var(--panel2); border-style: dashed; }
+.cell-output-stderr { border-color: #d29922; }
+.cell-output-stdout pre { border-color: var(--border); }
+/* figure */
+figure { margin: 18px 0; text-align: center; }
+figure img { margin: 0 auto; }
+figcaption, .caption { color: var(--muted); font-size: 13px; margin-top: 6px; text-align: center; }
+.quarto-float { margin: 18px 0; }
+.quarto-figure { margin: 18px 0; text-align: center; }
+/* 背景与解释（译者注）框 */
+.bg-note {
+  background: var(--note-bg); border: 1px solid var(--note-border);
+  border-radius: 8px; padding: 14px 18px; margin: 18px 0;
+  font-size: 15px;
+}
+.bg-note p { margin: 6px 0; }
+.bg-note .bg-title { font-weight: 600; color: var(--accent); }
+/* 原书 callout 提示框 */
+.callout {
+  border-radius: 8px; padding: 12px 18px; margin: 16px 0;
+  border-left: 5px solid var(--accent); background: var(--panel2);
+}
+.callout-tip { border-left-color: #6bbf59; }
+.callout-note { border-left-color: var(--accent); }
+.callout-warning { border-left-color: #d29922; }
+.callout-important { border-left-color: #e05d5d; }
+.callout-header { font-weight: 600; margin-bottom: 4px; }
+.callout-title-container { display: inline; }
+.callout-body p { margin: 6px 0; }
+.callout-icon-container { display: none; }
+/* 脚注 */
+.footnote-ref { font-size: 12px; vertical-align: super; }
+/* 页脚 */
+.footer {
+  margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 13px; text-align: center;
+}
+.footer .lic { margin-top: 6px; font-size: 12px; }
+/* 表格滚动 */
+main table { display: block; overflow-x: auto; }
+/* banner 样式（原书 callout 可能以其他名目出现） */
+[class*="callout"] > p:first-child { margin-top: 4px; }
+</style>
+<script>
+function toggleTheme(){
+  var cur = document.documentElement.getAttribute("data-theme");
+  var next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("mlr3-theme", next);
+}
+</script>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <div class="right">
+    <a class="home-link" href="index.html">目录</a>
+    <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
+  </div>
+</div>
+<div class="container">
+  <div class="header-block">
+    <div class="part">第四部分 高级专题</div>
+    <h1>超越回归与分类（Beyond Regression and Classification）</h1>
+    <div class="subtitle">《Applied Machine Learning Using mlr3 in R》中文翻译 · 章节 第 13 章 回归与分类之外</div>
+  </div>
+  <main>
+<p><strong>Raphael Sonabend</strong> <br><em>帝国理工学院（Imperial College London）</em></p>
+<p><strong>Patrick Schratz</strong> <br><em>耶拿大学（Friedrich Schiller University Jena）</em></p>
+<p><strong>Damir Pulatov</strong> <br><em>怀俄明大学（University of Wyoming）</em></p>
+<p><strong>John Zobolas</strong> <br><em>奥斯陆大学医院癌症研究所（Institute for Cancer Research, Oslo University Hospital）</em></p>
+<p><strong>Lona Koers</strong> <br><em>慕尼黑大学（Ludwig-Maximilians-Universität München）</em> <br><br></p>
+<p>到目前为止，本书只考虑了两种任务。在<a href="../chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>中，我们介绍了确定性回归（deterministic regression）以及确定性与概率性的单标签分类（single-label classification）（<a href="#tbl-alltasks" class="quarto-xref">表&nbsp;<span>13.1</span></a>）。但我们的基础设施同样适用于许多其他任务，其中一些任务在扩展包中可用（<a href="../chapter1/introduction_and_overview.html#fig-mlr3verse" class="quarto-xref">图&nbsp;<span>1.1</span></a>），另一些则可以通过 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 构建管道（pipeline）来实现。在本章中，我们将带你了解这些新任务中的一小部分，重点关注那些拥有稳定 API 的任务。在阅读本章的过程中，我们会反复提到 <a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 的「构建模块」（building blocks），这指的是为了创建新任务而必须扩展的基础类，即 <a href="https://mlr3.mlr-org.com/reference/Prediction.html"><code>Prediction</code></a>、<a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a>、<a href="https://mlr3.mlr-org.com/reference/Measure.html"><code>Measure</code></a> 和 <a href="https://mlr3.mlr-org.com/reference/Task.html"><code>Task</code></a>。<a href="#tbl-alltasks" class="quarto-xref">表&nbsp;<span>13.1</span></a> 汇总了可用的扩展任务，包括它们所在的包以及任务的简要描述。</p>
+<div id="tbl-alltasks" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-alltasks-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+表&nbsp;13.1：可以与 <code>mlr3</code> 基础设施一起使用的扩展任务列表。由于我们的贡献者社区在不断壮大，这个列表远非详尽无遗，还存在许多「实验性（experimental）」的任务实现；此列表仅代表那些具备可用接口的任务。
+</figcaption><div aria-describedby="tbl-alltasks-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead><tr class="header">
+<th>任务（Task）</th>
+<th>包（Package）</th>
+<th>描述（Description）</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>确定性回归（Deterministic regression）</td>
+<td><a href="https://mlr3.mlr-org.com"><code>mlr3</code></a></td>
+<td>对连续变量的点预测（point prediction）。</td>
+</tr>
+<tr class="even">
+<td>分位数回归（Quantile regression）</td>
+<td><a href="https://mlr3.mlr-org.com"><code>mlr3</code></a></td>
+<td>预测连续变量的条件分位数（conditional quantile）。</td>
+</tr>
+<tr class="odd">
+<td>确定性单标签分类（Deterministic single-label classification）</td>
+<td><a href="https://mlr3.mlr-org.com"><code>mlr3</code></a></td>
+<td>为每个观测预测单一类别。</td>
+</tr>
+<tr class="even">
+<td>概率性单标签分类（Probabilistic single-label classification）</td>
+<td><a href="https://mlr3.mlr-org.com"><code>mlr3</code></a></td>
+<td>预测观测落入一个或多个互斥类别之一的概率。</td>
+</tr>
+<tr class="odd">
+<td>代价敏感分类（Cost-sensitive classification）</td>
+<td>
+<a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 和 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a>
+</td>
+<td>与不同误分类（misclassification）代价不相等对应的分类预测。</td>
+</tr>
+<tr class="even">
+<td>生存分析（Survival analysis）</td>
+<td><a href="https://mlr3proba.mlr-org.com"><code>mlr3proba</code></a></td>
+<td>考虑可能的「删失（censoring）」的时间-事件预测（time-to-event predictions）。</td>
+</tr>
+<tr class="odd">
+<td>密度估计（Density estimation）</td>
+<td><a href="https://mlr3proba.mlr-org.com"><code>mlr3proba</code></a></td>
+<td>无监督地估计概率密度函数（probability density function）。</td>
+</tr>
+<tr class="even">
+<td>时空分析（Spatiotemporal analysis）</td>
+<td>
+<a href="https://mlr3spatiotempcv.mlr-org.com"><code>mlr3spatiotempcv</code></a> 和 <a href="https://mlr3spatial.mlr-org.com"><code>mlr3spatial</code></a>
+</td>
+<td>对具有空间（例如坐标）和/或时间结果的数据进行有监督预测。</td>
+</tr>
+<tr class="odd">
+<td>聚类分析（Cluster analysis）</td>
+<td><a href="https://mlr3cluster.mlr-org.com"><code>mlr3cluster</code></a></td>
+<td>无监督地估计数据点同质簇（homogeneous clusters）。</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<section id="sec-cost-sens" class="level2 page-columns page-full" data-number="13.1"><h2 data-number="13.1" class="anchored" data-anchor-id="sec-cost-sens">
+<span class="header-section-number">13.1</span> 代价敏感分类（Cost-Sensitive Classification）</h2>
+<p>我们先来讨论一个不需要任何额外包或基础设施的任务，只需要用到前几章已经学过的工具。在「常规」分类中，目标是在假设所有误分类错误同等严重的情况下优化某个指标（通常是误分类率）。更一般的方法是代价敏感分类（cost-sensitive classification），其中不同类型错误所导致的代价可能不相等。代价敏感分类的目标是最小化期望代价（expected costs）。我们将使用 <code>tsk("german_credit")</code> 作为贯穿示例。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">代价敏感分类</span></div></div>
+<p>想象一下，你正在计算给某人一笔 5,000 美元的贷款能否在一年后带来利润（假设预期偿还 6,000 美元）。要完成这个计算，你需要预测这个人是否具有良好的信用。这是一个确定性分类问题，我们预测某人属于「好（Good）」类还是「坏（Bad）」类。现在让我们考虑每个预测及最终真相可能关联的一些代价。由于代价敏感分类是一个最小化问题，我们假设较低的代价对应较高的利润/正向结果，因此把利润写成负值、损失写成正值：</p>
+<div class="cell">
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">costs</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">5</span>, <span class="fl">0</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">2</span>, dimnames <span class="op">=</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="st">"Predicted Credit"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"good"</span>, <span class="st">"bad"</span><span class="op">)</span>,</span>
+<span>    Truth <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"good"</span>, <span class="st">"bad"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">costs</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                Truth
+Predicted Credit good bad
+            good   -1   5
+            bad     0   0</code></pre>
+</div>
+</div>
+<p>在这个例子中，如果模型预测该个体信用不佳（最后一行），那么既没有利润也没有损失，因为贷款并未发放。如果模型预测该个体信用良好，并且客户确实连本带利地偿还了贷款（左上角），你将获得 1,000 美元的利润。另一方面，如果他们违约（右上角），你将损失 5,000 美元。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>代价敏感分类与标准的分类问题之间的关键区别在于错误代价矩阵（cost matrix）的不对称性。在普通分类中，我们默认所有错误「等值」，因此模型只需努力降低总错误数；而代价敏感分类把「把坏人当好人放贷」与「把好人拒之门外」的成本区分开，模型会倾向于少犯代价更高的错误。本例中信用「好」但被预测为「坏」的代价是 0（不放贷、无损失），而信用「坏」却被预测为「好」的代价是 5（放贷后违约）。这种不平衡在现实中普遍存在，例如医疗误诊、金融风控等场景中不同类型的错误代价往往差异巨大。代价矩阵中利润记为负值、损失记为正值，是为了把问题统一转化为「最小化总代价」的优化问题。</p>
+</div>
+<section id="cost-sensitive-measure" class="level3" data-number="13.1.1"><h3 data-number="13.1.1" class="anchored" data-anchor-id="cost-sensitive-measure">
+<span class="header-section-number">13.1.1</span> 代价敏感度量（Cost-Sensitive Measure）</h3>
+<p>我们现在将看到如何用 <code>msr("classif.costs")</code> 实现一种更精细的分类错误处理方式。该度量接受一个参数，即一个行名和列名对应任务中类别标签的矩阵。让我们把前面的保险示例付诸实践，注意我们已经按该度量的要求为代价矩阵命了名：</p>
+<div class="cell">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3verse.mlr-org.com">mlr3verse</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">tsk_german</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"german_credit"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">msr_costs</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.costs"</span>, costs <span class="op">=</span> <span class="va">costs</span><span class="op">)</span></span>
+<span><span class="va">msr_costs</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;MeasureClassifCosts&gt; (classif.costs): Cost-sensitive Classification ─
+• Packages: mlr3
+• Range: [-Inf, Inf]
+• Minimize: TRUE
+• Average: macro
+• Parameters: normalize=TRUE
+• Properties: weights
+• Predict type: response
+• Predict sets: test
+• Aggregator: mean()</code></pre>
+</div>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">learners</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrns</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"classif.log_reg"</span>, <span class="st">"classif.featureless"</span>,</span>
+<span>  <span class="st">"classif.ranger"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bmr</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html">benchmark_grid</a></span><span class="op">(</span><span class="va">tsk_german</span>, <span class="va">learners</span>,</span>
+<span>  <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bmr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="va">msr_costs</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">7</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>            learner_id classif.costs
+1:     classif.log_reg        0.1791
+2: classif.featureless        0.8002
+3:      classif.ranger        0.2491</code></pre>
+</div>
+</div>
+<p>在这次实验中，我们发现逻辑回归学习器碰巧表现最好，因为它最小化了期望代价（从而最大化了期望利润），而 featureless 学习器表现最差。所有损失都表现为正代价，这意味着每个模型都让我们亏钱。为了改进模型，我们现在转向阈值化（thresholding）。</p>
+</section><section id="thresholding" class="level3" data-number="13.1.2"><h3 data-number="13.1.2" class="anchored" data-anchor-id="thresholding">
+<span class="header-section-number">13.1.2</span> 阈值化（Thresholding）</h3>
+<p>正如我们在<a href="../chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>中讨论过的，阈值化是一种微调（fine-tune）概率的方法，用来决定一个观测将被预测为哪个类别标签。目前在我们的贯穿示例中，如果好信用的概率大于 0.5，上述模型就会预测客户具有好信用。在这里，这可能不是一个合理的做法，因为由于代价不均等，我们很可能会采取更保守的行动，用更高的阈值拒绝更多的贷款申请。<code>"threshold"</code> 的 <code>autoplot</code>（<a href="#fig-costsens-threshold" class="quarto-xref">图&nbsp;<span>13.1</span></a>）突出显示了这一点，图中绘制了所有可能阈值下的 <code>msr("classif.costs")</code>。</p>
+<div class="cell">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.log_reg"</span>,</span>
+<span>  predict_type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_german</span><span class="op">)</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_german</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">prediction</span>, type <span class="op">=</span> <span class="st">"threshold"</span>, measure <span class="op">=</span> <span class="va">msr_costs</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-costsens-threshold" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Line graph with x-axis labeled 'Probability Threshold' ranging between 0-1, and y-axis labeled 'classif.costs' ranging between -0.3 and 0.7'. Line starts at (0,0.7) decreases linearly to around (0.8,-0.3) then increases linearly to (1, 0).">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-costsens-threshold-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/beyond_regression_and_classification_files/figure-html/fig-costsens-threshold-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Line graph with x-axis labeled 'Probability Threshold' ranging between 0-1, and y-axis labeled 'classif.costs' ranging between -0.3 and 0.7'. Line starts at (0,0.7) decreases linearly to around (0.8,-0.3) then increases linearly to (1, 0).">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-costsens-threshold-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;13.1：随着预测阈值的改变，代价敏感度量的取值变化。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>正如预期的那样，最优阈值大于 0.5，这意味着最优模型应当更频繁地预测「坏」信用。</p>
+<p>最优阈值可以通过使用 <a href="https://mlr3tuning.mlr-org.com"><code>mlr3tuning</code></a>（<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>）和 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a>（<a href="../chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>）调节 <code>po("tunethreshold")</code> 来自动化实现。继续同一个例子：</p>
+<div class="cell">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">po_cv</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"learner_cv"</span>, <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.log_reg"</span>, predict_type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">graph</span> <span class="op">=</span>  <span class="va">po_cv</span> <span class="op"><a href="https://mlr3pipelines.mlr-org.com/reference/grapes-greater-than-greater-than-grapes.html">%&gt;&gt;%</a></span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"tunethreshold"</span>, measure <span class="op">=</span> <span class="va">msr_costs</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">learners</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/as_learner.html">as_learner</a></span><span class="op">(</span><span class="va">graph</span><span class="op">)</span>, <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.log_reg"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bmr</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html">benchmark_grid</a></span><span class="op">(</span><span class="va">tsk_german</span>, <span class="va">learners</span>,</span>
+<span>  <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: 
+✖ Multiple predict types detected, this will mean that you cannot
+  evaluate the same measures on all learners.
+→ Class: Mlr3WarningVaryingPredictTypes</code></pre>
+</div>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">bmr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="va">msr_costs</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">7</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                      learner_id classif.costs
+1: classif.log_reg.tunethreshold       -0.1060
+2:               classif.log_reg        0.1481</code></pre>
+</div>
+</div>
+<p>通过使用 <code>po("learner_cv")</code> 进行内部重采样（internal resampling），并使用 <code>po("tunethreshold")</code> 寻找最优阈值，我们显著提升了模型性能，现在甚至有望实现盈利。</p>
+</section></section><section id="sec-survival" class="level2" data-number="13.2"><h2 data-number="13.2" class="anchored" data-anchor-id="sec-survival">
+<span class="header-section-number">13.2</span> 生存分析（Survival Analysis）</h2>
+<p>生存分析是统计学中致力于预测/估计事件发生时间的一个领域。这个预测问题的独特之处在于，生存模型是在可能包含「删失（censoring）」的数据上训练和测试的；删失是指某些受试者的确切事件时间<em>没有</em>被观测到。最常见的删失类型是「右删失（right censoring）」，当感兴趣的事件在观测结束时尚未发生时便会出现这样的情况——要么是因为固定的研究截止时间（<em>管理性删失，administrative censoring</em>），要么是因为个体在随访中失联（<em>随机删失，random censoring</em>）。抽象地解释生存分析可能比较困难，所以我们用一个跑步比赛的马拉松选手作为工作示例。这里的「生存问题」是试图预测马拉松选手完成比赛的时间。然而，并非所有的完赛时间都能被观测到。例如，如果组织者在某一时间点之后停止记录完赛时间，那么任何在那一时刻之后仍在奔跑的选手都将被<em>管理性</em>地删失。另外，一名选手可能意外退出比赛——例如，他们的追踪芯片出现故障，或者他们意外离开赛道而不再被跟踪——这就导致了<em>随机</em>删失。生存分析并不是舍弃这类不完整的观测，而是引入一个状态变量来反映事件是否被观测到。在我们的例子中，如果一名选手在三个小时内完赛并被我们观测到，我们会把其结果记录为 <span class="math inline">\((3, 1)\)</span>；如果他们在观测结束四小时时仍在奔跑（管理性删失），则记录为 <span class="math inline">\((4, 0)\)</span>；如果他们的追踪设备在 2.5 小时时失效而我们失去了联系（随机删失），则记录为 <span class="math inline">\((2.5, 0)\)</span>。</p>
+<p>生存分析建模的关键在于：我们假设哪怕选手被删失，也存在着一个假想的完赛时间，生存学习器的工作就是为一名相似的选手估计在<em>未</em>被删失的情况下真实的生存时间会是多少（见<a href="#fig-censoring" class="quarto-xref">图&nbsp;<span>13.2</span></a>）。从数学上讲，这由假想的事件时间 <span class="math inline">\(Y\)</span>、假想的删失时间 <span class="math inline">\(C\)</span>、观测到的事件时间 <span class="math inline">\(T = \min(Y, C)\)</span>、事件指示符 <span class="math inline">\(\Delta := (T = Y)\)</span> 以及像往常一样的若干特征 <span class="math inline">\(X\)</span> 来表示。学习器在 <span class="math inline">\((T, \Delta)\)</span> 上训练，但关键在于，它们要从先前未见过的特征上预测 <span class="math inline">\(Y\)</span>。这意味着与分类和回归不同，学习器是在两个变量 <span class="math inline">\((T, \Delta)\)</span> 上训练的，而在 R 中，这通常被封装在一个 <a href="https://www.rdocumentation.org/packages/survival/topics/Surv"><code>Surv</code></a> 对象中。回到上面的例子，选手的结果可以表示为：若三小时完赛则为 <span class="math inline">\((T = 3, \Delta = 1)\)</span>，若比赛时钟结束时仍在奔跑则为 <span class="math inline">\((T = 4, \Delta = 0)\)</span>，若中途失去联系则为 <span class="math inline">\((T = 2.5, \Delta = 0)\)</span>。另一个例子见下面的代码，我们随机生成了六个生存时间和六个事件指示符，结尾带 <code>+</code> 的结果表示该观测被删失，否则表示感兴趣的事件发生了。</p>
+<div class="cell">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/therneau/survival">survival</a></span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'survival'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:future':
+
+    cluster</code></pre>
+</div>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html">Surv</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="fl">6</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span><span class="op">(</span><span class="fl">6</span>, <span class="fl">1</span>, <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.5523+ 0.2905  0.4404+ 0.1184  0.9216+ 0.7326 </code></pre>
+</div>
+</div>
+<p>熟悉生存分析的读者会意识到，上面的描述特指「右删失」。目前，<code>mlr3</code> 生态中只支持这一种删失形式，因此我们把讨论限制在这种情形下。关于生存分析的优秀入门读物，参见 <span class="citation" data-cites="Collett2014">Collett (<a href="../references.html#ref-Collett2014" role="doc-biblioref">2014</a>)</span>；专门针对生存分析中的机器学习，参见 <span class="citation" data-cites="MLSA">R. Sonabend and Bender (<a href="../references.html#ref-MLSA" role="doc-biblioref">2023</a>)</span>。</p>
+<p>在本节的其余部分，我们将看到 <a href="https://mlr3proba.mlr-org.com"><code>mlr3proba</code></a> <span class="citation" data-cites="mlr3proba">(<a href="../references.html#ref-mlr3proba" role="doc-biblioref">R. Sonabend et al. 2021</a>)</span> 如何为生存分析扩展 <code>mlr3</code> 的构建模块。我们首先考察用于构建生存分析机器学习任务的对象，然后转向我们为实现这些任务而实现的学习器，接着是用于评估生存分析预测的度量，最后我们将考虑如何在预测类型之间进行转换。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-censoring" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Figure shows give horizontal lines at 1,2,3,4,5 on the y-axis and a vertical line at 8 on the x-axis. Top line (subject 5) has a circle at x=8 and a diamond at x=9, second line (subject 4) has a circle at x=1 and a diamond at x=9, subject 3 has a circle at x=4 and a diamond at x=6, subject 2 has a diamond at x=8, and subject 1 has a diamond at x=7.">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-censoring-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/beyond_regression_and_classification_files/figure-html/fig-censoring-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Figure shows give horizontal lines at 1,2,3,4,5 on the y-axis and a vertical line at 8 on the x-axis. Top line (subject 5) has a circle at x=8 and a diamond at x=9, second line (subject 4) has a circle at x=1 and a diamond at x=9, subject 3 has a circle at x=4 and a diamond at x=6, subject 2 has a diamond at x=8, and subject 1 has a diamond at x=7.">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-censoring-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;13.2：说明不同类型删失的图示。纵轴为已死亡和被删失的受试者，横轴为时间。黑色菱形表示真实的死亡时间，白色圆圈表示删失时间。竖线为研究结束时间。受试者 1 和 2 在研究期间死亡。受试者 3 在研究期间被删失，且（未知地）在研究期间内死亡。受试者 4 在研究期间被删失，且（未知地）在研究结束后死亡。受试者 5 在研究结束后死亡。图与图注来自 <span class="citation" data-cites="Sonabend2021b">R. E. B. Sonabend (<a href="../references.html#ref-Sonabend2021b" role="doc-biblioref">2021</a>)</span>。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>删失（censoring）是生存分析最核心也最易混淆的概念。右删失指「事件在观测截止时尚未发生，只知道真实事件时间大于某个值」；与此相对的还有左删失（真实时间小于观测值）和区间删失（只知道真实时间落在一个区间内）。生存分析方法的核心价值之一，就是能够在大量观测被删失的情况下依然正确地利用其信息——直接丢弃删失观测会导致系统性偏倚（因为删失观测往往对应更长的事件时间），而简单把删失时间当作事件时间又会严重低估。`Surv` 对象用 `+` 后缀标记删失观测，R 中几乎所有生存分析函数都能理解这一约定。</p>
+</div>
+<section id="tasksurv" class="level3" data-number="13.2.1"><h3 data-number="13.2.1" class="anchored" data-anchor-id="tasksurv">
+<span class="header-section-number">13.2.1</span> TaskSurv</h3>
+<p>正如我们在本节的引言中所看到的，生存算法需要两个训练目标，这意味着新的 <a href="https://mlr3proba.mlr-org.com/reference/TaskSurv.html"><code>TaskSurv</code></a> 对象期望两个目标。创建生存任务最简单的方法是使用 <a href="https://mlr3proba.mlr-org.com/reference/as_task_surv.html"><code>as_task_surv()</code></a>，如下面的代码块所示。注意它比 <a href="https://mlr3.mlr-org.com/reference/as_task_regr.html"><code>as_task_regr()</code></a> 拥有更多参数，以反映多个目标和删失类型：<code>time</code> 和 <code>event</code> 参数接受表示存储「时间」和「事件」变量的列名的字符串，<code>type</code> 指删失类型（目前仅支持右删失，因此这是默认值）。<code><a href="https://mlr3proba.mlr-org.com/reference/as_task_surv.html">as_task_surv()</a></code> 会将目标列强制转换为一个 <a href="https://www.rdocumentation.org/packages/survival/topics/Surv"><code>Surv</code></a> 对象。在本节中，我们将使用 <code>rats</code> 数据集作为贯穿示例，该数据集研究药物处理是否成功阻止了 150 只老鼠发展出肿瘤。这个数据集自己也承认并不完美，通常应被当作「模拟（dummy）」数据，它适合做示例，但不适合真实的实证分析。</p>
+<div class="cell">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3verse.mlr-org.com">mlr3verse</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3proba.mlr-org.com">mlr3proba</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/therneau/survival">survival</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">tsk_rats</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3proba.mlr-org.com/reference/as_task_surv.html">as_task_surv</a></span><span class="op">(</span><span class="fu">survival</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/survival/man/rats.html">rats</a></span>, time <span class="op">=</span> <span class="st">"time"</span>,</span>
+<span>  event <span class="op">=</span> <span class="st">"status"</span>, type <span class="op">=</span> <span class="st">"right"</span>, id <span class="op">=</span> <span class="st">"rats"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">tsk_rats</span><span class="op">$</span><span class="fu">head</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   time status litter rx sex
+1:  101      0      1  1   f
+2:   49      1      1  0   f
+3:  104      0      1  0   f
+4:   91      0      2  1   m
+5:  104      0      2  0   m
+6:  102      0      2  0   m</code></pre>
+</div>
+</div>
+<p>用 <code>autoplot</code> 绘制任务会得到一个 Kaplan-Meier 图（<a href="#fig-autokm" class="quarto-xref">图&nbsp;<span>13.3</span></a>），它是训练集中平均观测的生存概率的非参数估计。</p>
+<div class="cell">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">tsk_rats</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-autokm" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Figure shows a line plot with &quot;Time&quot; on the x-axis from 0 to 100 and &quot;Survival&quot; on the y-axis from 0.80 to 1.00. The line plot is a black line from (0, 1) to (25, 1) then starts to drop slowly and then quickly down to (100, 0.80).">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-autokm-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/beyond_regression_and_classification_files/figure-html/fig-autokm-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Figure shows a line plot with &quot;Time&quot; on the x-axis from 0 to 100 and &quot;Survival&quot; on the y-axis from 0.80 to 1.00. The line plot is a black line from (0, 1) to (25, 1) then starts to drop slowly and then quickly down to (100, 0.80).">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-autokm-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;13.3：<code>tsk("rats")</code> 的 Kaplan-Meier 图。x 轴是时间变量，y 轴是生存函数 S(T)，定义为 <span class="math inline">\(1 -\)</span> F(T)，其中 F 是累积分布函数。十字标记表示发生删失的时间点。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>除了创建自己的任务之外，你还可以加载 <code>mlr3proba</code> 内置的任何任务：</p>
+<div class="cell">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">mlr_tasks</span><span class="op">)</span><span class="op">[</span><span class="va">task_type</span> <span class="op">==</span> <span class="st">"surv"</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       key                  label task_type nrow ncol properties lgl
+1:    actg               ACTG 320      surv 1151   13              0
+2:    gbcs   German Breast Cancer      surv  686   10              0
+3:    gbsg   German Breast Cancer      surv  686   10              0
+4:   grace             GRACE 1000      surv 1000    8              0
+5:    lung            Lung Cancer      surv  168    9              0
+6:    mgus                   MGUS      surv  176    9              0
+7:    rats                   Rats      surv  300    5              0
+8: veteran                Veteran      surv  137    8              0
+9:    whas Worcester Heart Attack      surv  481   11              0
+8 variables not shown: [int, dbl, chr, fct, ord, pxc, dte, lt]</code></pre>
+</div>
+</div>
+</section><section id="learnersurv-predictionsurv-and-predict-types" class="level3" data-number="13.2.2"><h3 data-number="13.2.2" class="anchored" data-anchor-id="learnersurv-predictionsurv-and-predict-types">
+<span class="header-section-number">13.2.2</span> LearnerSurv、PredictionSurv 与预测类型（Predict Types）</h3>
+<p><a href="https://mlr3proba.mlr-org.com/reference/LearnerSurv.html"><code>LearnerSurv</code></a> 和 <a href="https://mlr3proba.mlr-org.com/reference/PredictionSurv.html"><code>PredictionSurv</code></a> 对象的接口与<a href="../chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>讨论的回归和分类设置完全相同。与这些设置类似，生存学习器也是用 <a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html"><code>lrn()</code></a> 构建的。</p>
+<p><code>mlr3proba</code> 与 <code>mlr3</code> 具有不同的预测接口，因为只要可能，所有类型的预测（「预测类型」）都会返回给所有生存模型——也就是说，如果一个模型<em>能够</em>计算某种预测类型，那么它将<em>被</em>返回到 <code>PredictionSurv</code> 中。这一设计决策的理由是，所有这些预测类型都可以相互转换，因此一次性全部返回在计算上比重新运行模型来改变预测类型更简单。在生存分析中，可以进行以下预测：</p>
+<ul>
+<li>
+<code>response</code> —— 预测的生存时间。</li>
+<li>
+<code>distr</code> —— 预测的生存分布，无论是离散的还是连续的。</li>
+<li>
+<code>lp</code> —— 线性预测器（linear predictor），计算为拟合系数乘以测试数据。</li>
+<li>
+<code>crank</code> —— 连续风险排序（continuous risk ranking）。</li>
+</ul>
+<p>我们将逐一更详细地介绍这些预测类型并给出例子，让它们不那么抽象。我们将使用在 <code>tsk("rats")</code> 上训练的 <code>lrn("surv.coxph")</code> 作为贯穿示例，因为对该模型而言，除 <code>response</code> 之外的所有预测类型都可以计算。</p>
+<div class="cell">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_rats</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"rats"</span><span class="op">)</span></span>
+<span><span class="va">split</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/partition.html">partition</a></span><span class="op">(</span><span class="va">tsk_rats</span><span class="op">)</span></span>
+<span><span class="va">prediction_cph</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"surv.coxph"</span><span class="op">)</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_rats</span>, <span class="va">split</span><span class="op">$</span><span class="va">train</span><span class="op">)</span><span class="op">$</span></span>
+<span>  <span class="fu">predict</span><span class="op">(</span><span class="va">tsk_rats</span>, <span class="va">split</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span>
+<span><span class="va">prediction_cph</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionSurv&gt; for 99 observations: ────────────────────────────────
+ row_ids time status   crank      lp     distr
+       3  104  FALSE -0.4356 -0.4356 &lt;list[1]&gt;
+       5  104  FALSE -3.1265 -3.1265 &lt;list[1]&gt;
+       7  104  FALSE  0.4090  0.4090 &lt;list[1]&gt;
+     ---  ---    ---     ---     ---       ---
+     297   79   TRUE  0.4300  0.4300 &lt;list[1]&gt;
+     298   92  FALSE -1.4339 -1.4339 &lt;list[1]&gt;
+     300  102  FALSE -2.2609 -2.2609 &lt;list[1]&gt;</code></pre>
+</div>
+</div>
+<section id="predict_type-response" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="predict_type-response">predict_type = “response”</h4>
+<p>可能令许多人感到反直觉的是，预测生存时间的 <code>response</code> 预测是生存分析中最不常见的预测类型。可能的原因在于删失的存在。对于许多观测，我们很少能观测到真实的生存时间，因此任何生存模型都很难有把握地对生存时间做出预测。下面的代码说明了这一点。</p>
+<p>在下面的示例中，我们训练并预测了一个生存 SVM（<code>lrn("surv.svm")</code>），注意我们使用 <code>type = "regression"</code> 来选择优化生存时间预测的算法，而 <code>gamma.mu = 1e-3</code> 是随意选择的，因为这是一个必填参数（这个参数通常应当被调节）。然后我们把模型的预测与真实数据进行比较。</p>
+<div class="cell">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3extralearners.mlr-org.com">mlr3extralearners</a></span><span class="op">)</span></span>
+<span><span class="va">prediction_svm</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"surv.svm"</span>, type <span class="op">=</span> <span class="st">"regression"</span>, gamma <span class="op">=</span> <span class="fl">1e-3</span><span class="op">)</span><span class="op">$</span></span>
+<span>  <span class="fu">train</span><span class="op">(</span><span class="va">tsk_rats</span>, <span class="va">split</span><span class="op">$</span><span class="va">train</span><span class="op">)</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_rats</span>, <span class="va">split</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>pred <span class="op">=</span> <span class="va">prediction_svm</span><span class="op">$</span><span class="va">response</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>,</span>
+<span>  truth <span class="op">=</span> <span class="va">prediction_svm</span><span class="op">$</span><span class="va">truth</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   pred truth
+1 86.36  104+
+2 86.16  104+
+3 85.95  104+</code></pre>
+</div>
+</div>
+<p>从输出中可以看到，我们的预测都小于真实的观测时间，这意味着我们知道模型低估了真实值。然而，由于每个真实值都是删失时间，我们完全没有办法知道这些预测是略微糟糕还是极其糟糕（也就是说，真实的生存时间可能是 <span class="math inline">\(105, 99, 92\)</span>，也可能是 <span class="math inline">\(300, 1000, 200\)</span>）。因此，在没有现实可行的方法来评估这些模型的情况下，生存时间预测很少有用。</p>
+</section><section id="predict_type-distr" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="predict_type-distr">predict_type = “distr”</h4>
+<p>与回归中确定性/点预测最为常见不同，在生存分析中分布预测要常见得多。因此你会发现，<code>mlr3proba</code> 中的大多数生存模型默认都会做出分布预测。这些预测使用的是 <a href="https://alan-turing-institute.r-universe.dev/ui#package:distr6"><code>distr6</code></a> 包实现的，它可以实现生存曲线（定义为 <span class="math inline">\(1 -\)</span> 累积分布函数）的可视化与评估。下面我们从贯穿示例中提取前三个 <code>$distr</code> 预测，并计算在 <span class="math inline">\(t = 77\)</span> 处的生存概率。</p>
+<div class="cell">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction_cph</span><span class="op">$</span><span class="va">distr</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span><span class="op">$</span><span class="fu">survival</span><span class="op">(</span><span class="fl">77</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     [,1]   [,2]   [,3]
+77 0.9412 0.9959 0.8684</code></pre>
+</div>
+</div>
+<p>输出表明，前三只被预测的老鼠分别在时间 77 时活着的概率为 94.1%、99.6%、86.8%。</p>
+</section><section id="predict_type-lp" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="predict_type-lp">predict_type = “lp”</h4>
+<p><code>lp</code>，在学术写作中常写作 <span class="math inline">\(\eta\)</span>，是计算上最简单的预测，并且在回归建模中有自然的对应物。熟悉线性回归的读者会知道，在拟合简单线性回归模型 <span class="math inline">\(Y = X\beta\)</span> 时，我们估计的是 <span class="math inline">\(\beta\)</span> 的值，而估计的线性预测器（lp）就是 <span class="math inline">\(X\hat{\beta}\)</span>，其中 <span class="math inline">\(\hat{\beta}\)</span> 是我们估计的系数。在简单的生存模型中，线性预测器是同样的量（只是估计方式稍复杂一些）。<code>mlr3proba</code> 中的学习器实现主要以机器学习为导向，其中很少有模型具有简单的线性形式，这意味着大多数这样的模型都无法计算 <code>lp</code>。在实践中，当用于预测时，<code>lp</code> 是相对风险/连续排序预测的代理，这一点将在下面讨论。</p>
+</section><section id="predict_type-crank" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="predict_type-crank">predict_type = “crank”</h4>
+<p>最后一种预测类型 <code>crank</code> 在生存分析中最常见，或许也最容易令人困惑。学术文献常常提到生存分析中的「风险（risk）」预测（因此生存模型常被称为「风险预测模型」），却没有定义「风险」究竟是什么意思。通常，风险被定义为 <span class="math inline">\(\exp(\eta)\)</span>，因为这是简单线性生存模型中的一个常见量。然而，有时风险被定义为 <span class="math inline">\(\exp(-\eta)\)</span>，有时它又是一个没有任何有意义的解释的任意量。为避免这种混乱，在 <code>mlr3proba</code> 中我们定义了预测类型 <code>crank</code>，它代表<strong>连</strong>续<strong>排</strong>名（<strong>c</strong>ontinuous <strong>rank</strong>ing）。这最好通过例子来理解；接续前面的内容，我们输出前三个 <code>crank</code> 预测。</p>
+<div class="cell">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction_cph</span><span class="op">$</span><span class="va">crank</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      1       2       3 
+-0.4356 -3.1265  0.4090 </code></pre>
+</div>
+</div>
+<p>输出告诉我们，第一只老鼠的死亡风险最低（较小的值代表较低的风险），第三只老鼠的风险最高。预测之间的距离也告诉我们，第二只和第三只老鼠之间的风险差异小于第一只和第二只之间的差异。实际的数值本身没有意义，因此在样本（或论文或实验）之间比较 <code>crank</code> 值是没有意义的。</p>
+<p><code>crank</code> 预测类型在实践中信息量大且常见，因为它可以帮助识别相对于彼此风险更低/更高的观测，这对于资源分配（例如，应给哪一位患者使用昂贵的治疗）和临床试验（例如，治疗组的患者患疾病 X 的风险是否低于对照组）都很有用。</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+解读生存风险（Interpreting Survival Risk）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>不同 R 包对生存预测中「风险」的解读各不相同，有时甚至在同一包内的不同模型之间也有所不同。在 <code>mlr3proba</code> 中，对 <code>crank</code> 有一个一致的解读：较低的值代表事件发生的风险较低，较高的值代表风险较高。</p>
+</div>
+</div>
+</section></section><section id="measuresurv" class="level3" data-number="13.2.3"><h3 data-number="13.2.3" class="anchored" data-anchor-id="measuresurv">
+<span class="header-section-number">13.2.3</span> MeasureSurv</h3>
+<p><code>mlr3proba</code> 中的生存模型使用 <a href="https://mlr3proba.mlr-org.com/reference/MeasureSurv.html"><code>MeasureSurv</code></a> 对象进行评估，这些对象以惯常的方式用 <code><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr()</a></code> 构建。</p>
+<p>一般来说，生存度量可以分为以下几类：</p>
+<ol type="1">
+<li>判别度量（Discrimination measures）—— 量化模型是否正确识别一个观测是否比另一个观测风险更高。评估 <code>crank</code> 和/或 <code>lp</code> 预测。</li>
+<li>校准度量（Calibration measures）—— 量化平均预测是否接近真实值（在生存语境下，所有校准的定义都遗憾地有些含糊）。评估 <code>crank</code> 和/或 <code>lp</code> 预测。</li>
+<li>评分规则（Scoring rules）—— 量化概率预测是否接近真实值。评估 <code>distr</code> 预测。</li>
+</ol>
+<div class="cell">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">mlr_measures</span><span class="op">)</span><span class="op">[</span></span>
+<span>  <span class="va">task_type</span> <span class="op">==</span> <span class="st">"surv"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"key"</span>, <span class="st">"predict_type"</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                  key predict_type
+1:         surv.brier        distr
+2:   surv.calib_alpha        distr
+3:    surv.calib_beta           lp
+4:   surv.calib_index        distr
+5: surv.chambless_auc           lp</code></pre>
+</div>
+</div>
+<p>在文献中，对于「最佳」的生存评估度量并没有共识。我们推荐使用 ISBS（积分生存 Brier 分数，Integrated Survival Brier Score）（<code>msr("surv.graf")</code>）来评估 <code>distr</code> 预测的质量，使用一致性指数（concordance index）（<code>msr("surv.cindex")</code>）来评估模型的判别能力，使用 D-校准（D-Calibration）（<code>msr("surv.dcalib")</code>）来评估模型的校准情况。</p>
+<p>利用这些度量，我们现在可以评估上一示例中的预测。</p>
+<div class="cell">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction_cph</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msrs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"surv.graf"</span>, <span class="st">"surv.cindex"</span>, <span class="st">"surv.dcalib"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  surv.graf surv.cindex surv.dcalib 
+    0.06064     0.78928     0.82181 </code></pre>
+</div>
+</div>
+<p>模型的性能看起来还可以，因为 ISBS 和 DCalib 相对较低，C-index 大于 0.5；然而，如果不与某个基线（通常是 Kaplan-Meier）进行比较，就很难确定任何生存模型的性能。</p>
+</section><section id="sec-surv-comp" class="level3" data-number="13.2.4"><h3 data-number="13.2.4" class="anchored" data-anchor-id="sec-surv-comp">
+<span class="header-section-number">13.2.4</span> 组合（Composition）</h3>
+<p>在 <code>mlr3proba</code> 的整个文档中，我们提到「原生（native）」和「组合（composed）」预测。我们将「原生」预测定义为模型在没有任何后处理的情况下做出的预测，而「组合」预测则是在后处理之后返回的预测。</p>
+<section id="internal-composition" class="level4" data-number="13.2.4.1"><h4 data-number="13.2.4.1" class="anchored" data-anchor-id="internal-composition">
+<span class="header-section-number">13.2.4.1</span> 内部组合（Internal Composition）</h4>
+<p><code>mlr3proba</code> 在内部使用组合来为每个学习器返回一个 <code>"crank"</code> 预测。这是为了确保我们能够至少根据一个标准（判别性能）有意义地对所有模型进行基准测试。该包使用以下规则来创建 <code>"crank"</code> 预测：</p>
+<ol type="1">
+<li>如果模型返回「风险」预测，则 <code>crank = risk</code>（我们可能会将其乘以 <span class="math inline">\(-1\)</span> 以确保「低值低风险」的解读）。</li>
+<li>如果模型返回 <code>response</code> 预测，则我们设 <code>crank = -response</code>。</li>
+<li>如果模型返回 <code>lp</code> 预测，则我们设 <code>crank = lp</code>（如有需要则为 <code>crank = -lp</code>）。</li>
+<li>如果模型返回 <code>distr</code> 预测，则我们设 <code>crank</code> 为累积风险函数（cumulative hazard function）之和（关于我们为什么选择这个方法，详见 <span class="citation" data-cites="Sonabend2022">R. Sonabend, Bender, and Vollmer (<a href="../references.html#ref-Sonabend2022" role="doc-biblioref">2022</a>)</span> 的完整讨论）。</li>
+</ol></section><section id="explicit-composition-and-pipelines" class="level4" data-number="13.2.4.2"><h4 data-number="13.2.4.2" class="anchored" data-anchor-id="explicit-composition-and-pipelines">
+<span class="header-section-number">13.2.4.2</span> 显式组合与管道（Explicit Composition and Pipelines）</h4>
+<p>在本节开头，我们提到预测类型之间可以相互转换。在 <code>mlr3proba</code> 中，这可以通过「组合器（compositor）」管道来实现（<a href="../chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>）。该包中实现了若干管道，但其中三个特别专注于预测类型的转换：</p>
+<ol type="1">
+<li>
+<a href="https://mlr3proba.mlr-org.com/reference/mlr_graphs_crankcompositor.html"><code>pipeline_crankcompositor()</code></a> —— 将 <code>"distr"</code> 预测转换为 <code>"crank"</code></li>
+<li>
+<a href="https://mlr3proba.mlr-org.com/reference/mlr_graphs_distrcompositor.html"><code>pipeline_distrcompositor()</code></a> —— 将 <code>"lp"</code> 预测转换为 <code>"distr"</code></li>
+<li>
+<a href="https://mlr3proba.mlr-org.com/reference/mlr_graphs_responsecompositor.html"><code>pipeline_responsecompositor()</code></a> —— 将 <code>"distr"</code> 预测转换为 <code>"response"</code>（生存时间）</li>
+</ol>
+<p>每当从生存模型返回预测时，我们都会在内部使用第一个管道的一个版本，以便每个模型都有 <code>"crank"</code> 预测类型——所以只使用第一个管道来覆盖这些排序预测。在实践中，第二个管道更为常见，因为 Cox 或加速失效时间（Accelerated Failure Time，AFT）类型的模型总是返回线性预测器（<code>"lp"</code>），但有时内部的 <code><a href="https://rspatial.github.io/terra/reference/predict.html">predict()</a></code> 函数并不提供到生存分布预测（<code>"distr"</code>）的转换。第三个管道将预测的生存曲线汇总为单个数字（期望生存时间），且如前所述，它很少对评估生存机器学习模型的性能有用。</p>
+<p>在下面的示例中，我们加载 <code>rats</code> 数据集，移除因子列，然后将数据划分为训练集和测试集。我们围绕一个生存 XGBoost 加速失效时间（AFT）学习器（<code>lrn("surv.xgboost.aft")</code>）构建 <code>distrcompositor</code> 管道，该学习器默认预测 <code>"lp"</code>、<code>"crank"</code> 和 <code>"response"</code>。在管道中，我们指定用 Kaplan-Meier 估计器估计基线分布（<code>estimator = "kaplan"</code>），并希望为估计的分布假设一个 AFT 形式（<code>form = "aft"</code>）。然后我们以惯常的方式训练和预测，现在可以在输出中看到 <code>distr</code> 预测。</p>
+<div class="cell">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3verse.mlr-org.com">mlr3verse</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3extralearners.mlr-org.com">mlr3extralearners</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">tsk_rats</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"rats"</span><span class="op">)</span><span class="op">$</span><span class="fu">select</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"litter"</span>, <span class="st">"rx"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">split</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/partition.html">partition</a></span><span class="op">(</span><span class="va">tsk_rats</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">learner</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"surv.xgboost.aft"</span>, nrounds <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># no distr output</span></span>
+<span><span class="va">learner</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_rats</span>, <span class="va">split</span><span class="op">$</span><span class="va">train</span><span class="op">)</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_rats</span>, <span class="va">split</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionSurv&gt; for 99 observations: ────────────────────────────────
+ row_ids time status  crank     lp response
+       1  101  FALSE -4.648 -4.648    104.3
+       6  102  FALSE -5.576 -5.576    264.1
+       9  104  FALSE -5.576 -5.576    264.1
+     ---  ---    ---    ---    ---      ---
+     294   64  FALSE -4.754 -4.754    116.0
+     295  104  FALSE -4.661 -4.661    105.8
+     296  104  FALSE -4.661 -4.661    105.8</code></pre>
+</div>
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">graph_learner</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/ppl.html">ppl</a></span><span class="op">(</span></span>
+<span>  <span class="st">"distrcompositor"</span>,</span>
+<span>  learner <span class="op">=</span> <span class="va">learner</span>,</span>
+<span>  estimator <span class="op">=</span> <span class="st">"kaplan"</span>,</span>
+<span>  form <span class="op">=</span> <span class="st">"aft"</span>,</span>
+<span>  graph_learner <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># now with distr</span></span>
+<span><span class="va">graph_learner</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_rats</span>, <span class="va">split</span><span class="op">$</span><span class="va">train</span><span class="op">)</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_rats</span>, <span class="va">split</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionSurv&gt; for 99 observations: ────────────────────────────────
+ row_ids time status  crank     lp response     distr
+       1  101  FALSE -4.648 -4.648    104.3 &lt;list[1]&gt;
+       6  102  FALSE -5.576 -5.576    264.1 &lt;list[1]&gt;
+       9  104  FALSE -5.576 -5.576    264.1 &lt;list[1]&gt;
+     ---  ---    ---    ---    ---      ---       ---
+     294   64  FALSE -4.754 -4.754    116.0 &lt;list[1]&gt;
+     295  104  FALSE -4.661 -4.661    105.8 &lt;list[1]&gt;
+     296  104  FALSE -4.661 -4.661    105.8 &lt;list[1]&gt;</code></pre>
+</div>
+</div>
+<p>从数学上讲，我们做了如下工作：</p>
+<ol type="1">
+<li>假设我们估计的分布具有如下形式 <span class="math inline">\(S(t) = S_0(\frac{t}{\exp(\eta)})\)</span>，其中 <span class="math inline">\(S\)</span> 是生存函数，<span class="math inline">\(S_0\)</span> 是基线生存函数，<span class="math inline">\(\eta\)</span> 是线性预测器。</li>
+<li>使用 XGBoost 估计 <span class="math inline">\(\hat{\eta}\)</span> 预测</li>
+<li>用 Kaplan-Meier 估计器估计 <span class="math inline">\(\hat{S}_0(t)\)</span></li>
+<li>将所有部分整合为 <span class="math inline">\(S(t) = \hat{S}_0(\frac{t}{\exp(\hat{\eta})})\)</span>
+</li>
+</ol>
+<p>关于预测类型和组合的更详细信息，我们推荐 <span class="citation" data-cites="Kalbfleisch2011">Kalbfleisch and Prentice (<a href="../references.html#ref-Kalbfleisch2011" role="doc-biblioref">2011</a>)</span>。</p>
+</section></section><section id="sec-survival-all" class="level3" data-number="13.2.5"><h3 data-number="13.2.5" class="anchored" data-anchor-id="sec-survival-all">
+<span class="header-section-number">13.2.5</span> 综合应用（Putting It All Together）</h3>
+<p>最后，我们将在一个小型基准测试实验中把以上所有内容付诸实践。我们首先加载 <code>tsk("grace")</code>（只有数值特征）并随机抽样 500 行。然后我们选择 ISBS、D-校准和 C-index 来评估预测，搭建我们在上一个实验中使用的同一个管道，并加载一个 Cox PH 和一个 Kaplan-Meier 估计器。我们用三折 CV 运行实验并聚合结果。</p>
+<div class="cell">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3extralearners.mlr-org.com">mlr3extralearners</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">tsk_grace</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"grace"</span><span class="op">)</span></span>
+<span><span class="va">tsk_grace</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span><span class="op">(</span><span class="va">tsk_grace</span><span class="op">$</span><span class="va">nrow</span>, <span class="fl">500</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">msr_txt</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"surv.graf"</span>, <span class="st">"surv.cindex"</span>, <span class="st">"surv.dcalib"</span><span class="op">)</span></span>
+<span><span class="va">measures</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msrs</a></span><span class="op">(</span><span class="va">msr_txt</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">graph_learner</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/ppl.html">ppl</a></span><span class="op">(</span></span>
+<span>  <span class="st">"distrcompositor"</span>,</span>
+<span>  learner <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"surv.xgboost.aft"</span>, nrounds <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,</span>
+<span>  estimator <span class="op">=</span> <span class="st">"kaplan"</span>,</span>
+<span>  form <span class="op">=</span> <span class="st">"aft"</span>,</span>
+<span>  graph_learner <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  scale_lp <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">graph_learner</span><span class="op">$</span><span class="va">id</span> <span class="op">=</span> <span class="st">"XGBoost-AFT"</span></span>
+<span><span class="va">learners</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrns</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"surv.coxph"</span>, <span class="st">"surv.kaplan"</span><span class="op">)</span><span class="op">)</span>, <span class="va">graph_learner</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">bmr</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html">benchmark_grid</a></span><span class="op">(</span><span class="va">tsk_grace</span>, <span class="va">learners</span>,</span>
+<span>  <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bmr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="va">measures</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"learner_id"</span>, <span class="va">..msr_txt</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    learner_id surv.graf surv.cindex surv.dcalib
+1:  surv.coxph   0.09898      0.8422       5.329
+2: surv.kaplan   0.20225      0.5000       4.149
+3: XGBoost-AFT   0.21354      0.8393       6.126</code></pre>
+</div>
+</div>
+<p>在这个小型实验中，XGBoost-AFT 和 Cox PH 的判别能力最好，Kaplan-Meier 基线的校准最好，而 Cox PH 的整体预测准确性最高（ISBS 最低）。</p>
+</section></section>
+<section id="sec-density" class="level2" data-number="13.3"><h2 data-number="13.3" class="anchored" data-anchor-id="sec-density">
+<span class="header-section-number">13.3</span> 密度估计（Density Estimation）</h2>
+<p>密度估计是一种学习任务，用于估计生成单变量数据集的那个未知分布，更简单地说，就是估计单个变量的概率密度（或质量）函数。与生存分析一样，密度估计也是在 <code>mlr3proba</code> 中实现的，因为两者都可以做出概率分布预测（这就是「mlr3**proba**bilistic」（概率）这个名称中 proba 的由来）。无条件密度估计（即不带任何协变量地估计一个目标）被视为无监督任务，这意味着「真相」永远不会被知晓。关于密度估计的综述，参见 <span class="citation" data-cites="Silverman1986">Silverman (<a href="../references.html#ref-Silverman1986" role="doc-biblioref">1986</a>)</span>。</p>
+<p><code>mlr3proba</code> 包通过以下对象为密度估计扩展 <code>mlr3</code>：</p>
+<ul>
+<li>
+<a href="https://mlr3proba.mlr-org.com/reference/TaskDens.html"><code>TaskDens</code></a> 用于定义密度任务。</li>
+<li>
+<a href="https://mlr3proba.mlr-org.com/reference/LearnerDens.html"><code>LearnerDens</code></a> 作为密度估计器的基类。</li>
+<li>
+<a href="https://mlr3proba.mlr-org.com/reference/PredictionDens.html"><code>PredictionDens</code></a> 用于密度预测。</li>
+<li>
+<a href="https://mlr3proba.mlr-org.com/reference/MeasureDens.html"><code>MeasureDens</code></a> 作为密度性能度量的专门类。</li>
+</ul>
+<p>我们将逐一讨论。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>密度估计属于无监督学习，因为它没有「目标变量」用于有监督的学习信号。它与回归/分类的关键区别在于：有监督任务通常只估计条件分布的某个概括量（如均值或类别），而密度估计要尽可能完整地恢复整个分布。这在风险建模、异常检测等场景中非常有用。`mlr3proba` 之所以同时实现生存分析和密度估计，正是因为这两个任务的核心预测对象都是「概率分布」（`distr` 预测类型），本质上都依赖 `distr6` 包的分布对象体系。</p>
+</div>
+<section id="taskdens" class="level3" data-number="13.3.1"><h3 data-number="13.3.1" class="anchored" data-anchor-id="taskdens">
+<span class="header-section-number">13.3.1</span> TaskDens</h3>
+<p>由于密度估计是无监督任务，因此没有用于预测的目标。在下面的代码中，我们使用 <a href="https://mlr3proba.mlr-org.com/reference/as_task_dens.html"><code>as_task_dens()</code></a> 构造一个密度任务，它接受一个参数，即一个恰好只有一列的 <code>data.frame</code> 类型对象（我们将用这一列来估计底层分布）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_dens</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3proba.mlr-org.com/reference/as_task_dens.html">as_task_dens</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html">data.table</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="fl">1000</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">tsk_dens</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;TaskDens&gt; (1000x1) ──────────────────────────────────────────────────
+• Target:
+• Properties: -
+• Features (1):
+  • dbl (1): x</code></pre>
+</div>
+</div>
+<p>与其他任务一样，我们也包含了一些随 <code>mlr3proba</code> 附带的任务：</p>
+<div class="cell">
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">mlr_tasks</span><span class="op">)</span><span class="op">[</span><span class="va">task_type</span> <span class="op">==</span> <span class="st">"dens"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, <span class="fl">4</span><span class="op">:</span><span class="fl">5</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        key                  label nrow ncol
+1: faithful Old Faithful Eruptions  272    1
+2:   precip   Annual Precipitation   70    1</code></pre>
+</div>
+</div>
+</section><section id="learnerdens-and-predictiondens" class="level3" data-number="13.3.2"><h3 data-number="13.3.2" class="anchored" data-anchor-id="learnerdens-and-predictiondens">
+<span class="header-section-number">13.3.2</span> LearnerDens 与 PredictionDens</h3>
+<p>密度学习器可以返回以下预测类型：</p>
+<ol type="1">
+<li>
+<code>distr</code> —— 概率分布</li>
+<li>
+<code>pdf</code> —— 概率密度函数（probability density function）</li>
+<li>
+<code>cdf</code> —— 累积分布函数（cumulative distribution function）</li>
+</ol>
+<p>所有学习器都会返回 <code>distr</code> 和 <code>pdf</code> 预测，但只有部分学习器能够进行 <code>cdf</code> 预测。同样地，<code>distr</code> 预测类型是使用 <code>distr6</code> 实现的。在下面的代码中，我们用直方图学习器训练并「预测」，然后绘制估计的概率密度函数（<a href="#fig-dens-hist" class="quarto-xref">图&nbsp;<span>13.4</span></a>），它与底层的正态分布数据非常接近。</p>
+<div class="cell">
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_hist</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"dens.hist"</span><span class="op">)</span></span>
+<span><span class="va">prediction</span> <span class="op">=</span> <span class="va">lrn_hist</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_dens</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">900</span><span class="op">)</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_dens</span>, <span class="fl">901</span><span class="op">:</span><span class="fl">1000</span><span class="op">)</span></span>
+<span><span class="va">x</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq.int</a></span><span class="op">(</span><span class="op">-</span><span class="fl">2</span>, <span class="fl">2</span>, <span class="fl">0.01</span><span class="op">)</span></span>
+<span><span class="va">df</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, y <span class="op">=</span> <span class="va">prediction</span><span class="op">$</span><span class="va">distr</span><span class="op">$</span><span class="fu">pdf</span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">ggplot</span><span class="op">(</span><span class="va">df</span>, <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, y <span class="op">=</span> <span class="va">y</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu">geom_line</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu">theme_minimal</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-dens-hist" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Image shows a line plot with x-axis between (-2,2) and y-axis between (0,0.4). The plot closely resembles a Normal(0, 1) distribution with a peak at 0.4.">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-dens-hist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/beyond_regression_and_classification_files/figure-html/fig-dens-hist-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Image shows a line plot with x-axis between (-2,2) and y-axis between (0,0.4). The plot closely resembles a Normal(0, 1) distribution with a peak at 0.4.">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-dens-hist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;13.4：直方图学习器预测的密度，与底层的 N(0, 1) 数据非常接近。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p><code>pdf</code> 和 <code>cdf</code> 预测类型分别只是 <code>distr$pdf</code> 和 <code>distr$cdf</code> 的包装：</p>
+<div class="cell">
+<div class="sourceCode" id="cb45"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span> <span class="op">=</span> <span class="va">lrn_hist</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_dens</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">)</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_dens</span>, <span class="fl">11</span><span class="op">:</span><span class="fl">13</span><span class="op">)</span></span>
+<span><span class="co"># pdf and cdf columns in output</span></span>
+<span><span class="va">prediction</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionDens&gt; for 3 observations: ─────────────────────────────────
+ row_ids pdf    cdf
+      11 0.6 0.4849
+      12 0.2 0.3992
+      13 0.6 0.6208
+1 variable not shown: [distr]</code></pre>
+</div>
+<div class="sourceCode" id="cb47"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># comparing cdf from prediction to $cdf method from distr</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="va">prediction</span><span class="op">$</span><span class="va">distr</span><span class="op">$</span><span class="fu">cdf</span><span class="op">(</span><span class="va">tsk_dens</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">x</span><span class="op">[</span><span class="fl">11</span><span class="op">:</span><span class="fl">13</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>  <span class="va">prediction</span><span class="op">$</span><span class="va">cdf</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       [,1]   [,2]
+[1,] 0.4849 0.4849
+[2,] 0.3992 0.3992
+[3,] 0.6208 0.6208</code></pre>
+</div>
+</div>
+</section><section id="measuredens-and-putting-it-all-together" class="level3" data-number="13.3.3"><h3 data-number="13.3.3" class="anchored" data-anchor-id="measuredens-and-putting-it-all-together">
+<span class="header-section-number">13.3.3</span> MeasureDens 与综合应用（Putting It All Together）</h3>
+<p>在本书出版时，<code>mlr3proba</code> 为密度估计实现的唯一度量是 logloss（对数损失），其定义方式与分类中相同，<span class="math inline">\(L(y) = -\log(\hat{f}_Y(y))\)</span>，其中 <span class="math inline">\(\hat{f}_Y\)</span> 是我们估计的概率密度函数。将这一点与上述内容结合起来，我们现在就可以训练密度学习器、估计分布并评估我们的估计：</p>
+<div class="cell">
+<div class="sourceCode" id="cb49"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">msr_logloss</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"dens.logloss"</span><span class="op">)</span></span>
+<span><span class="va">msr_logloss</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;MeasureDensLogloss&gt; (dens.logloss): Log Loss ────────────────────────
+• Packages: mlr3 and mlr3proba
+• Range: [0, Inf]
+• Minimize: TRUE
+• Average: macro
+• Parameters: eps=1e-15
+• Properties: -
+• Predict type: pdf
+• Predict sets: test
+• Aggregator: mean()</code></pre>
+</div>
+<div class="sourceCode" id="cb51"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">msr_logloss</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>dens.logloss 
+       0.877 </code></pre>
+</div>
+</div>
+<p>这个输出在与基准测试实验中的其他学习器比较时最容易解读，所以让我们把所有内容放在一起，使用一些内置的密度学习器在 <code>tsk("faithful")</code> 任务上进行一个小型基准测试研究：</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+警告（Warning）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>pendensity</code> 包已于 2026 年从 CRAN 上移除。因此，下面的代码块将无法运行。详情参见 https://github.com/mlr-org/mlr3book/issues/935。我们将很快替换 <code>dens.pen</code>。</p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb53"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3extralearners.mlr-org.com">mlr3extralearners</a></span><span class="op">)</span></span>
+<span><span class="va">tsk_faithful</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"faithful"</span><span class="op">)</span></span>
+<span><span class="va">learners</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrns</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"dens.hist"</span>, <span class="st">"dens.pen"</span>, <span class="st">"dens.kde"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">measure</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"dens.logloss"</span><span class="op">)</span></span>
+<span><span class="va">bmr</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html">benchmark_grid</a></span><span class="op">(</span><span class="va">tsk_faithful</span>, <span class="va">learners</span>,</span>
+<span>  <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bmr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="va">measure</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb54"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">bmr</span>, measure <span class="op">=</span> <span class="va">measure</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>该实验的结果（<span class="quarto-unresolved-ref">?fig-beyond-density</span>）表明，复杂的惩罚密度估计器（Penalized Density Estimator）并没有胜过基线直方图，但核密度估计器（Kernel Density Estimator）至少在 logloss 结果上始终更好（即更低）。</p>
+</section></section>
+<section id="sec-cluster" class="level2 page-columns page-full" data-number="13.4"><h2 data-number="13.4" class="anchored" data-anchor-id="sec-cluster">
+<span class="header-section-number">13.4</span> 聚类分析（Cluster Analysis）</h2>
+<p>聚类分析（cluster analysis）是 <code>mlr3</code> 中实现的另一个无监督任务。聚类分析的目标是把数据分组为若干簇（cluster），每个簇包含彼此相似的观测。相似性基于事先指定的度量来判定，而这些度量取决于具体任务与应用场景。与分类不同——分类要为每个观测预测一个类别——在聚类分析中并不存在可供预测的「真实」标签或类别。</p>
+<p><a href="https://mlr3cluster.mlr-org.com"><code>mlr3cluster</code></a> 包通过以下对象扩展 <code>mlr3</code> 以支持聚类分析：</p>
+<ul>
+<li>
+<a href="https://mlr3cluster.mlr-org.com/reference/TaskClust.html"><code>TaskClust</code></a> 用于定义聚类任务</li>
+<li>
+<a href="https://mlr3cluster.mlr-org.com/reference/LearnerClust.html"><code>LearnerClust</code></a> 作为聚类学习器的基类</li>
+<li>
+<a href="https://mlr3cluster.mlr-org.com/reference/PredictionClust.html"><code>PredictionClust</code></a> 作为 <a href="https://mlr3cluster.mlr-org.com/reference/Prediction.html"><code>Prediction</code></a> 对象的专门类</li>
+<li>
+<a href="https://mlr3cluster.mlr-org.com/reference/MeasureClust.html"><code>MeasureClust</code></a> 作为性能度量的专门类</li>
+</ul>
+<p>下面我们将逐一讨论。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>聚类是无监督学习（unsupervised learning）的典型任务：数据没有标签，算法需要自己发现数据内在的结构。这里「相似性」并非天生的属性，而完全依赖于我们选择的距离度量与特征表示——同一份数据先用欧氏距离、再用余弦距离聚类，往往会得到差别很大的结果。因此聚类结果更多是「在给定度量与超参数下的一个划分方案」，而不是数据中客观存在的「真实类别」。这与 K-均值（K-means）、层次聚类（hierarchical clustering）等经典算法一脉相承，只是 <code>mlr3cluster</code> 把它们包装成了统一的 <code>LearnerClust</code> 接口，从而可以和分类、回归学习器放进同一个基准测试（benchmark）框架里比较。阅读本章时请始终带着这个前提：聚类没有标准答案。</p>
+</div>
+<section id="taskclust" class="level3" data-number="13.4.1"><h3 data-number="13.4.1" class="anchored" data-anchor-id="taskclust">
+<span class="header-section-number">13.4.1</span> TaskClust</h3>
+<p>与密度估计类似（<a href="#sec-density" class="quarto-xref"><span>第 13.3 节</span></a>），聚类没有可供预测的目标，因而 <a href="https://mlr3cluster.mlr-org.com/reference/TaskClust.html"><code>TaskClust</code></a> 中也没有 <code>truth</code> 字段。作为示例，我们将使用 <a href="https://www.rdocumentation.org/packages/cluster/topics/ruspini"><code>ruspini</code></a> 数据集——它有 75 行、两列，最早由 <span class="citation" data-cites="Ruspini1970">Ruspini (<a href="../references.html#ref-Ruspini1970" role="doc-biblioref">1970</a>)</span> 提出，用于演示各种不同的聚类技术。该数据集中的观测自然形成四个簇（<a href="#fig-beyond-clust-ruspini" class="quarto-xref">图&nbsp;<span>13.5</span></a>）。在下面的代码中，我们用 <a href="https://mlr3cluster.mlr-org.com/reference/as_task_clust.html"><code>as_task_clust()</code></a> 构造一个聚类任务，该函数只接受一个参数，即一个 <code>data.frame</code> 类型的对象。</p>
+<div class="cell">
+<div class="sourceCode" id="cb55"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3verse.mlr-org.com">mlr3verse</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://svn.r-project.org/R-packages/trunk/cluster/">cluster</a></span><span class="op">)</span></span>
+<span><span class="va">tsk_ruspini</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3cluster.mlr-org.com/reference/as_task_clust.html">as_task_clust</a></span><span class="op">(</span><span class="va">ruspini</span><span class="op">)</span></span>
+<span><span class="va">tsk_ruspini</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;TaskClust&gt; (75x2) ───────────────────────────────────────────────────
+• Target:
+• Properties: -
+• Features (2):
+  • int (2): x, y</code></pre>
+</div>
+<div class="sourceCode" id="cb57"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_ruspini</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span> <span class="co"># 打印前 3 行</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    x  y
+1:  4 53
+2:  5 63
+3: 10 59</code></pre>
+</div>
+<div class="sourceCode" id="cb59"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">tsk_ruspini</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-beyond-clust-ruspini" class="quarto-float quarto-figure quarto-figure-center anchored" alt="四个网格图。左上是一条曲线：在 (0,0.003) 到 (30,0.012) 之间急剧上升，随后下降到 (120, 0.003)。右上只写有「Corr: 0.065」。左下显示出四个界限分明的点簇。右下从 (0, 50) 上升到 (140, 150)，随后下降到 (155, 100)。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-beyond-clust-ruspini-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-ruspini-1.png" class="img-fluid figure-img" style="width:100.0%" alt="四个网格图。左上是一条曲线：在 (0,0.003) 到 (30,0.012) 之间急剧上升，随后下降到 (120, 0.003)。右上只写有「Corr: 0.065」。左下显示出四个界限分明的点簇。右下从 (0, 50) 上升到 (140, 150)，随后下降到 (155, 100)。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-beyond-clust-ruspini-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;13.5：<code>ruspini</code> 数据集的分布。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>严格来说，我们其实不必为 <code>ruspini</code> 数据集新建任务，因为该包中已经内置了这个任务，此外还包含另一个任务：</p>
+<div class="cell">
+<div class="sourceCode" id="cb60"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">mlr_tasks</span><span class="op">)</span><span class="op">[</span><span class="va">task_type</span> <span class="op">==</span> <span class="st">"clust"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, <span class="fl">4</span><span class="op">:</span><span class="fl">5</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>         key      label nrow ncol
+1:   ruspini    Ruspini   75    2
+2: usarrests US Arrests   50    4</code></pre>
+</div>
+</div>
+</section><section id="learnerclust-and-predictionclust" class="level3 page-columns page-full" data-number="13.4.2"><h3 data-number="13.4.2" class="anchored" data-anchor-id="learnerclust-and-predictionclust">
+<span class="header-section-number">13.4.2</span> LearnerClust 与 PredictionClust</h3>
+<p>与密度估计一样，为了与 <code>mlr3</code> 接口保持一致，我们也沿用「训练（training）」和「预测（predicting）」这两个说法来描述聚类；但严格说来，它们应该叫「聚类（clustering）」和「分配（assigning）」（后者我们很快会再谈）。聚类学习器提供两种 <code>predict_types</code>：</p>
+<ol type="1">
+<li>
+<code>"partition"</code> – 估计每个观测落入哪个簇</li>
+<li>
+<code>"prob"</code> – 每个观测属于各个簇的概率</li>
+</ol>
+<p>与分类类似，聚类学习器的预测类型要么是确定性的（<code>"partition"</code>），要么是概率性的（<code>"prob"</code>）。</p>
+<p>下面我们构造一个 C-Means 聚类学习器，其预测类型为 <code>"prob"</code>、簇数为 3（<code>centers = 3</code>），在 <code>ruspini</code> 数据集上训练它，然后返回六个随机观测的簇分配（<code>$assignments</code>）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb62"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_cmeans</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"clust.cmeans"</span>, predict_type <span class="op">=</span> <span class="st">"prob"</span>, centers <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">lrn_cmeans</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;LearnerClustCMeans&gt; (clust.cmeans): Fuzzy C-Means ───────────────────
+• Model: -
+• Parameters: centers=3
+• Packages: mlr3, mlr3cluster, e1071, and clue
+• Predict Types: partition and [prob]
+• Feature Types: logical, integer, and numeric
+• Encapsulation: none (fallback: -)
+• Properties: complete, fuzzy, and partitional
+• Other settings: use_weights = 'error', predict_raw = 'FALSE'</code></pre>
+</div>
+<div class="sourceCode" id="cb64"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_cmeans</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_ruspini</span><span class="op">)</span></span>
+<span><span class="va">lrn_cmeans</span><span class="op">$</span><span class="va">assignments</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span><span class="op">(</span><span class="va">tsk_ruspini</span><span class="op">$</span><span class="va">nrow</span>, <span class="fl">6</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 2 1 1 1 1 1</code></pre>
+</div>
+</div>
+<p>由于聚类是无监督的，对新数据使用 <code>predict</code> 往往说不通，但通过 <code>mlr3</code> 接口这仍然是可以做到的。</p>
+<div class="cell">
+<div class="sourceCode" id="cb66"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># 用不同的数据来估计（少见的用例）</span></span>
+<span><span class="va">lrn_cmeans</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_ruspini</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">30</span><span class="op">)</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_ruspini</span>, <span class="fl">31</span><span class="op">:</span><span class="fl">32</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionClust&gt; for 2 observations: ────────────────────────────────
+ row_ids partition  prob.1 prob.2  prob.3
+      31         2 0.01815 0.9663 0.01552
+      32         2 0.01178 0.9782 0.01002</code></pre>
+</div>
+<div class="sourceCode" id="cb68"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># 用与估计时相同的数据（常见的用例）</span></span>
+<span><span class="va">prediction</span> <span class="op">=</span> <span class="va">lrn_cmeans</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_ruspini</span><span class="op">)</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_ruspini</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">prediction</span>, <span class="va">tsk_ruspini</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-beyond-clust-ruspini-estimated" class="quarto-float quarto-figure quarto-figure-center anchored" alt="四个网格图。左上是三条相互重叠的曲线，分别为紫色（簇 1）、蓝色（簇 2）和绿色（簇 3）。紫曲线和蓝曲线在大部分位置为零，随后分别在 (30, 120) 和 (60, 120) 处达到峰值。绿曲线从 (0,0) 出发，缓慢上升到 (40, 120)，随后起伏下降至 (120, 60)。右上以绿色（簇 3）写有「-0.78」，以蓝色（簇 2）写有「0」，以紫色（簇 1）写有「-0.05」。左下显示出四个界限分明的点簇，其中两个是绿色，一个是蓝色（下方），一个是紫色（左下）。右下是折线图，形状与左上相似但上下颠倒。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-beyond-clust-ruspini-estimated-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-ruspini-estimated-1.png" class="img-fluid figure-img" style="width:100.0%" alt="四个网格图。左上是三条相互重叠的曲线，分别为紫色（簇 1）、蓝色（簇 2）和绿色（簇 3）。紫曲线和蓝曲线在大部分位置为零，随后分别在 (30, 120) 和 (60, 120) 处达到峰值。绿曲线从 (0,0) 出发，缓慢上升到 (40, 120)，随后起伏下降至 (120, 60)。右上以绿色（簇 3）写有「-0.78」，以蓝色（簇 2）写有「0」，以紫色（簇 1）写有「-0.05」。左下显示出四个界限分明的点簇，其中两个是绿色，一个是蓝色（下方），一个是紫色（左下）。右下是折线图，形状与左上相似但上下颠倒。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-beyond-clust-ruspini-estimated-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;13.6：所估计簇的分布。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>虽然有两种预测类型，但对某些学习器而言「预测」永远说不通，例如层次聚类。在层次聚类中，目标是通过把大簇拆分成小簇、或把小簇合并成大簇，来构建一棵嵌套簇的层次结构。最终结果是一棵树或树状图（dendrogram），而加入新的数据点就可能改变它。为保持接口一致性，<code>mlr3cluster</code> 仍然为层次聚类提供了 <code>predict</code> 方法，但会附带一条警告：</p><div class="no-row-height column-margin column-container"><span class="margin-aside">层次聚类</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb69"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_hclust</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"clust.hclust"</span>, k <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">lrn_hclust</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_ruspini</span><span class="op">)</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_ruspini</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: 
+✖ Learner 'clust.hclust' doesn't predict on new data and predictions may
+  not make sense on new data.
+→ Class: Mlr3WarningInput</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionClust&gt; for 75 observations: ───────────────────────────────
+ row_ids partition
+       1         1
+       2         1
+       3         1
+     ---       ---
+      73         1
+      74         1
+      75         1</code></pre>
+</div>
+<div class="sourceCode" id="cb72"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">lrn_hclust</span><span class="op">)</span> <span class="op">+</span> <span class="fu">theme</span><span class="op">(</span>axis.text <span class="op">=</span> <span class="fu">element_text</span><span class="op">(</span>size <span class="op">=</span> <span class="fl">5.5</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-beyond-clust-dend" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图中一条水平线连接着两条竖直线，每条竖直线又连接到另一条水平线，而该水平线再分成两条竖直线，如此一直分下去，最多可见九处分叉。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-beyond-clust-dend-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-dend-1.png" class="img-fluid figure-img" style="width:100.0%" alt="图中一条水平线连接着两条竖直线，每条竖直线又连接到另一条水平线，而该水平线再分成两条竖直线，如此一直分下去，最多可见九处分叉。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-beyond-clust-dend-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;13.7：表示 <code>ruspini</code> 数据集层次聚类结果的树状图。y 轴表示点的相似度，因此位置越靠下（x 轴）的观测相似度越高、越容易被连在一起。最上方的分叉代表两个簇的分离。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>在这种情况下，<code>predict</code> 方法所做的仅仅是按学习器的 <code>k</code> 参数所指定的簇数，把树状图切开而已。</p>
+</section><section id="measureclust" class="level3" data-number="13.4.3"><h3 data-number="13.4.3" class="anchored" data-anchor-id="measureclust">
+<span class="header-section-number">13.4.3</span> MeasureClust</h3>
+<p>正如前面讨论过的，无监督任务在模型评估时没有可供比较的真实标签数据。不过，我们仍然可以通过量化同一簇内对象之间关联的紧密程度（簇内聚度，cluster cohesion），以及不同簇之间彼此区分的程度（簇间离散度，cluster separation），来衡量簇分配的质量。<code>mlr3</code> 中提供了若干内置的评估指标来考察聚类质量，可以在 <a href="https://mlr3.mlr-org.com/reference/mlr_measures.html"><code>mlr_measures</code></a> 字典中检索到。</p>
+<p>两个常用的度量是簇内平方和（within sum of squares，WSS）度量（<code>msr("clust.wss")</code>）和轮廓系数（silhouette coefficient，<code>msr("clust.silhouette")</code>）。WSS 计算观测与其簇心之间平方差的总和，用以量化簇的聚度（数值越小说明簇越紧凑）。轮廓系数则量化每个点归属于其所分配簇、而非邻近簇的程度，得分越接近 <code>1</code> 表示聚类效果越好，越接近 <code>-1</code> 表示聚类效果越差。请注意，<code>mlr3cluster</code> 中的轮廓度量返回的是所有观测的平均轮廓得分，并且当只有一个簇时，该度量直接输出 0。</p>
+<p>把这些与上面的内容结合起来，我们现在就可以为我们的聚类估计打分（注意必须把 <code>task</code> 传给 <code>$score</code>）：</p>
+<div class="cell">
+<div class="sourceCode" id="cb73"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">measures</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msrs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"clust.wss"</span>, <span class="st">"clust.silhouette"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">measures</span>, task <span class="op">=</span> <span class="va">tsk_ruspini</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       clust.wss clust.silhouette 
+       5.116e+04        6.414e-01 </code></pre>
+</div>
+</div>
+<p>非常高的 WSS 和中等偏上的平均轮廓系数表明，我们的聚类结果还有改进空间。</p>
+<p>由于没有真实标签可依，把一个无监督任务压缩成一个量化指标往往未必有多大用处；相比之下，可视化（下一节讨论）可能是评估聚类质量更有效的工具。</p>
+</section><section id="visualization" class="level3" data-number="13.4.4"><h3 data-number="13.4.4" class="anchored" data-anchor-id="visualization">
+<span class="header-section-number">13.4.4</span> 可视化</h3>
+<p>由于聚类是无监督任务，可视化不仅对「评估」模型至关重要，也能帮助我们判断学习器在我们的任务上是否表现得符合预期。本节先介绍用于辅助聚类选择（clustering choices）的可视化，随后再讨论用于评估模型性能的图形。</p><section id="visualizing-clusters" class="level4" data-number="13.4.4.1"><h4 data-number="13.4.4.1" class="anchored" data-anchor-id="visualizing-clusters">
+<span class="header-section-number">13.4.4.1</span> 簇的可视化</h4>
+<p>依靠聚类度量来评估聚类质量很容易，但这样做需要谨慎，因为在模型之间做选择时，最终可能取决于簇是如何形成的等其他决策。举个例子，考虑由 <a href="https://www.rdocumentation.org/packages/mlbench/topics/mlbench.spirals"><code>mlbench.spirals</code></a> 生成的数据，它会形成两条彼此缠绕的独立曲线（<a href="#fig-beyond-clust-spirals" class="quarto-xref">图&nbsp;<span>13.8</span></a>）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb75"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">spirals</span> <span class="op">=</span> <span class="fu">mlbench</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/mlbench/man/mlbench.spirals.html">mlbench.spirals</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">300</span>, sd <span class="op">=</span> <span class="fl">0.01</span><span class="op">)</span></span>
+<span><span class="va">tsk_spirals</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3cluster.mlr-org.com/reference/as_task_clust.html">as_task_clust</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html">as.data.frame</a></span><span class="op">(</span><span class="va">spirals</span><span class="op">$</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">tsk_spirals</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-beyond-clust-spirals" class="quarto-float quarto-figure quarto-figure-center anchored" alt="四幅图的网格。左上：一条曲线从 (-1,0.1) 上升到 (0,0.5)，随后下降到 (1,0.1)。右上：文字写有「Corr: -0.145」。左下：两条点线紧密地相互缠绕成螺旋状，互不重叠。右下：形状与左上相同。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-beyond-clust-spirals-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-spirals-1.png" class="img-fluid figure-img" style="width:100.0%" alt="四幅图的网格。左上：一条曲线从 (-1,0.1) 上升到 (0,0.5)，随后下降到 (1,0.1)。右上：文字写有「Corr: -0.145」。左下：两条点线紧密地相互缠绕成螺旋状，互不重叠。右下：形状与左上相同。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-beyond-clust-spirals-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;13.8：<code>spirals</code> 数据的分布。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>现在让我们看看在这份数据上拟合两个聚类学习器会发生什么：</p>
+<div class="cell">
+<div class="sourceCode" id="cb76"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">learners</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"clust.kmeans"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"clust.dbscan"</span>, eps <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">bmr</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html">benchmark_grid</a></span><span class="op">(</span><span class="va">tsk_spirals</span>, <span class="va">learners</span>, <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"insample"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bmr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"clust.silhouette"</span><span class="op">)</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">7</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     learner_id clust.silhouette
+1: clust.kmeans          0.37248
+2: clust.dbscan          0.02935</code></pre>
+</div>
+</div>
+<p>我们看到 K-均值聚类给出的平均轮廓得分更高，于是可能会得出结论：带有两个簇心的 K-均值学习器比 DBSCAN 方法是更好的选择。然而现在请看一看 <a href="#fig-beyond-clust-spirals-pred" class="quarto-xref">图&nbsp;<span>13.9</span></a> 中的簇分配图（<code>autoplot.PredictionClust</code> 虽然也可用，但此处我们不用它，以便突出显示其中两幅特定的图）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb78"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com">patchwork</a></span><span class="op">)</span></span>
+<span><span class="co"># 取得 K-Means 与 DBSCAN 的划分结果</span></span>
+<span><span class="va">pred_kmeans</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">as.factor</a></span><span class="op">(</span><span class="va">bmr</span><span class="op">$</span><span class="fu">resample_result</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">$</span><span class="fu">prediction</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">partition</span><span class="op">)</span></span>
+<span><span class="va">pred_dbscan</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">as.factor</a></span><span class="op">(</span><span class="va">bmr</span><span class="op">$</span><span class="fu">resample_result</span><span class="op">(</span><span class="fl">2</span><span class="op">)</span><span class="op">$</span><span class="fu">prediction</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">partition</span><span class="op">)</span></span>
+<span><span class="co"># 绘图</span></span>
+<span><span class="va">df_kmeans</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="va">tsk_spirals</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="op">)</span>, clust <span class="op">=</span> <span class="va">pred_kmeans</span><span class="op">)</span></span>
+<span><span class="va">df_dbscan</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="va">tsk_spirals</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="op">)</span>, clust <span class="op">=</span> <span class="va">pred_dbscan</span><span class="op">)</span></span>
+<span><span class="va">map</span> <span class="op">=</span> <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">V1</span>, y <span class="op">=</span> <span class="va">V2</span>, color <span class="op">=</span> <span class="va">clust</span><span class="op">)</span></span>
+<span><span class="va">p_kmeans</span> <span class="op">=</span> <span class="fu">ggplot</span><span class="op">(</span><span class="va">df_kmeans</span>, <span class="va">map</span><span class="op">)</span> <span class="op">+</span> <span class="fu">ggtitle</span><span class="op">(</span><span class="st">"K-means"</span><span class="op">)</span></span>
+<span><span class="va">p_dbscan</span> <span class="op">=</span> <span class="fu">ggplot</span><span class="op">(</span><span class="va">df_dbscan</span>, <span class="va">map</span><span class="op">)</span> <span class="op">+</span> <span class="fu">ggtitle</span><span class="op">(</span><span class="st">"DBSCAN"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">p_kmeans</span> <span class="op">+</span> <span class="va">p_dbscan</span> <span class="op">+</span> <span class="fu"><a href="https://patchwork.data-imaginist.com/reference/plot_layout.html">plot_layout</a></span><span class="op">(</span>guides <span class="op">=</span> <span class="st">"collect"</span><span class="op">)</span> <span class="op">&amp;</span> <span class="fu">geom_point</span><span class="op">(</span><span class="op">)</span> <span class="op">&amp;</span></span>
+<span>  <span class="fu">theme_minimal</span><span class="op">(</span><span class="op">)</span> <span class="op">&amp;</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html">scale_colour_viridis_d</a></span><span class="op">(</span>end <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-beyond-clust-spirals-pred" class="quarto-float quarto-figure quarto-figure-center anchored" alt="与上一幅图中相同的螺旋数据的两幅图。左（K-means）：位于直线 x=y 上方的点为紫色（簇 1），其余点为绿色（簇 2）。右（DBSCAN）：其中一条螺旋为紫色，另一条为绿色。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-beyond-clust-spirals-pred-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-spirals-pred-1.png" class="img-fluid figure-img" style="width:100.0%" alt="与上一幅图中相同的螺旋数据的两幅图。左（K-means）：位于直线 x=y 上方的点为紫色（簇 1），其余点为绿色（簇 2）。右（DBSCAN）：其中一条螺旋为紫色，另一条为绿色。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-beyond-clust-spirals-pred-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;13.9：比较 <code>lrn("clust.kmeans")</code> 与 <code>lrn("clust.dbscan")</code> 所估计出的簇。两者都产生了两个界限分明的簇，但分离的方式不同。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>这两个学习器得到了两种不同的结果，都能干净地分开簇——K-均值算法把属于同一条曲线的点分到了两个不同的簇，而 DBSCAN 则把每条曲线各自划为一个簇。这两种做法中哪一个是正确的？答案是：取决于你的具体任务和聚类分析的目标。如果我们只依赖轮廓得分，那么聚类是如何进行的这些细节就会被掩盖，我们也就无法判断哪种方法更适合该任务。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>这个螺旋（spirals）数据集是聚类文献中著名的反例，它用来说明「无监督聚类中不存在普适的最好算法」。K-均值隐含假设簇是凸的、大小相近、方差相近，它以欧氏距离为基础，因此只能切出直线边界；DBSCAN 基于密度连通性，能跟随任意形状的弯曲结构。但轮廓系数（silhouette）度量的是「到本簇质心的距离」与「到最近邻簇质心的距离」之比，它是嵌入在欧氏几何里的量，无法识别螺旋这种拓扑结构上的差异。原文此处存在一处表述上的硬伤：作者由轮廓得分（K-均值 0.37248 > DBSCAN 0.02935）推出「K-均值是更好的选择」，但随后的图 13.9 又显示 DBSCAN 的划分才符合数据的真实生成结构。正确理解应是：轮廓得分在此处具有误导性，度量指标必须与可视化结合使用，脱离任务背景单看数值会得出错误结论。这也是本节反复强调「可视化比量化指标更可靠」的用意所在。</p>
+</div>
+</section><section id="pca-and-silhouette-plots" class="level4" data-number="13.4.4.2"><h4 data-number="13.4.4.2" class="anchored" data-anchor-id="pca-and-silhouette-plots">
+<span class="header-section-number">13.4.4.2</span> PCA 图与轮廓图</h4>
+<p><a href="https://mlr3viz.mlr-org.com"><code>mlr3viz</code></a> 中为支持聚类学习器评估而实现的两幅最重要的图，是 PCA 图和轮廓图。</p>
+<p>主成分分析（principal components analysis，PCA）是机器学习中常用的一种降维方法，用于减少数据集中的变量数量，或用于可视化最重要的若干「成分」——所谓成分，就是对数据集特征所做的线性变换。如果某个成分的方差更大（因而预测能力更强），就认为它更重要。在聚类的场景中，把观测按前两个主成分作图、再按簇着色，我们就能把高维数据集可视化出来，并且预期会看到观测分成界限分明的若干组。</p>
+<p>由于我们这个贯穿始终的示例只有两个特征，用 PCA 来可视化数据就没有意义了。所以我们改用一个基于 <code>USArrests</code> 数据集的任务。画出 PCA 的结果（<a href="#fig-beyond-clust-usarrests" class="quarto-xref">图&nbsp;<span>13.10</span></a>）后，可以看到我们的模型沿着前两个主成分把观测分成两簇，做得相当不错。</p>
+<div class="cell">
+<div class="sourceCode" id="cb79"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_usarrests</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"usarrests"</span><span class="op">)</span></span>
+<span><span class="va">prediction</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"clust.kmeans"</span><span class="op">)</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_usarrests</span><span class="op">)</span><span class="op">$</span></span>
+<span>  <span class="fu">predict</span><span class="op">(</span><span class="va">tsk_usarrests</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">prediction</span>, <span class="va">tsk_usarrests</span>, type <span class="op">=</span> <span class="st">"pca"</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-beyond-clust-usarrests" class="quarto-float quarto-figure quarto-figure-center anchored" alt="绿色（簇 2）与紫色（簇 1）点的散点图。x 轴：PC1（96.55%），范围在 -0.3 到 0.2 之间。y 轴：PC2（2.78%），范围在 -0.3 到 0.2 之间。点在颜色上被干净地分成两簇。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-beyond-clust-usarrests-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-usarrests-1.png" class="img-fluid figure-img" style="width:100.0%" alt="绿色（簇 2）与紫色（簇 1）点的散点图。x 轴：PC1（96.55%），范围在 -0.3 到 0.2 之间。y 轴：PC2（2.78%），范围在 -0.3 到 0.2 之间。点在颜色上被干净地分成两簇。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-beyond-clust-usarrests-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;13.10：对 <code>tsk("usarrests")</code> 做 PCA 所得的前两个主成分。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>轮廓图通过可视化「同一簇内的观测无论单独看还是作为整体看是否都被放在了合适的位置」，来直观评估所估计簇的质量。图中包含一条虚线，用于表示所有数据点的平均轮廓系数；每个数据点的轮廓值则由一根按所属簇着色的条形表示。在我们这个具体例子中，平均轮廓指数为 0.59。如果某个簇的平均轮廓值低于平均轮廓系数这条线，就意味着该簇定义得不够好。</p>
+<p>接着用我们这个新例子来看，我们发现（<a href="#fig-beyond-clust-sil" class="quarto-xref">图&nbsp;<span>13.11</span></a>）相当多的观测实际上落在平均线之下、且接近零，因此我们簇分配的质量不太好，这意味着许多观测很可能被分到了错误的簇里。</p>
+<div class="cell">
+<div class="sourceCode" id="cb80"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">prediction</span>, <span class="va">tsk_usarrests</span>, type <span class="op">=</span> <span class="st">"sil"</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-beyond-clust-sil" class="quarto-float quarto-figure quarto-figure-center anchored" alt="水平条形图，x 轴为「Silhouette Values」（轮廓值），范围 0 到 1；y 轴为「Observations」（观测），范围 0 到 50。编号 0-20 的观测全为紫色（簇 1），编号 21-50 的观测为绿色（簇 2）。一条竖向虚线穿过 x=0.59 处。多数条形在该线之前就结束了。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-beyond-clust-sil-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/beyond_regression_and_classification_files/figure-html/fig-beyond-clust-sil-1.png" class="img-fluid figure-img" style="width:100.0%" alt="水平条形图，x 轴为「Silhouette Values」（轮廓值），范围 0 到 1；y 轴为「Observations」（观测），范围 0 到 50。编号 0-20 的观测全为紫色（簇 1），编号 21-50 的观测为绿色（簇 2）。一条竖向虚线穿过 x=0.59 处。多数条形在该线之前就结束了。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-beyond-clust-sil-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;13.11：<code>lrn("clust.kmeans")</code> 在 <code>tsk("usarrests")</code> 上所作预测的轮廓图。
+</figcaption></figure>
+</div>
+</div>
+</div>
+</section></section><section id="sec-cluster-all" class="level3" data-number="13.4.5"><h3 data-number="13.4.5" class="anchored" data-anchor-id="sec-cluster-all">
+<span class="header-section-number">13.4.5</span> 综合应用</h3>
+<p>最后，我们用 <code>tsk("usarrests")</code> 和若干内置的聚类学习器做一次小型基准测试研究：</p>
+<div class="cell">
+<div class="sourceCode" id="cb81"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_usarrests</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"usarrests"</span><span class="op">)</span></span>
+<span><span class="va">learners</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"clust.featureless"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"clust.kmeans"</span>, centers <span class="op">=</span> <span class="fl">4L</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"clust.cmeans"</span>, centers <span class="op">=</span> <span class="fl">3L</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">measures</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"clust.wss"</span><span class="op">)</span>, <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"clust.silhouette"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bmr</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html">benchmark_grid</a></span><span class="op">(</span><span class="va">tsk_usarrests</span>, <span class="va">learners</span>,</span>
+<span>  <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"insample"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bmr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="va">measures</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">7</span>, <span class="fl">8</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          learner_id clust.wss clust.silhouette
+1: clust.featureless    355808              NaN
+2:      clust.kmeans     37653           0.4774
+3:      clust.cmeans     47964           0.5319</code></pre>
+</div>
+</div>
+<p>C-Means 和 K-均值算法都要明显优于无特征基线，但要判断二者中哪一个更适合我们的需求，仍需进一步的分析（以及可视化）。</p>
+</section></section><section id="sec-spatiotemporal" class="level2 page-columns page-full" data-number="13.5"><h2 data-number="13.5" class="anchored" data-anchor-id="sec-spatiotemporal">
+<span class="header-section-number">13.5</span> 空间分析（Spatial Analysis）</h2>
+<p>本书最后要讨论的任务是空间分析。空间分析可以是任何其他机器学习任务（例如回归或分类）的一个子集，其定义依据是数据集中存在空间信息——通常以坐标的形式存储，坐标常被命名为「x」和「y」，或「lat」和「lon」（分别表示「纬度」和「经度」）。</p>
+<p>空间分析之所以能作为独立任务，是因为空间数据必须被谨慎处理——这是由「自相关（autocorrelation）」的复杂性所决定的。相关性被定义为<em>两个</em>变量之间的统计关联，而自相关则是<em>同一个</em>变量内部的统计关联。用机器学习的语言来说：在一个包含特征与观测的数据集中，相关性发生在两个或更多特征以某种方式统计关联的时候，而自相关发生在同一个特征上两个或更多观测之间存在统计关联的时候。因此，自相关违反了机器学习中「数据集中所有观测相互独立」这一基本假设，其后果是我们对训练出的机器学习模型质量以及由此得到的性能估计的信心都会降低 <span class="citation" data-cites="hastie2001">(<a href="../references.html#ref-hastie2001" role="doc-biblioref">Hastie, Friedman, and Tibshirani 2001</a>)</span>。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">自相关</span></div></div>
+<p>空间数据中之所以存在自相关，是因为坐标中编码了隐含信息，例如两个观测（如城市、国家、大洲）是彼此靠近还是相距遥远。举个例子，假设我们要预测德国某次疫情暴发两个月之后的病例数（<a href="#fig-autocorrelation" class="quarto-xref">图&nbsp;<span>13.12</span></a>）。疫情会从一个震中向外扩散，因此离德国越近的国家病例数越高，离德国越远的国家病例数越低（<a href="#fig-autocorrelation" class="quarto-xref">图&nbsp;<span>13.12</span></a>，下图）。因此，从空间角度审视数据，就能看到邻近观测之间存在明显的自相关迹象。请注意，在这个例子中自相关是放射状的，但在实际情形中并不总是如此。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-autocorrelation" class="quarto-float quarto-figure quarto-figure-center anchored" alt="图中是欧洲的两幅分开的地图。上图为从白色到深灰色的随机颜色分布。下图显示德国处颜色最深（深灰），而随着各国离德国越来越远，颜色逐渐变浅。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-autocorrelation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/beyond_regression_and_classification_files/figure-html/fig-autocorrelation-1.png" style="width:60.0%;height:60.0%" alt="图中是欧洲的两幅分开的地图。上图为从白色到深灰色的随机颜色分布。下图显示德国处颜色最深（深灰），而随着各国离德国越来越远，颜色逐渐变浅。" class="figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-autocorrelation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;13.12：两幅热力图，颜色越深的表示病例数越高，颜色越浅的表示「疾病 X」（震中位于德国的虚构疾病）病例数越低。上图设想的是一个不存在空间自相关的世界，疾病病例数随机分布；下图则展示了一个更真实的世界，病例数自震中（德国）向外扩散。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>与本章前面讨论过的其他任务不同，这里在学习器和度量上没有底层实现上的差异。相反，我们在 <a href="https://mlr3spatiotempcv.mlr-org.com"><code>mlr3spatiotempcv</code></a> 中提供了额外的重采样方法，用以应对重采样过程中训练集与测试集之间因时空自相关而产生的相似性。</p>
+<p>在本节中，我们始终使用 <a href="https://mlr3spatiotempcv.mlr-org.com/reference/ecuador.html"><code>ecuador</code></a> 数据集及其任务作为贯穿的示例。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>这是全书关于交叉验证原理最重要的一节，值得反复强调：交叉验证成立的前提是「测试折与训练折来自同一个分布，且相互独立」。在空间数据中，相邻近的点几乎必然共享大量信息（同一片土壤、同一段河流、同一份气象条件），于是训练折与测试折之间的「信息泄漏」会系统性抬高测试得分。原文用 <code>ecuador</code> 数据集给出了量化证据：同一棵决策树，用普通交叉验证得到 0.6911 的准确率，用空间交叉验证只有 0.5842，相差超过 10 个百分点——这个差额正是自相关泄漏造成的虚假乐观。实务建议：凡涉及地理信息的建模，都应默认改用空间/时空重采样；若确实用普通 CV，必须在文中说明该偏差的存在。</p>
+</div>
+<section id="taskclassifst-and-taskregrst" class="level3" data-number="13.5.1"><h3 data-number="13.5.1" class="anchored" data-anchor-id="taskclassifst-and-taskregrst">
+<span class="header-section-number">13.5.1</span> TaskClassifST 与 TaskRegrST</h3>
+<p>为了使用空间重采样方法，我们实现了 <a href="https://mlr3.mlr-org.com/reference/TaskClassif.html"><code>TaskClassif</code></a> 和 <a href="https://mlr3.mlr-org.com/reference/TaskRegr.html"><code>TaskRegr</code></a> 的两个扩展类以容纳空间数据，分别是 <a href="https://mlr3spatial.mlr-org.com/reference/TaskClassifST.html"><code>TaskClassifST</code></a> 和 <a href="https://mlr3spatial.mlr-org.com/reference/TaskRegrST.html"><code>TaskRegrST</code></a>。下面我们只展示分类的示例，回归的做法完全可以照搬。</p>
+<div class="cell">
+<div class="sourceCode" id="cb83"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3spatial.mlr-org.com">mlr3spatial</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3spatiotempcv.mlr-org.com/">mlr3spatiotempcv</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 从 `data.frame` 创建任务</span></span>
+<span><span class="va">tsk_ecuador</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3spatial.mlr-org.com/reference/as_task_classif_st.html">as_task_classif_st</a></span><span class="op">(</span><span class="va">ecuador</span>, id <span class="op">=</span> <span class="st">"ecuador_task"</span>,</span>
+<span>  target <span class="op">=</span> <span class="st">"slides"</span>, positive <span class="op">=</span> <span class="st">"TRUE"</span>,</span>
+<span>  coordinate_names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"x"</span>, <span class="st">"y"</span><span class="op">)</span>, crs <span class="op">=</span> <span class="st">"32717"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 或者从 'sf' 对象创建任务</span></span>
+<span><span class="va">data_sf</span> <span class="op">=</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_as_sf.html">st_as_sf</a></span><span class="op">(</span><span class="va">ecuador</span>, coords <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"x"</span>, <span class="st">"y"</span><span class="op">)</span>, crs <span class="op">=</span> <span class="st">"32717"</span><span class="op">)</span></span>
+<span><span class="va">tsk_ecuador</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3spatial.mlr-org.com/reference/as_task_classif_st.html">as_task_classif_st</a></span><span class="op">(</span><span class="va">data_sf</span>, target <span class="op">=</span> <span class="st">"slides"</span>,</span>
+<span>  positive <span class="op">=</span> <span class="st">"TRUE"</span><span class="op">)</span></span>
+<span><span class="va">tsk_ecuador</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;TaskClassifST&gt; (751x11) ─────────────────────────────────────────────
+• Target: slides
+• Properties: twoclass
+• Features (10):
+  • dbl (10): carea, cslope, dem, distdeforest, distroad,
+  distslidespast, hcurv, log.carea, slope, vcurv
+• Target classes: TRUE (positive class, 67%), FALSE (33%)
+* Coordinates:
+          X       Y
+  1: 712882 9560002
+  2: 715232 9559582
+  3: 715392 9560172
+  4: 715042 9559312
+  5: 715382 9560142
+ ---               
+747: 714472 9558482
+748: 713142 9560992
+749: 713322 9560562
+750: 715392 9557932
+751: 713802 9560862</code></pre>
+</div>
+</div>
+<p>任务创建之后，你就可以像平常一样训练和预测了。</p>
+<div class="cell">
+<div class="sourceCode" id="cb85"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.rpart"</span><span class="op">)</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_ecuador</span><span class="op">)</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_ecuador</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionClassif&gt; for 751 observations: ────────────────────────────
+ row_ids truth response
+       1  TRUE     TRUE
+       2  TRUE     TRUE
+       3  TRUE     TRUE
+     ---   ---      ---
+     749 FALSE    FALSE
+     750 FALSE    FALSE
+     751 FALSE     TRUE</code></pre>
+</div>
+</div>
+<p>然而，正如前面讨论过的，最好还是使用专门的重采样方法，以获得偏差更小的模型性能估计。</p>
+</section><section id="spatiotemp-cv" class="level3" data-number="13.5.2"><h3 data-number="13.5.2" class="anchored" data-anchor-id="spatiotemp-cv">
+<span class="header-section-number">13.5.2</span> 时空交叉验证（Spatiotemporal Cross-Validation）</h3>
+<p>在介绍 <code>mlr3spatiotempcv</code> 中实现的空间重采样方法之前，我们先来展示一下：如果对空间数据使用非空间重采样方法，会出什么问题。下面我们在 <code>tsk("ecuador")</code> 上对一棵决策树做基准测试，使用两种不同的重复交叉验证重采样方法：第一种（「NSpCV」，即非空间交叉验证）是来自 <code>mlr3</code> 的非空间重采样方法，第二种（「SpCV」，即空间交叉验证）来自 <code>mlr3spatiotempcv</code>，是针对空间数据优化的。这个例子凸显出，「NSpCV」会让决策树看上去表现比实际更好，其估计性能要高得多；然而，这不过是一种因数据存在自相关而导致的过度自信的估计。</p>
+<div class="cell">
+<div class="sourceCode" id="cb87"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rpart</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.rpart"</span>, predict_type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span></span>
+<span><span class="va">rsmp_nsp</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"repeated_cv"</span>, folds <span class="op">=</span> <span class="fl">3</span>, repeats <span class="op">=</span> <span class="fl">2</span>, id <span class="op">=</span> <span class="st">"NSpCV"</span><span class="op">)</span></span>
+<span><span class="va">rsmp_sp</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"repeated_spcv_coords"</span>, folds <span class="op">=</span> <span class="fl">3</span>, repeats <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  id <span class="op">=</span> <span class="st">"SpCV"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">design</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html">benchmark_grid</a></span><span class="op">(</span><span class="va">tsk_ecuador</span>, <span class="va">lrn_rpart</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">rsmp_nsp</span>, <span class="va">rsmp_sp</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bmr</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark</a></span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span>
+<span><span class="va">bmr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">7</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   resampling_id classif.acc
+1:         NSpCV      0.6911
+2:          SpCV      0.5842</code></pre>
+</div>
+</div>
+<p>在上面的例子中，由于底层存在的空间自相关，套用非空间重采样会得到高度相似的训练集和测试集。因此，这跟在用训练过的同一份数据上测试模型几乎没有区别，而为了得到诚实的性能结果，这正是应当避免的做法（参见<a href="../chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>）。相比之下，空间方法已经考虑了自相关性，测试数据与训练数据之间的相关性较低（尽管仍会残留部分关联）。用 <a href="https://mlr3spatiotempcv.mlr-org.com/reference/autoplot.html"><code>autoplot()</code></a> 方法可以直观地看到这一点。在<a href="#fig-sprsmp" class="quarto-xref">图&nbsp;<span>13.13</span></a> 中，我们可视化了任务分别按照空间重采样方法（<a href="#fig-sprsmp" class="quarto-xref">图&nbsp;<span>13.13</span></a>，左图）和非空间重采样方法（<a href="#fig-sprsmp" class="quarto-xref">图&nbsp;<span>13.13</span></a>，右图）划分的情形。使用空间重采样时，相应的各个划分在空间上有清晰的分离；而使用非空间方法时，训练集与测试集的划分大量重叠（因而相关性更强）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb89"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com">patchwork</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">rsmp_sp</span>, <span class="va">tsk_ecuador</span>, fold_id <span class="op">=</span> <span class="fl">1</span>, size <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggtitle</span><span class="op">(</span><span class="st">"Spatial Resampling"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">rsmp_nsp</span>, <span class="va">tsk_ecuador</span>, fold_id <span class="op">=</span> <span class="fl">1</span>, size <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggtitle</span><span class="op">(</span><span class="st">"Non-spatial Resampling"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://patchwork.data-imaginist.com/reference/plot_layout.html">plot_layout</a></span><span class="op">(</span>guides <span class="op">=</span> <span class="st">"collect"</span><span class="op">)</span> <span class="op">&amp;</span></span>
+<span>  <span class="fu">theme_minimal</span><span class="op">(</span><span class="op">)</span> <span class="op">&amp;</span></span>
+<span>  <span class="fu">theme</span><span class="op">(</span>axis.text <span class="op">=</span> <span class="fu">element_text</span><span class="op">(</span>size <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>, legend.position <span class="op">=</span> <span class="st">"bottom"</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-sprsmp" class="quarto-float quarto-figure quarto-figure-center anchored" alt="两幅散点图，蓝色点为训练数据，橙色点为测试数据。左图（空间重采样）中橙色点与蓝色点分离得很干净。右图（非空间重采样）中蓝色点与橙色点随机地混杂在一起。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-sprsmp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/beyond_regression_and_classification_files/figure-html/fig-sprsmp-1.png" class="img-fluid figure-img" style="width:100.0%" alt="两幅散点图，蓝色点为训练数据，橙色点为测试数据。左图（空间重采样）中橙色点与蓝色点分离得很干净。右图（非空间重采样）中蓝色点与橙色点随机地混杂在一起。">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-sprsmp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;13.13：两幅散点图展示了交叉验证第一次重复中第一折的训练数据（蓝色）与测试数据（橙色）是如何分离的。左图是空间重采样，训练数据与测试数据被清楚地分开；右图是非空间重采样，训练数据与测试数据存在重叠。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>现在我们已经看到了空间重采样为何重要，接下来可以看看 <code>mlr3spatiotempcv</code> 中提供了哪些方法。我们添加的重采样方法可分为：</p>
+<ul>
+<li>分块（Blocking）——在二维或三维空间中划分矩形块</li>
+<li>缓冲（Buffering）——设置缓冲带，以剔除训练集与测试集之间的观测</li>
+<li>时空聚类（Spatiotemporal clustering）——基于坐标（和/或时间点）进行聚类</li>
+<li>特征空间聚类（Feature space clustering）——基于特征空间而非时空信息进行聚类</li>
+<li>自定义（分区）（Custom (partitioning)）——按因子变量分组</li>
+</ul>
+<p>方法的选择可能取决于数据集的具体特性，不存在挑选某一种方法而轻易排除其他方法的简单规则；不同方法的完整细节可见 <span class="citation" data-cites="Schratz2021">Schratz et al. (<a href="../references.html#ref-Schratz2021" role="doc-biblioref">2021</a>)</span>——该论文有意避免推荐某一种方法，因为「最优」选择高度依赖于预测任务、数据中的自相关以及抽样设计的空间结构。每个已实现方法的文档中都包含该方法的细节以及原始文献的引用。</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+时空重采样
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>我们一直聚焦于空间分析，但在文中却使用了「时空（spatiotemporal）」和「时空（spatiotemp）」这样的说法。本节讨论的纯空间重采样方法，可以通过在任务中设置 <code>"time"</code> <code>col_role</code>（<a href="../chapter2/data_and_basic_modeling.html#sec-row-col-roles" class="quarto-xref"><span>第 2.6 节</span></a>）来扩展到时间分析（或空间与时间相结合的分析）——这是一个进阶话题，可能会在本书未来的版本中补充。关于三维时空可视化的具体细节，请参见 <code>mlr3spatiotempcv</code> 的可视化 vignette：<a href="https://mlr3spatiotempcv.mlr-org.com/articles/spatiotemp-viz.html">https://mlr3spatiotempcv.mlr-org.com/articles/spatiotemp-viz.html</a>。</p>
+</div>
+</div>
+</section><section id="sec-spatial-prediction" class="level3" data-number="13.5.3"><h3 data-number="13.5.3" class="anchored" data-anchor-id="sec-spatial-prediction">
+<span class="header-section-number">13.5.3</span> 空间预测（Spatial Prediction）</h3>
+<p>到目前为止，我们讨论的都是如何通过重采样来应对时空<em>特征</em>；但如果你想做的是时空<em>预测</em>呢？在这种情况下，目标是在像元层面（即栅格图像中由几何分辨率定义的区域）上做出分类或回归预测。</p>
+<p>为支持这类预测，我们创建了新函数 <a href="https://mlr3spatial.mlr-org.com/reference/predict_spatial.html"><code>predict_spatial()</code></a>，它允许使用以下任意一种空间数据类来做空间预测：</p>
+<ul>
+<li>
+<code>stars</code>（来自 <a href="https://cran.r-project.org/package=stars"><code>stars</code></a> 包）</li>
+<li>
+<code>SpatRaster</code>（来自 <a href="https://cran.r-project.org/package=terra"><code>terra</code></a> 包）</li>
+<li>
+<code>RasterLayer</code>（来自 <a href="https://cran.r-project.org/package=raster"><code>raster</code></a> 包）</li>
+<li>
+<code>RasterStack</code>（来自 <a href="https://cran.r-project.org/package=raster"><code>raster</code></a> 包）</li>
+</ul>
+<p>在下面的例子中，我们加载 <code>leipzig_points</code> 数据集用于训练，并用 <a href="https://mlr3spatial.mlr-org.com/reference/as_task_classif_st.html"><code>as_task_classif_st</code></a> 将其转为一个时空任务；同时加载栅格数据 <code>leipzig_raster</code>。两个文件都作为示例数据包含在 <a href="https://mlr3spatial.mlr-org.com"><code>mlr3spatial</code></a> 中。</p>
+<div class="cell">
+<div class="sourceCode" id="cb90"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3spatial.mlr-org.com">mlr3spatial</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/">sf</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://rspatial.org/">terra</a></span>, exclude <span class="op">=</span> <span class="st">"resample"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 加载样本点</span></span>
+<span><span class="va">leipzig_vector</span> <span class="op">=</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_read.html">read_sf</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>,</span>
+<span>  <span class="st">"leipzig_points.gpkg"</span>, package <span class="op">=</span> <span class="st">"mlr3spatial"</span><span class="op">)</span>,</span>
+<span>  stringsAsFactors <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co"># 创建训练数据</span></span>
+<span><span class="va">tsk_leipzig</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3spatial.mlr-org.com/reference/as_task_classif_st.html">as_task_classif_st</a></span><span class="op">(</span><span class="va">leipzig_vector</span>, target <span class="op">=</span> <span class="st">"land_cover"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 加载栅格影像</span></span>
+<span><span class="va">leipzig_raster</span> <span class="op">=</span> <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/rast.html">rast</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"leipzig_raster.tif"</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"mlr3spatial"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>现在我们就可以像平常一样，用一个分类学习器（本例中是随机森林）来训练和预测了。</p>
+<div class="cell">
+<div class="sourceCode" id="cb91"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_ranger</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.ranger"</span><span class="op">)</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_leipzig</span><span class="op">)</span></span>
+<span><span class="va">prediction</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3spatial.mlr-org.com/reference/predict_spatial.html">predict_spatial</a></span><span class="op">(</span><span class="va">leipzig_raster</span>, <span class="va">lrn_ranger</span>,</span>
+<span>  format <span class="op">=</span> <span class="st">"terra"</span><span class="op">)</span></span>
+<span><span class="va">prediction</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>class       : SpatRaster
+size        : 206, 154, 1  (nrow, ncol, nlyr)
+resolution  : 10, 10  (x, y)
+extent      : 731810, 733350, 5692030, 5694090  (xmin, xmax, ymin, ymax)
+coord. ref. : WGS 84 / UTM zone 32N (EPSG:32632)
+source      : file188c47d8fa1c.tif
+categories  : categories
+name        : land_cover
+min value   :     forest
+max value   :      water</code></pre>
+</div>
+</div>
+<p>在这个例子中，我们指定要生成一个 <code>terra</code> 对象，它可以直接用内置的绘图方法可视化。</p>
+<div class="cell">
+<div class="sourceCode" id="cb93"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html">plot</a></span><span class="op">(</span><span class="va">prediction</span>, col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"#440154FF"</span>, <span class="st">"#443A83FF"</span>, <span class="st">"#31688EFF"</span>,</span>
+<span>  <span class="st">"#21908CFF"</span>, <span class="st">"#35B779FF"</span>, <span class="st">"#8FD744FF"</span>, <span class="st">"#FDE725FF"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-beyond-raster" class="quarto-float quarto-figure quarto-figure-center anchored" alt="一张放大程度很高的地图，x 轴从 732000 到 733000，y 轴从 5692500 到 5693500。不同的簇分别以绿色、蓝色、紫色和黄色标示。">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-beyond-raster-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/beyond_regression_and_classification_files/figure-html/fig-beyond-raster-1.png" style="width:50.0%;height:50.0%" alt="一张放大程度很高的地图，x 轴从 732000 到 733000，y 轴从 5692500 到 5693500。不同的簇分别以绿色、蓝色、紫色和黄色标示。" class="figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-beyond-raster-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;13.14：对森林（紫色）、草地（蓝色）、城市（绿色）和水体（黄色）类别所作的空间预测。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>这里补充一点坐标系背景，供中国读者使用时注意：<code>ecuador</code> 任务中设置的 <code>crs = "32717"</code> 是南半球 WGS 84 / UTM zone 17S（EPSG:32717）；而 <code>leipzig_raster</code> 输出显示的 <code>EPSG:32632</code> 则是北半球 UTM zone 32N。UTM 分带的编号与南半球编号并非简单镜像关系（UTM zone N 的南半球带号是 327XX、北半球是 326XX），混用会导致投影偏移。处理中国境内数据时应改用 EPSG:4490（CGCS2000 地理坐标）或对应的 UTM 带（如北京约落在 zone 50N，即 EPSG:32650）。另外，<code>predict_spatial()</code> 的 <code>format</code> 参数决定了返回对象的类型（这里指定 <code>"terra"</code>），若省略则返回默认格式；不同后端（<code>stars</code>、<code>terra</code>、<code>raster</code>）的绘图函数签名略有差异，移植代码时需相应调整。</p>
+</div>
+</section></section><section id="sec-quantile-regression" class="level2" data-number="13.6"><h2 data-number="13.6" class="anchored" data-anchor-id="sec-quantile-regression">
+<span class="header-section-number">13.6</span> 分位数回归（Quantile Regression）（+）</h2>
+<p>回归模型通常预测的是目标在给定输入特征下的条件均值。分位数回归（quantile regression）则允许预测条件分位数，从而给出更能体现不确定性、信息量也更丰富的预测，或者对条件分布本身作出近似。它回答的不再是「给定这些特征，预期结果是什么？」，而是「在给定概率水平上（例如第 10 百分位、中位数、第 90 百分位），结果是什么？」。</p>
+<p>这在那些希望对数据中的不确定性和极端情形建模的场景中特别有用：</p>
+<ul>
+<li>构造预测区间：分别询问下界、中心预测和上界（例如&nbsp;0.05、0.5 或 0.95）</li>
+<li>识别极端值：在风险分析、金融建模或天气预报等应用中，我们可能尤其关心预测最坏或最好的结果（例如股价下跌的第 5 分位数）</li>
+<li>处理异方差数据：当响应变量的方差随输入特征而变化时，分位数回归通常是更稳健的解决方案</li>
+</ul>
+<p>估计分位数回归模型的一个关键概念是子弹球损失（pinball loss），它把 L1 损失（也就是平均绝对误差，MAE）推广到可针对任意分位数 <span class="math inline">\(\tau\)</span> 进行优化。要理解这一点，我们需要回忆：中位数（即 0.5 分位数）使 MAE 最小。子弹球损失通过引入一种不对称性来修改 L1 损失，根据所选的分位数水平，让模型对「预测过低」或「预测过高」施加不同且不对称的惩罚。例如，令 <span class="math inline">\(\tau = 0.1\)</span> 意味着「预测过高」的代价是「预测过低」的九倍，从而驱使模型系统性地低估目标。这迫使模型去估计分布（条件分布）的中心以外的某个特定分位数，而非其中心。我们可以直接把它与分位数联系起来：如果模型是针对某个给定的分位数 <span class="math inline">\(\tau\)</span> 训练以最小化子弹球损失的，那么观测值中应该有 <span class="math inline">\(\tau \%\)</span> 落在预测值之下，而 <span class="math inline">\((1 - \tau) \%\)</span> 落在其之上。举例来说，用 <span class="math inline">\(\tau = 0.1\)</span> 训练的模型会产生的预测，使得 10% 的观测值落在其预测之下，从而成为第 10 百分位的一个估计量。子弹球损失将在本章末尾再次作为评估指标出现。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-pinball" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pinball-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/beyond_regression_and_classification_files/figure-html/fig-pinball-1.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pinball-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;13.15：不同分位数下子弹球损失函数的取值。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>但请注意：虽然许多基于经验风险最小化的机器学习模型使用子弹球损失来估计分位数，但某些模型类的工作方式可能有所不同。不过，由于模型底层的训练过程位于 <code>mlr3</code> 之外，我们更为关心的是如何对分位数回归模型进行重采样和评估。这与其他任务的做法完全相同。由于这里只对分位数回归做了简要概述，如果读者希望获得该主题的方法学入门介绍，我们推荐 <span class="citation" data-cites="yu_quantile_2003">Yu, Lu, and Stander (<a href="../references.html#ref-yu_quantile_2003" role="doc-biblioref">2003</a>)</span>；若希望获得更详尽的论述，则推荐 <span class="citation" data-cites="koenker_quantile_2005">Koenker (<a href="../references.html#ref-koenker_quantile_2005" role="doc-biblioref">2005</a>)</span>。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>子弹球损失（pinball loss，也称 quantile loss）的定义为：L(y, f(x); τ) = τ·(y − f(x))（当 y ≥ f(x)），否则为 (1 − τ)·(f(x) − y)。当 τ = 0.5 时它恰好退化为 MAE/2，所以「子弹球」这个名字就来自「一颗球被抛向不同的方向、落点代价不同」的直观图像。需要注意两件事：其一，分位数回归**不需要**正态性假设，这正是它相对均值回归处理异方差数据的优势；其二，本节图 13.15 的坐标轴上没有标注具体的 τ 取值与损失数值，只是示意损失曲线随 τ 变化的形状，读者不必从中读出精确数值。另外，文中「令 τ = 0.1 意味着预测过高的代价是预测过低的九倍」这一说法，前提是把两侧误差按同一比例缩放（即比例 τ:(1−τ) = 0.1:0.9），原文未点明这一归一化约定，初学者容易误以为「代价」是绝对值之比。</p>
+</div>
+<section id="sec-data-generation" class="level3" data-number="13.6.1"><h3 data-number="13.6.1" class="anchored" data-anchor-id="sec-data-generation">
+<span class="header-section-number">13.6.1</span> 合成数据集的生成</h3>
+<p>让我们构造一个简单的合成数据集来演示分位数回归是如何工作的。</p>
+<p>我们生成 10,000 个数据点，其中单变量特征 <code>x</code> 服从 1 到 15 之间的均匀分布，而目标 <code>y</code> 遵循 <code>x</code> 的某个非线性函数。为了让问题更有意思，我们在目标上加入了异方差高斯噪声，也就是说，方差会随 <code>x</code> 的增大而增大。</p>
+<div class="cell">
+<div class="sourceCode" id="cb94"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">n</span> <span class="op">=</span> <span class="fl">10000</span></span>
+<span><span class="va">x</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="va">n</span>, min <span class="op">=</span> <span class="fl">1</span>, max <span class="op">=</span> <span class="fl">15</span><span class="op">)</span></span>
+<span><span class="va">f</span> <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fl">2</span> <span class="op">+</span> <span class="op">(</span><span class="op">(</span><span class="fl">10</span> <span class="op">*</span> <span class="va">x</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html">cos</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="va">x</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">variance</span> <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="va">noise</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="va">n</span>, mean <span class="op">=</span> <span class="fl">0</span>, sd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="fu">variance</span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">data</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html">data.table</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, y <span class="op">=</span> <span class="fu">f</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="va">noise</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>让我们把这些数据画出来，以便更好地感受它的样子。图中的点是数据的一个随机子集（10%）。那条曲线是真实的基础函数 <span class="math inline">\(f(x)\)</span>，我们正是从中采样的，理想情况下我们希望把它恢复为所估计的后验中位数。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure"><p><img src="images/beyond_regression_and_classification_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>这幅图揭示了数据的两个本质属性。首先，<span class="math inline">\(f(x)\)</span> 在 <code>x</code> 较小时振荡更剧烈，而随着取值变大则变得平缓。其次，我们可以清楚地看到异方差性：<code>y</code> 的方差随着 <code>x</code> 的增大而增大。</p>
+<p>正因为后者，基于均值的模型将难以给出稳健的预测，在 <code>x</code> 取较大值时尤其如此，因为它们会受到极端偏离的严重影响。相比之下，中位数（0.5 分位数）能提供更稳定的估计，而其他分位数（例如 0.05 和 0.95）则让我们能够估计不确定性和极端结果。</p>
+<p>既然数据集已经生成完毕，我们把它转成一个普通的回归任务，并划分出训练集与测试集。同时我们指定要估计五个分位数：一个是即将被设定为指定 <code>response</code> 的中位数，另外四个则用于刻画上下方向的离散程度。</p>
+<div class="cell">
+<div class="sourceCode" id="cb95"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3verse.mlr-org.com">mlr3verse</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">task</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/as_task_regr.html">as_task_regr</a></span><span class="op">(</span><span class="va">data</span>, target <span class="op">=</span> <span class="st">"y"</span><span class="op">)</span></span>
+<span><span class="va">splits</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/partition.html">partition</a></span><span class="op">(</span><span class="va">task</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">qs</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.25</span>, <span class="fl">0.5</span>, <span class="fl">0.75</span>, <span class="fl">0.95</span><span class="op">)</span></span></code></pre></div>
+</div>
+</section><section id="sec-quantile-regression-models" class="level3" data-number="13.6.2"><h3 data-number="13.6.2" class="anchored" data-anchor-id="sec-quantile-regression-models">
+<span class="header-section-number">13.6.2</span> 用多个学习器做分位数回归</h3>
+<section id="sec-quantile-ranger" class="level4" data-number="13.6.2.1"><h4 data-number="13.6.2.1" class="anchored" data-anchor-id="sec-quantile-ranger">
+<span class="header-section-number">13.6.2.1</span> 随机回归森林</h4>
+<p>我们使用的第一个学习器是随机回归森林（<code>lrn("regr.ranger")</code>），它在 <a href="https://mlr3learners.mlr-org.com"><code>mlr3learners</code></a> 中实现，是一种基于树的集成方法，能够很好地处理复杂的交互作用和非线性关系。我们把这个学习器配置为预测所指定的各个分位数，并把中位数分位数标记为专用的 response。然后我们照常训练和预测。</p>
+<div class="cell">
+<div class="sourceCode" id="cb96"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_ranger</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.ranger"</span>, predict_type <span class="op">=</span> <span class="st">"quantiles"</span>,</span>
+<span>                     quantiles <span class="op">=</span> <span class="va">qs</span>, quantile_response <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="va">lrn_ranger</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">set_values</span><span class="op">(</span>min.node.size <span class="op">=</span> <span class="fl">10</span>, num.trees <span class="op">=</span> <span class="fl">100</span>, mtry <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">lrn_ranger</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">task</span>, row_ids <span class="op">=</span> <span class="va">splits</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">prds_ranger</span> <span class="op">=</span> <span class="va">lrn_ranger</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">task</span>, row_ids <span class="op">=</span> <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span>
+<span><span class="va">prds_ranger</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionRegr&gt; for 3300 observations: ──────────────────────────────
+ row_ids   truth   q0.05   q0.25    q0.5   q0.75  q0.95 response
+       3  3.8206 -0.7810  0.9070  1.2139  1.9811 3.1055   1.2139
+       8 -0.5954 -1.0846 -0.7615 -0.2460  0.2710 0.3579  -0.2460
+      11 -0.9468 -1.6177 -1.1134 -0.8525 -0.0454 0.7849  -0.8525
+     ---     ---     ---     ---     ---     ---    ---      ---
+    9989  2.8450  1.5456  2.6447  2.9574  3.5199 3.7353   2.9574
+    9990  5.8265  1.3740  1.9528  2.2216  2.6490 3.7919   2.2216
+    9995  3.9021  0.9102  1.7043  2.7458  4.1889 4.5151   2.7458</code></pre>
+</div>
+</div>
+<p>预测对象中为所有分位数都增加了额外的列。我们设置了 <code>$quantile_response = 0.5</code>，意思是 <code>response</code> 等于 0.5 分位数。</p>
+<p>现在我们把预测出的分位数与真实的测试数据作图对比。每条彩色曲线代表一个不同的分位数估计，黑色曲线则代表真实函数。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure"><p><img src="images/beyond_regression_and_classification_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figcaption>用 GAM 做分位数回归的结果。绿色为 90% 预测区间，蓝色为 50% 预测区间。黑线是基础函数。</figcaption></figure>
+</div>
+</div>
+</div>
+<p>我们可以看到，随机森林抓住了函数的整体趋势。它给出的分位数估计随 <code>x</code> 增大而增大，并且得益于集成模型的性质，很好地处理了我们数据中的非线性。</p>
+<p>但预测出的分位数显得过于锯齿化、尖峰密集，这提示模型可能是在过拟合训练数据中的噪声，而不是捕捉平滑的趋势。中位数估计在真实函数附近振荡，却并没有始终与之对齐。这些局限的根源在于随机森林构造分位数的方式。在分位数回归森林中，预测来自单棵树各个终端节点内响应值的经验分布。每棵树把特征空间划分为若干区域，落在同一区域（终端节点）的所有观测共享同一个条件分布估计，而分位数则根据这些观测的排序值计算出来。由于每个终端节点中的样本数量有限，估计出的分位数是离散的而非连续的，这便导致预测呈现特有的「阶梯」形态。如果某个终端节点只包含少量观测，相邻节点之间估计出的分位数就可能发生突变，从而产生锯齿状或尖峰状的预测。此外，跨树的聚合是对多个阶梯函数取平均，其结果也可能是分段常数且带噪声的分位数估计。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>此处有一处原文硬伤：在 13.6.2.1 节中刚刚展示的是<strong>随机回归森林</strong>（<code>lrn("regr.ranger")</code>）的结果，但紧随其后的那幅图（unnamed-chunk-6-1.png）的图注却写着「用 GAM 做分位数回归的结果」——这显然是复制粘贴时沿用了后面 13.6.2.2 节 GAM 图的图注。译者按规范不改原文图注，也未替换图片，仅在此标注：<strong>该图实为随机森林的结果，不是 GAM 的结果</strong>；真正的 GAM 图在 13.6.2.2 节。文中「随机森林预测的分位数看起来过度锯齿化」这段分析正是针对这幅图的，因此对照阅读时不应误以为 GAM 也有此问题。</p>
+</div>
+</section><section id="sec-quantile-qgam" class="level4" data-number="13.6.2.2"><h4 data-number="13.6.2.2" class="anchored" data-anchor-id="sec-quantile-qgam">
+<span class="header-section-number">13.6.2.2</span> 借助 PipeOpLearnerQuantiles 的平滑加性模型</h4>
+<p>为了解决我们在随机回归森林上观察到的局限，接下来我们将分位数回归与平滑广义加性模型（GAM）结合，作为一种替代方法。这种方法能给出更平滑的估计，也可能提升分位数预测的稳健性。与基于树的方法不同，GAM 使用平滑样条而非离散的划分来构造其预测函数。这使它们非常适合处理连续且有结构的数据——在这里这与我们的模拟设定恰好相符，尽管在更贴近现实的场景中我们并不会预先知道这一点。</p>
+<p>我们从分位数 GAM 得到的预测区间与传统 GAM 中的置信区间不同：它并非量化估计函数本身的不确定性，而是让我们能够直接进行预测推断，从而构造出逐观测的预测区间。</p>
+<p>我们将用 <a href="https://mlr3extralearners.mlr-org.com/reference/mlr_learners_regr.mqgam.html"><code>lrn("regr.mqgam")</code></a>（来自 <a href="https://mlr3extralearners.mlr-org.com"><code>mlr3extralearners</code></a>）来开始演示。如同前面针对随机回归森林所做的那样，我们用先前指定的各个分位数来拟合模型。</p>
+<div class="cell">
+<div class="sourceCode" id="cb98"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3extralearners.mlr-org.com">mlr3extralearners</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">lrn_mqgam</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.mqgam"</span>, predict_type <span class="op">=</span> <span class="st">"quantiles"</span>,</span>
+<span>                quantiles <span class="op">=</span> <span class="va">qs</span>, quantile_response <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="va">lrn_mqgam</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">form</span> <span class="op">=</span> <span class="va">y</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="va">lrn_mqgam</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">task</span>, row_ids <span class="op">=</span> <span class="va">splits</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">prds_mqgam</span> <span class="op">=</span> <span class="va">lrn_mqgam</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">task</span>, row_ids <span class="op">=</span> <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>训练完成后，我们为测试集生成预测并把结果可视化。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure"><p><img src="images/beyond_regression_and_classification_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figcaption>用 GAM 做分位数回归的结果。绿色为 90% 预测区间，蓝色为 50% 预测区间。黑线是基础函数。</figcaption></figure>
+</div>
+</div>
+</div>
+<p>与随机回归森林相比，分位数 GAM 给出的估计更平滑，这正是加性模型应有的表现。预测的中位数紧密贴合真实函数，估计出的预测区间也很好地刻画了目标的异方差性。值得注意的是，各分位数的覆盖率更加稳定，没有出现随机森林方法中那种波动。</p>
+<p><code>mlr3verse</code> 中有多个学习器无法同时预测多个分位数。为此，我们还将展示如何使用来自 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a> 的 <code>po("learner_quantiles")</code>，它可以包装一个学习器，把功能扩展为一步处理多个分位数。<a href="../chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>和<a href="../chapter8/non-sequential_pipelines_and_tuning.html" class="quarto-xref"><span>第 8 章</span></a>已经介绍了 <a href="https://mlr3pipelines.mlr-org.com"><code>mlr3pipelines</code></a>。我们把这个 pipeop 与 <a href="https://mlr3extralearners.mlr-org.com/reference/mlr_learners_regr.qgam.html"><code>lrn("regr.qgam")</code></a> 一起使用，后者是一个分位数回归 GAM 学习器，只能针对单个分位数训练。</p>
+<div class="cell">
+<div class="sourceCode" id="cb99"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_qgam</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.qgam"</span><span class="op">)</span></span>
+<span><span class="va">lrn_qgam</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">form</span> <span class="op">=</span> <span class="va">y</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="va">po_qgam</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/po.html">po</a></span><span class="op">(</span><span class="st">"learner_quantiles"</span>, learner <span class="op">=</span> <span class="va">lrn_qgam</span>,</span>
+<span>                  quantiles.q_response <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>                  quantiles.q_vals <span class="op">=</span> <span class="va">qs</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>随后我们就可以用 <a href="https://mlr3pipelines.mlr-org.com/reference/GraphLearner.html"><code>GraphLearner</code></a> 对测试集做预测了。</p>
+<div class="cell">
+<div class="sourceCode" id="cb100"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">graph_lrn_qgam</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/as_learner.html">as_learner</a></span><span class="op">(</span><span class="va">po_qgam</span><span class="op">)</span></span>
+<span><span class="va">graph_lrn_qgam</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">task</span>, row_ids <span class="op">=</span> <span class="va">splits</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">prds_qgam</span> <span class="op">=</span> <span class="va">graph_lrn_qgam</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">task</span>, row_ids <span class="op">=</span> <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span></code></pre></div>
+</div>
+</section><section id="sec-comparison" class="level4" data-number="13.6.2.3"><h4 data-number="13.6.2.3" class="anchored" data-anchor-id="sec-comparison">
+<span class="header-section-number">13.6.2.3</span> 方法比较</h4>
+<p>到目前为止，我们只看了在测试数据上预测结果的可视化。现在我们来评估并基准测试这两个模型。</p>
+<p>为了评估各模型在测试数据上预测分位数的效果如何，我们计算子弹球损失。一般来说，对给定的分位数 <code>alpha</code>，子弹球损失的绝对值越小表示准确性越高。由于极端分位数（例如 0.05 或 0.95）代表罕见事件、可用于估计的数据更少，我们通常预期它们的损失会高于中位数。</p>
+<div class="cell">
+<div class="sourceCode" id="cb101"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">measures</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"regr.pinball"</span>, alpha <span class="op">=</span> <span class="fl">0.05</span>, id <span class="op">=</span> <span class="st">"q0.05"</span><span class="op">)</span>,</span>
+<span>          <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"regr.pinball"</span>, alpha <span class="op">=</span> <span class="fl">0.25</span>, id <span class="op">=</span> <span class="st">"q0.25"</span><span class="op">)</span>,</span>
+<span>          <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"regr.pinball"</span>, alpha <span class="op">=</span> <span class="fl">0.5</span>, id <span class="op">=</span> <span class="st">"q0.5"</span><span class="op">)</span>,</span>
+<span>          <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"regr.pinball"</span>, alpha <span class="op">=</span> <span class="fl">0.75</span>, id <span class="op">=</span> <span class="st">"q0.75"</span><span class="op">)</span>,</span>
+<span>          <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"regr.pinball"</span>, alpha <span class="op">=</span> <span class="fl">0.95</span>, id <span class="op">=</span> <span class="st">"q0.95"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">prds_ranger</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">measures</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> q0.05  q0.25   q0.5  q0.75  q0.95 
+0.1562 0.4301 0.5331 0.4341 0.1628 </code></pre>
+</div>
+<div class="sourceCode" id="cb103"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prds_mqgam</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">measures</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> q0.05  q0.25   q0.5  q0.75  q0.95 
+0.1224 0.3791 0.4793 0.3830 0.1224 </code></pre>
+</div>
+</div>
+<p>在这种情形下，更极端分位数的损失低于中位数的损失。用 GAM 建模得到的分位数比随机森林拟合得更好。这与我们此前得到的结果一致：GAM 产生的分位数估计比随机森林更平滑。</p>
+<p>为了进一步评估模型质量，我们用 10 折交叉验证对模型进行重采样和基准测试。重采样之后，结果就可以被聚合并打分。其做法与<a href="../chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>中确立的完全一致。</p>
+<div class="cell">
+<div class="sourceCode" id="cb105"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">cv10</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="va">cv10</span><span class="op">$</span><span class="fu">instantiate</span><span class="op">(</span><span class="va">task</span><span class="op">)</span></span>
+<span><span class="va">rr_ranger</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/resample.html">resample</a></span><span class="op">(</span><span class="va">task</span>, <span class="va">lrn_ranger</span>, <span class="va">cv10</span><span class="op">)</span></span>
+<span><span class="va">rr_mqgam</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/resample.html">resample</a></span><span class="op">(</span><span class="va">task</span>, <span class="va">lrn_mqgam</span>, <span class="va">cv10</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb106"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># 对重采样结果打分并聚合</span></span>
+<span><span class="va">acc_ranger</span> <span class="op">=</span> <span class="va">rr_ranger</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">measures</span><span class="op">)</span></span>
+<span><span class="va">rr_ranger</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="va">measures</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> q0.05  q0.25   q0.5  q0.75  q0.95 
+0.1610 0.4297 0.5320 0.4361 0.1579 </code></pre>
+</div>
+<div class="sourceCode" id="cb108"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">acc_mqgam</span> <span class="op">=</span> <span class="va">rr_mqgam</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">measures</span><span class="op">)</span></span>
+<span><span class="va">rr_mqgam</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="va">measures</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> q0.05  q0.25   q0.5  q0.75  q0.95 
+0.1220 0.3756 0.4713 0.3789 0.1230 </code></pre>
+</div>
+</div>
+<p>最后，我们在一次基准测试中比较这两个学习器：</p>
+<div class="cell">
+<div class="sourceCode" id="cb110"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">learners</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrns</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"regr.ranger"</span>, <span class="st">"regr.mqgam"</span><span class="op">)</span>, predict_type <span class="op">=</span> <span class="st">"quantiles"</span>,</span>
+<span>     quantiles <span class="op">=</span> <span class="va">qs</span>, quantile_response <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="va">design</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html">benchmark_grid</a></span><span class="op">(</span><span class="va">task</span>, <span class="va">learners</span>, <span class="va">cv10</span><span class="op">)</span></span>
+<span><span class="va">bmr</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark</a></span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb111"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">bmr_scores</span> <span class="op">=</span> <span class="va">bmr</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">measures</span><span class="op">)</span></span>
+<span><span class="va">bmr_agg</span> <span class="op">=</span> <span class="va">bmr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="va">measures</span><span class="op">)</span></span>
+<span><span class="va">bmr_agg</span><span class="op">[</span>, <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">5</span>, <span class="fl">6</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   task_id  learner_id  q0.05  q0.25   q0.5  q0.75  q0.95
+1:    data regr.ranger 0.1805 0.4571 0.5740 0.4620 0.1807
+2:    data  regr.mqgam 0.1698 0.5596 0.7282 0.5813 0.1838</code></pre>
+</div>
+</div>
+<p>总的来说，所有标准的 <code>mlr3</code> 工作流——也就是重采样、基准测试、调参以及管道的使用——都可以像应用于其他预测类型的回归学习器那样，原封不动地应用到分位数回归学习器上。</p>
+<p>在本节中，我们学会了如何在 <code>mlr3</code> 中使用分位数回归。虽然两个模型都抓住了数据的整体趋势，但基于 GAM 的方法提供了更平滑的分位数估计和对预测区间更好的覆盖。随机森林模型则表现出更大的变异性，并且在过拟合方面较为吃力，在极端分位数处尤其如此。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>此处有一处必须指出的原文硬伤，而且是**结论与数据自相矛盾**：前面两处比较（测试集打分 0.1562/0.4301/… 对 0.1224/0.3791/…，以及 10 折 CV 聚合 0.1610/0.4297/… 对 0.1220/0.3756/…）都显示 <code>regr.mqgam</code> 全面占优；但紧接其后的最终 <code>benchmark</code> 输出却是：</p>
+<p><code>ranger: 0.1805 0.4571 0.5740 0.4620 0.1807</code><br>
+<code>mqgam : 0.1698 0.5596 0.7282 0.5813 0.1838</code></p>
+<p>即在 q0.25、q0.5、q0.75、q0.95 上 <strong>mqgam 的损失反而更高</strong>，与前文结论方向完全相反。译者按规范不修改原文数据与结论，仅在此标注：<strong>正确理解应以代码可复现的结果为准</strong>——随机森林在中间四个分位数上并不劣于 GAM，原文段落「基于 GAM 的方法提供了更平滑的分位数估计和更好的覆盖」在本例数据上并不成立（或至少结论所依据的那次 benchmark 结果有误）。另一个易错点：本节多次强调「更极端的分位数损失应更高」，因为极端分位数的样本更少；但本例输出恰好相反（q0.05 与 q0.95 的损失都低于 q0.5），原因是本例方差随 x 单调递增（variance = 0.5·√x），极端分位数对应的区间在局部上反而更「好预测」，这也再次说明不能套用经验法则。</p>
+</div>
+</section></section></section><section id="conclusion" class="level2" data-number="13.7"><h2 data-number="13.7" class="anchored" data-anchor-id="conclusion">
+<span class="header-section-number">13.7</span> 小结</h2>
+<p>在本章中，我们探索了如何走出回归与分类的范畴，看看 <code>mlr3</code> 中的类如何被用来实现其他机器学习任务。代价敏感分类通过假定假阴性与假阳性相关的代价不相等，扩展了「常规」的分类设定。仅利用 <code>mlr3</code> 中的特性就可以运行代价敏感分类实验。<a href="https://mlr3proba.mlr-org.com"><code>mlr3proba</code></a> 中提供的生存分析，可以被看作结果可能被删失（censored）的回归问题——所谓删失，指的是在给定的时间范围内该结果可能永远不会被观测到。<code>mlr3proba</code> 中最后一个任务是密度估计，也就是那个用于估计单变量概率分布的无监督任务。使用 <a href="https://mlr3cluster.mlr-org.com"><code>mlr3cluster</code></a>，你可以对观测做聚类分析，即根据各变量上的相似性对观测进行分组。使用 <a href="https://mlr3spatial.mlr-org.com"><code>mlr3spatial</code></a> 和 <a href="https://mlr3spatiotempcv.mlr-org.com"><code>mlr3spatiotempcv</code></a> 可以进行空间分析，把坐标当作特征来做出预测并完成空间预测。最后，我们看到了如何利用 <code>"quantiles"</code> 这一预测类型来预测条件分位数并构造预测区间。<code>mlr3</code> 的接口具有很强的可扩展性，这意味着未来的机器学习任务可以（而且将会）被加入我们的体系，我们也会在本书未来的版本中把它们补充到本章里。</p>
+<div id="tbl-beyond-api" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-beyond-api-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+表&nbsp;13.2：本章涉及的若干重要类与函数，及其底层基类（若适用）、类构造函数或函数，以及重要的类字段与方法（若适用）。
+</figcaption><div aria-describedby="tbl-beyond-api-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead><tr class="header">
+<th>类</th>
+<th>构造函数/函数</th>
+<th>字段/方法</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://mlr3.mlr-org.com/reference/MeasureClassifCosts.html"><code>MeasureClassifCosts</code></a></td>
+<td><code>msr("classif.costs")</code></td>
+<td>-</td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3pipelines.mlr-org.com/reference/PipeOpTuneThreshold.html"><code>PipeOpTuneThreshold</code></a></td>
+<td><code>po("tunethreshold")</code></td>
+<td>-</td>
+</tr>
+<tr class="odd">
+<td><a href="https://mlr3proba.mlr-org.com/reference/TaskSurv.html"><code>TaskSurv</code></a></td>
+<td><a href="https://mlr3proba.mlr-org.com/reference/as_task_surv.html"><code>as_task_surv()</code></a></td>
+<td><code>$data()</code></td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3proba.mlr-org.com/reference/PipeOpDistrCompositor.html"><code>PipeOpDistrCompositor</code></a></td>
+<td><code>po("distrcompose")</code></td>
+<td>-</td>
+</tr>
+<tr class="odd">
+<td><a href="https://mlr3proba.mlr-org.com/reference/TaskDens.html"><code>TaskDens</code></a></td>
+<td><a href="https://mlr3proba.mlr-org.com/reference/as_task_dens.html"><code>as_task_dens()</code></a></td>
+<td><code>$data()</code></td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3cluster.mlr-org.com/reference/TaskClust.html"><code>TaskClust</code></a></td>
+<td><a href="https://mlr3cluster.mlr-org.com/reference/as_task_clust.html"><code>as_task_clust()</code></a></td>
+<td><code>$data()</code></td>
+</tr>
+<tr class="odd">
+<td><a href="https://mlr3spatiotempcv.mlr-org.com/reference/TaskClassifST.html"><code>TaskClassifST</code></a></td>
+<td><a href="https://mlr3spatial.mlr-org.com/reference/as_task_classif_st.html"><code>as_task_classif_st()</code></a></td>
+<td><code>$data()</code></td>
+</tr>
+<tr class="even">
+<td>-</td>
+<td><a href="https://mlr3spatiotempcv.mlr-org.com/reference/predict_spatial.html"><code>predict_spatial()</code></a></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section><section id="exercises" class="level2" data-number="13.8"><h2 data-number="13.8" class="anchored" data-anchor-id="exercises">
+<span class="header-section-number">13.8</span> 练习</h2>
+<ol type="1">
+<li>在 <code>tsk("german_credit")</code> 上运行一次基准测试实验，使用 <code>lrn("classif.featureless")</code>、<code>lrn("classif.log_reg")</code> 和 <code>lrn("classif.ranger")</code>。通过把这些学习器包进 <code>po("learner_cv")</code>（采用两折交叉验证）再接一个 <code>po("tunethreshold")</code>，来调优所有学习器的预测阈值。使用 <code>msr("classif.costs", costs = costs)</code>，其中 <code>costs</code> 矩阵如下：真阳性为 <code>-10</code>，真阴性为 <code>-1</code>，假阳性为 <code>2</code>，假阴性为 <code>3</code>。在 <code>po("tunethreshold")</code> 中以及评估你的基准测试实验时都使用这个度量。</li>
+<li>使用 <code>lrn("surv.rfsrc")</code>（来自 <code>mlr3extralearners</code>）训练并测试一个生存森林。用 <code>tsk("rats")</code> 和 <code><a href="https://mlr3.mlr-org.com/reference/partition.html">partition()</a></code> 运行这个实验。用 RCLL 度量评估你的模型。</li>
+<li>使用 <code>lrn("dens.hist")</code> 来估计 <code>mlr3proba</code> 包中「precip」任务的密度，并用 logloss 度量评估你的估计。作为进阶目标，去查阅 <code>distr6</code> 的文档，了解如何进一步分析你估计出的分布。</li>
+<li>在不带标签列的「wine」数据集上运行一次基准聚类实验。使用轮廓度量和 insample 重采样技术，比较 <code>k</code> 分别等于 <code>2</code>、<code>3</code> 和 <code>4</code> 的 k-means 学习器的性能。根据轮廓得分，你会选择哪个 <code>k</code> 值？</li>
+<li>在 <code>tsk("mtcars")</code> 上手动 <code>$train()</code> 一个来自 <a href="https://mlr3extralearners.mlr-org.com"><code>mlr3extralearners</code></a> 的 GBM 回归模型，用以预测目标变量的第 95 百分位。务必先划分数据，只用训练集拟合学习器。用测试集以子弹球损失评估你的学习器。</li>
+</ol></section><section id="citation" class="level2" data-number="13.9"><h2 data-number="13.9" class="anchored" data-anchor-id="citation">
+<span class="header-section-number">13.9</span> 引用</h2>
+<p>请按如下格式引用本章：</p>
+<p>Sonabend R, Schratz P, Pulatov D, Zobolas J, Koers L. (2024). Beyond Regression and Classification. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/beyond_regression_and_classification.html.</p>
+<div class="sourceCode" id="cb113"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb113-1"><a href="#cb113-1" aria-hidden="true" tabindex="-1"></a><span class="va">@incollection</span>{<span class="ot">citekey</span>,</span>
+<span id="cb113-2"><a href="#cb113-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span> = "<span class="st">Raphael Sonabend and Patrick Schratz and Damir Pulatov and John Zobolas and Lona Koers</span>",</span>
+<span id="cb113-3"><a href="#cb113-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span> = "<span class="st">Beyond Regression and Classification</span>",</span>
+<span id="cb113-4"><a href="#cb113-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">booktitle</span> = "<span class="st">Applied Machine Learning Using {m}lr3 in {R}</span>",</span>
+<span id="cb113-5"><a href="#cb113-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">publisher</span> = "<span class="st">CRC Press</span>", <span class="st">year</span> = "<span class="st">2024</span>",</span>
+<span id="cb113-6"><a href="#cb113-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">editor</span> = "<span class="st">Bernd Bischl and Raphael Sonabend and Lars Kotthoff and Michel Lang</span>",</span>
+<span id="cb113-7"><a href="#cb113-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">url</span> = "<span class="st">https://mlr3book.mlr-org.com/beyond_regression_and_classification.html</span>"</span>
+<span id="cb113-8"><a href="#cb113-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+
+
+<!-- -->
+
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-Collett2014" class="csl-entry" role="listitem">
+Collett, David. 2014. <em>Modelling Survival Data in Medical Research</em>. 3rd ed. CRC. <a href="https://doi.org/10.1201/b18041">https://doi.org/10.1201/b18041</a>.
+</div>
+<div id="ref-hastie2001" class="csl-entry" role="listitem">
+Hastie, Trevor, Jerome Friedman, and Robert Tibshirani. 2001. <em>The Elements of Statistical Learning</em>. Springer New York. <a href="https://doi.org/10.1007/978-0-387-21606-5">https://doi.org/10.1007/978-0-387-21606-5</a>.
+</div>
+<div id="ref-Kalbfleisch2011" class="csl-entry" role="listitem">
+Kalbfleisch, John D, and Ross L Prentice. 2011. <em>The Statistical Analysis of Failure Time Data</em>. Vol. 360. John Wiley &amp; Sons. <a href="https://doi.org/10.1002/9781118032985">https://doi.org/10.1002/9781118032985</a>.
+</div>
+<div id="ref-koenker_quantile_2005" class="csl-entry" role="listitem">
+Koenker, Roger. 2005. <em>Quantile Regression</em>. Econometric Society Monographs. Cambridge: Cambridge University Press. <a href="https://doi.org/10.1017/CBO9780511754098">https://doi.org/10.1017/CBO9780511754098</a>.
+</div>
+<div id="ref-Ruspini1970" class="csl-entry" role="listitem">
+Ruspini, Enrique H. 1970. <span>“Numerical Methods for Fuzzy Clustering.”</span> <em>Information Sciences</em> 2 (3): 319–50. <a href="https://doi.org/10.1016/S0020-0255(70)80056-1">https://doi.org/10.1016/S0020-0255(70)80056-1</a>.
+</div>
+<div id="ref-Schratz2021" class="csl-entry" role="listitem">
+Schratz, Patrick, Marc Becker, Michel Lang, and Alexander Brenning. 2021. <span>“<span class="nocase">mlr3spatiotempcv</span>: Spatiotemporal Resampling Methods for Machine Learning in <span>R</span>,”</span> October. <a href="https://arxiv.org/abs/2110.12674">https://arxiv.org/abs/2110.12674</a>.
+</div>
+<div id="ref-Silverman1986" class="csl-entry" role="listitem">
+Silverman, Bernard W. 1986. <em>Density Estimation for Statistics and Data Analysis</em>. Vol. 26. CRC press.
+</div>
+<div id="ref-Sonabend2021b" class="csl-entry" role="listitem">
+Sonabend, Raphael Edward Benjamin. 2021. <span>“A Theoretical and Methodological Framework for Machine Learning in Survival Analysis: Enabling Transparent and Accessible Predictive Modelling on Right-Censored Time-to-Event Data.”</span> PhD, University College London (UCL). <a href="https://discovery.ucl.ac.uk/id/eprint/10129352/">https://discovery.ucl.ac.uk/id/eprint/10129352/</a>.
+</div>
+<div id="ref-MLSA" class="csl-entry" role="listitem">
+Sonabend, Raphael, and Andreas Bender. 2023. <em>Machine Learning in Survival Analysis</em>. <a href="https://www.mlsabook.com">https://www.mlsabook.com</a>.
+</div>
+<div id="ref-Sonabend2022" class="csl-entry" role="listitem">
+Sonabend, Raphael, Andreas Bender, and Sebastian Vollmer. 2022. <span>“Avoiding <span>C</span>-Hacking When Evaluating Survival Distribution Predictions with Discrimination Measures.”</span> Edited by Zhiyong Lu. <em>Bioinformatics</em> 38 (17): 4178–84. <a href="https://doi.org/10.1093/bioinformatics/btac451">https://doi.org/10.1093/bioinformatics/btac451</a>.
+</div>
+<div id="ref-mlr3proba" class="csl-entry" role="listitem">
+Sonabend, Raphael, Franz J Király, Andreas Bender, Bernd Bischl, and Michel Lang. 2021. <span>“<span class="nocase">mlr3proba</span>: An <span>R</span> Package for Machine Learning in Survival Analysis.”</span> <em>Bioinformatics</em>, February. <a href="https://doi.org/10.1093/bioinformatics/btab039">https://doi.org/10.1093/bioinformatics/btab039</a>.
+</div>
+<div id="ref-yu_quantile_2003" class="csl-entry" role="listitem">
+Yu, Keming, Zudi Lu, and Julian Stander. 2003. <span>“Quantile Regression: Applications and Current Research Areas.”</span> <em>Journal of the Royal Statistical Society: Series D (The Statistician)</em> 52 (3): 331–50. <a href="https://doi.org/10.1111/1467-9884.00363">https://doi.org/10.1111/1467-9884.00363</a>.
+</div>
+</div>
+</section>
+
+  </main>
+  <nav class="chnav">
+    <a class="" href="ch12-model-interpretation.html"><span class="dir">上一章</span><span class="ch">第 12 章 模型解释</span></a>
+    <a class="" href="ch14-algorithmic-fairness.html"><span class="dir">下一章</span><span class="ch">第 14 章 算法公平性</span></a>
+  </nav>
+  <div class="footer">
+    <div>《Applied Machine Learning Using mlr3 in R》中文译本 · 非官方翻译</div>
+    <div class="lic">原文 © 2024 CRC Press（Bischl, Sonabend, Kotthoff &amp; Lang 主编，CC BY-NC-SA 4.0）· 本站由志愿翻译，仅供学习交流</div>
+  </div>
+</div>
+<script>
+MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] } };
+</script>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
+</body>
+</html>

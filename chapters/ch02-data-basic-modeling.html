@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据与基础建模（Data and Basic Modeling）</title>
+<script>
+(function(){
+  var saved = localStorage.getItem("mlr3-theme");
+  if (saved === null) saved = "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+})();
+</script>
+<style>
+:root {
+  --bg: #1e2228; --fg: #d8dee4; --muted: #9aa4b0;
+  --panel: #262c34; --panel2: #2e3540; --border: #3a4350;
+  --accent: #4ea1ff; --accent2: #8f7ae6;
+  --code-bg: #161a20; --code-fg: #d8dee4;
+  --note-bg: #2a3450; --note-border: #5a7fff;
+  --callout-bg: #2b3826; --callout-border: #6bbf59;
+  --table-head: #2e3540; --table-row: #262c34; --link: #6cb0ff;
+  --h-border: #3a4350;
+}
+[data-theme="light"] {
+  --bg: #f7f8fa; --fg: #24292f; --muted: #57606a;
+  --panel: #ffffff; --panel2: #f0f2f5; --border: #d9dee3;
+  --accent: #0969da; --accent2: #8250df;
+  --code-bg: #f3f4f6; --code-fg: #24292f;
+  --note-bg: #eef2ff; --note-border: #5a7fff;
+  --callout-bg: #eff7ec; --callout-border: #6bbf59;
+  --table-head: #eef1f4; --table-row: #ffffff; --link: #0969da;
+  --h-border: #d9dee3;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  line-height: 1.78; font-size: 16px;
+  transition: background .2s, color .2s;
+}
+.container { max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+/* 顶栏 */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+}
+.topbar .brand { font-weight: 600; font-size: 15px; color: var(--fg); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+.topbar .brand .logo { color: var(--accent); }
+.topbar .right { display: flex; align-items: center; gap: 10px; }
+.topbar .home-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+.topbar .home-link:hover { color: var(--accent); }
+.theme-toggle {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+/* 章头 */
+.header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
+.header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
+.header-block h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.35; }
+.header-block .subtitle { color: var(--muted); font-size: 14px; }
+/* 章节导航 */
+.chnav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0 6px; flex-wrap: wrap; }
+.chnav a {
+  background: var(--panel); border: 1px solid var(--border); color: var(--fg);
+  text-decoration: none; font-size: 14px; padding: 10px 16px; border-radius: 8px;
+  max-width: 46%; display: block;
+}
+.chnav a:hover { border-color: var(--accent); color: var(--accent); }
+.chnav .dir { color: var(--muted); font-size: 12px; display: block; }
+.chnav .ch { font-weight: 600; }
+.chnav a.disabled { opacity: .4; pointer-events: none; }
+/* 正文 */
+main { padding: 0 0 20px; }
+main h1 { font-size: 26px; margin: 40px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--h-border); }
+main h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--h-border); }
+main h3 { font-size: 18px; margin: 28px 0 10px; }
+main h4 { font-size: 16px; margin: 22px 0 8px; color: var(--accent); }
+main p { margin: 10px 0; }
+main a { color: var(--link); text-decoration: none; }
+main a:hover { text-decoration: underline; }
+main strong { font-weight: 600; }
+main ul, main ol { padding-left: 26px; }
+main li { margin: 5px 0; }
+main blockquote {
+  margin: 12px 0; padding: 10px 16px; border-left: 4px solid var(--border);
+  background: var(--panel2); color: var(--muted); border-radius: 0 6px 6px 0;
+}
+main hr { border: none; border-top: 1px solid var(--border); margin: 26px 0; }
+main img { max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 6px; }
+main table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+main th { background: var(--table-head); font-weight: 600; }
+main th, main td { border: 1px solid var(--border); padding: 7px 11px; }
+main tr:nth-child(even) td { background: var(--table-row); }
+/* 代码 */
+pre {
+  background: var(--code-bg); color: var(--code-fg);
+  padding: 14px 16px; border-radius: 8px; overflow-x: auto;
+  border: 1px solid var(--border); font-size: 13.5px; line-height: 1.6;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+code {
+  font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+  background: var(--panel2); color: var(--accent);
+  padding: 2px 5px; border-radius: 4px; font-size: 13.5px;
+}
+pre code { background: none; color: var(--code-fg); padding: 0; }
+/* 代码块容器（Quarto 结构） */
+.sourceCode { margin: 14px 0; }
+.sourceCode pre { margin: 0; }
+/* 输出块 */
+.cell { margin: 6px 0; }
+.cell-output { margin: 0 0 6px; }
+.cell-output pre { background: var(--panel2); border-style: dashed; }
+.cell-output-stderr { border-color: #d29922; }
+.cell-output-stdout pre { border-color: var(--border); }
+/* figure */
+figure { margin: 18px 0; text-align: center; }
+figure img { margin: 0 auto; }
+figcaption, .caption { color: var(--muted); font-size: 13px; margin-top: 6px; text-align: center; }
+.quarto-float { margin: 18px 0; }
+.quarto-figure { margin: 18px 0; text-align: center; }
+/* 背景与解释（译者注）框 */
+.bg-note {
+  background: var(--note-bg); border: 1px solid var(--note-border);
+  border-radius: 8px; padding: 14px 18px; margin: 18px 0;
+  font-size: 15px;
+}
+.bg-note p { margin: 6px 0; }
+.bg-note .bg-title { font-weight: 600; color: var(--accent); }
+/* 原书 callout 提示框 */
+.callout {
+  border-radius: 8px; padding: 12px 18px; margin: 16px 0;
+  border-left: 5px solid var(--accent); background: var(--panel2);
+}
+.callout-tip { border-left-color: #6bbf59; }
+.callout-note { border-left-color: var(--accent); }
+.callout-warning { border-left-color: #d29922; }
+.callout-important { border-left-color: #e05d5d; }
+.callout-header { font-weight: 600; margin-bottom: 4px; }
+.callout-title-container { display: inline; }
+.callout-body p { margin: 6px 0; }
+.callout-icon-container { display: none; }
+/* 脚注 */
+.footnote-ref { font-size: 12px; vertical-align: super; }
+/* 页脚 */
+.footer {
+  margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 13px; text-align: center;
+}
+.footer .lic { margin-top: 6px; font-size: 12px; }
+/* 表格滚动 */
+main table { display: block; overflow-x: auto; }
+/* banner 样式（原书 callout 可能以其他名目出现） */
+[class*="callout"] > p:first-child { margin-top: 4px; }
+</style>
+<script>
+function toggleTheme(){
+  var cur = document.documentElement.getAttribute("data-theme");
+  var next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("mlr3-theme", next);
+}
+</script>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <div class="right">
+    <a class="home-link" href="index.html">目录</a>
+    <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
+  </div>
+</div>
+<div class="container">
+  <div class="header-block">
+    <div class="part">第一部分 基础</div>
+    <h1>数据与基础建模（Data and Basic Modeling）</h1>
+    <div class="subtitle">《Applied Machine Learning Using mlr3 in R》中文翻译 · 章节 第 2 章 数据与基础建模</div>
+  </div>
+  <main>
+<p><strong>Natalie Foss</strong> <br><em>美国怀俄明大学（University of Wyoming）</em></p>
+<p><strong>Lars Kotthoff</strong> <br><em>美国怀俄明大学（University of Wyoming）</em> <br><br></p>
+<p>在本章中，我们将介绍 <a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 中实现机器学习基本构件的对象，以及相应的 <a href="https://cran.r-project.org/package=R6"><code>R6</code></a> 类。这些构件包括：数据（以及创建训练集和测试集的方法）、机器学习算法（及其训练与预测过程）、通过超参数（hyperparameters）对机器学习算法进行配置，以及用于评估预测质量的评价度量（evaluation measures）。</p>
+<p>最简单地说，机器学习（machine learning, ML）就是从数据中学习"关系模型"的过程。监督学习（supervised learning）是 ML 的一个子领域，其中的数据集由带标签的观测组成，也就是说，每个数据点都由特征（features，即用来做出预测的变量）和一个目标（target，即我们试图预测的量）构成。例如，根据汽车的属性（特征），如马力和档位数，来预测汽车的每加仑行驶英里数（目标）就是一个监督学习问题，本书将多次回到这个问题上。在 <code>mlr3</code> 中，我们把数据集及其相关元数据称为任务（tasks, <a href="#sec-tasks" class="quarto-xref"><span>第 2.1 节</span></a>）。「任务」一词指我们要解决的预测问题。任务由用于预测的特征和待预测的目标定义，因此任意给定的数据集都可能有多个任务。例如，从马力预测每加仑行驶英里数（mpg）是一个任务，从 mpg 预测马力是另一个任务，而从汽车型号预测档位数又是一个任务。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">机器学习/监督学习（Machine Learning/Supervised Learning）</span></div></div>
+<p>监督学习可以进一步分为回归（regression）——预测数值型目标值，例如预测汽车的 mpg——以及分类（classification）——预测类别型值/标签，例如预测汽车的型号。<a href="../chapter13/beyond_regression_and_classification.html" class="quarto-xref"><span>第 13 章</span></a>还讨论其他任务，包括代价敏感分类（cost-sensitive classification）和无监督学习（unsupervised learning）。对于任何监督学习任务，目标都是构建一个能捕捉特征与目标之间关系的模型，其目往往是训练模型学习数据中的关系，以便对新的、之前从未见过的数据做出预测。严格来说，模型是「从特征向量到预测结果」的一个映射。根据任务的不同，预测可以采取多种形式；例如，在分类中，预测可以是预测的标签，也可以是一组预测的概率或分数。模型是通过把训练数据送入机器学习算法（如决策树、支持向量机、神经网络等）归纳而来的。机器学习算法在 <code>mlr3</code> 中被称为学习器（learners, <a href="#sec-learners" class="quarto-xref"><span>第 2.2 节</span></a>），因为它们给定数据后即可学习模型。每个学习器都有一个参数化空间，潜在的模型从该空间中抽取；在训练过程中，这些参数被拟合以最好地匹配数据。例如，当训练线性回归模型时，参数可以是用于各个特征的系数。在训练期间，大多数机器学习算法通过优化一个损失函数（loss function）来完成「拟合/训练」，该函数量化训练数据中真实目标值与模型预测之间的失配程度。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">回归（Regression）</span><span class="margin-aside">分类（Classification）</span><span class="margin-aside">模型（Model）</span><span class="margin-aside">损失函数（Loss Function）</span></div></div>
+<p>模型要想最为有用，就应该在训练数据之外泛化（generalize），对新的、模型此前「未见过的」数据也能做出「好」的预测（<a href="#sec-predicting" class="quarto-xref"><span>第 2.2.2 节</span></a>）。检验这一点最简单的方法，就是把数据分成训练数据和测试数据——模型在训练数据上训练，然后用独立的测试数据评估模型，以无偏的方式考核模型在多大程度上学会了数据背后的真实关系（<a href="../chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>）。这一评估过程估计的是模型的泛化误差（generalization error），即我们预期模型在一般情况下表现如何。估计泛化误差的模型评估方式与数据划分方式有很多种（<a href="../chapter3/evaluation_and_benchmarking.html#sec-resampling" class="quarto-xref"><span>第 3.2 节</span></a>）。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">训练/测试数据（Train/Test Data）</span><span class="margin-aside">泛化误差（Generalization Error）</span></div></div>
+<p>上述对 ML 的简要概述提供了使用 <code>mlr3</code> 所需的基础知识，并总结于<a href="#fig-ml-abstraction-basics" class="quarto-xref">图&nbsp;<span>2.1</span></a>。在本书其余部分，我们将在相关之处引入方法论方面的介绍。至于全面介绍 ML 以及不同算法详细方法论和原理的文献，我们推荐 <span class="citation" data-cites="hastie2001">Hastie, Friedman, and Tibshirani (<a href="../references.html#ref-hastie2001" role="doc-biblioref">2001</a>)</span>、<span class="citation" data-cites="james_introduction_2014">James et al. (<a href="../references.html#ref-james_introduction_2014" role="doc-biblioref">2014</a>)</span> 和 <span class="citation" data-cites="bishop_2006">Bishop (<a href="../references.html#ref-bishop_2006" role="doc-biblioref">2006</a>)</span>。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>本节是全书「问题定义」的起点。需要注意几个术语：特征（feature）也称自变量/解释变量/（传统统计中）协变量，目标（target）也称响应变量（response variable）/因变量；「标签（label）」专指分类问题中的目标取值。"训练/测试划分"本质上是用一个暂时"扣住"不放的真值子集来模拟未来数据，从而无偏地估计泛化误差。文中推荐的经典教材分别对应 ESL（The Elements of Statistical Learning《统计学习基础》，Hastie 等）、ISLR（An Introduction to Statistical Learning《统计学习导论》，James 等）以及 Bishops 的《模式识别与机器学习》（PRML）；三者由浅入深，ISLR 最适合作入门读物。这与中国读者常读的《统计学习方法》（李航）可互为对照。</p>
+</div>
+<p>在接下来的几节中，我们将以回归为例来看 <code>mlr3</code> 的各个构件，然后在<a href="#sec-classif" class="quarto-xref"><span>第 2.5 节</span></a>考虑如何将其扩展到分类。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-ml-abstraction-basics" class="quarto-float quarto-figure quarto-figure-center anchored" alt="A flowchart starting with the 'Data D' with two arrows to 'Dtrain' and 'Dtest'. 'Dtrain' has an arrow to 'Learner', which has an arrow to 'Model'. 'Dtest' has an arrow (labeled with 'Features') to 'Model' and an arrow (labeled with 'Labels') to 'Measure'. The 'Model' box has an arrow to 'Prediction', which has an arrow to 'Measure', which has an arrow to 'Performance'. The whole flowchart has curly brackets next to it that says 'Repeat = Resampling'.">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-ml-abstraction-basics-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/mlr3book_figures-1.svg" class="img-fluid figure-img" style="width:100.0%" alt="A flowchart starting with the 'Data D' with two arrows to 'Dtrain' and 'Dtest'. 'Dtrain' has an arrow to 'Learner', which has an arrow to 'Model'. 'Dtest' has an arrow (labeled with 'Features') to 'Model' and an arrow (labeled with 'Labels') to 'Measure'. The 'Model' box has an arrow to 'Prediction', which has an arrow to 'Measure', which has an arrow to 'Performance'. The whole flowchart has curly brackets next to it that says 'Repeat = Resampling'.">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ml-abstraction-basics-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;2.1：机器学习流程的总体概览。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<section id="sec-tasks" class="level2 page-columns page-full" data-number="2.1"><h2 data-number="2.1" class="anchored" data-anchor-id="sec-tasks">
+<span class="header-section-number">2.1</span> 任务（Tasks）</h2>
+<p>任务（Task）是包含（通常为表格形式的）数据以及定义机器学习问题的附加元数据的对象。元数据中例如包含监督学习问题的目标特征名。这些信息在需要时会被自动提取，因此用户不必在每次训练模型时都指定预测目标。</p>
+<section id="sec-tasks-built-in" class="level3 page-columns page-full" data-number="2.1.1"><h3 data-number="2.1.1" class="anchored" data-anchor-id="sec-tasks-built-in">
+<span class="header-section-number">2.1.1</span> 构造任务（Constructing Tasks）</h3>
+<p><code>mlr3</code> 在 <a href="https://mlr3.mlr-org.com/reference/mlr_tasks.html"><code>mlr_tasks</code></a> <code>字典（Dictionary）</code>中包含几个预定义的机器学习任务。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>mlr_tasks</code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">mlr_tasks</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;DictionaryTask&gt; with 49 stored values
+Keys: actg, adult_test, adult_train, ames_housing, bike_sharing,
+  boston_housing, breast_cancer, california_housing, cifar10,
+  cifar100, compas, compas_race_binary, cookfarm_mlr3, diabetes,
+  diplodia, ecuador, faithful, gbcs, gbsg, german_credit, grace,
+  ilpd, iris, kc_housing, lazy_iris, leipzig, lung, melanoma,
+  mgus, mnist, moneyball, mtcars, oml, optdigits, pbc, penguins,
+  penguins_simple, precip, rats, ruspini, sonar, spam,
+  tiny_imagenet, titanic, usarrests, veteran, whas, wine, zoo</code></pre>
+</div>
+</div>
+<p>要从字典中获得一个任务，请使用 <a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html"><code>tsk()</code></a> 函数，并把返回值赋给一个新变量。下面我们检索 <code>tsk("mtcars")</code>，它使用的是 <a href="https://www.rdocumentation.org/packages/datasets/topics/mtcars"><code>mtcars</code></a> 数据集：</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_mtcars</span> <span class="op">=</span> <span class="fu">tsk</span><span class="op">(</span><span class="st">"mtcars"</span><span class="op">)</span></span>
+<span><span class="va">tsk_mtcars</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;TaskRegr&gt; (32x11): Motor Trends ─────────────────────────────────────
+• Target: mpg
+• Properties: -
+• Features (10):
+  • dbl (10): am, carb, cyl, disp, drat, gear, hp, qsec, vs, wt</code></pre>
+</div>
+</div>
+<p>不带任何参数运行 <code><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk()</a></code> 将列出字典中的所有任务，这对本书中你会遇到的所有其他糖构造函数（sugar constructors）同样适用。</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+帮助页（Help Pages）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>在 R 中，通常可以用 <code>?</code> 查询函数的帮助页。R6 类也是如此，因此如果你想查找 <code>mtcars</code> 任务的帮助页，可以使用 <code><a href="https://mlr3.mlr-org.com/reference/mlr_tasks_mtcars.html">?mlr_tasks_mtcars</a></code>。我们还给很多类添加了 <code>$help()</code> 方法，让你可以从该类的任何实例访问帮助页，例如：<code>tsk("mtcars")$help()</code>。</p>
+</div>
+</div>
+<p>要创建你自己的回归任务，需要构造一个 <a href="https://mlr3.mlr-org.com/reference/TaskRegr.html"><code>TaskRegr</code></a> 的新实例。最简单的方式是用 <a href="https://mlr3.mlr-org.com/reference/as_task_regr.html"><code>as_task_regr()</code></a> 函数把 <code>data.frame</code> 类型的对象转换为回归任务，并通过 <code>target</code> 参数指定目标特征。举例时，我们暂且忽略 <code>mtcars</code> 在 <code>mlr3</code> 中已经是一个预定义任务的事实。在下面的代码中，我们加载 <code><a href="https://rdrr.io/r/datasets/mtcars.html">datasets::mtcars</a></code> 数据集，仅保留 <code>"mpg"</code>、<code>"cyl"</code>、<code>"disp"</code> 三列，打印修改后数据的属性，然后建立一个名为 <code>"cars"</code> 的回归任务（<code>id = "cars"</code>），在该任务中我们将尝试从气缸数（<code>"cyl"</code>）和排量（<code>"disp"</code>）预测每加仑行驶英里数（<code>target = "mpg"</code>）：</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>TaskRegr</code></span><span class="margin-aside"><code><a href="https://mlr3.mlr-org.com/reference/as_task_regr.html">as_task_regr()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html">data</a></span><span class="op">(</span><span class="st">"mtcars"</span>, package <span class="op">=</span> <span class="st">"datasets"</span><span class="op">)</span></span>
+<span><span class="va">mtcars_subset</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html">subset</a></span><span class="op">(</span><span class="va">mtcars</span>, select <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"mpg"</span>, <span class="st">"cyl"</span>, <span class="st">"disp"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html">str</a></span><span class="op">(</span><span class="va">mtcars_subset</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>'data.frame':   32 obs. of  3 variables:
+ $ mpg : num  21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 ...
+ $ cyl : num  6 6 4 6 8 6 8 4 4 6 ...
+ $ disp: num  160 160 108 258 360 ...</code></pre>
+</div>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_mtcars</span> <span class="op">=</span> <span class="fu">as_task_regr</span><span class="op">(</span><span class="va">mtcars_subset</span>, target <span class="op">=</span> <span class="st">"mpg"</span>, id <span class="op">=</span> <span class="st">"cars"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>数据可以是任何表格格式，例如 <code><a href="https://rdrr.io/r/base/data.frame.html">data.frame()</a></code>、<code><a href="https://rdrr.io/pkg/data.table/man/data.table.html">data.table()</a></code> 或 <code>tibble()</code>。<code>target</code> 参数指定预测的目标列。<code>id</code> 参数是可选的，用来指定任务的标识符，该标识符用于图和汇总；如果省略，则使用数据的变量名作为 <code>id</code>。</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+UTF8 列名（UTF8 Column Names）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>由于许多机器学习模型无法正确处理任意的 UTF8 名称，<code>mlr3</code> 默认会在传入 <a href="https://mlr3.mlr-org.com/reference/as_task_regr.html"><code>as_task_regr()</code></a>（以及其他任务构造函数）的列名包含非 ASCII 字符，或不符合 R 变量命名规范时抛出错误。因此，我们建议尽可能用 <a href="https://www.rdocumentation.org/packages/base/topics/make.names"><code>make.names()</code></a> 转换名称。你也可以通过设置 <code>options(mlr3.allow_utf8_names = TRUE)</code> 绕过此检查（但如果在后面出现错误请不要惊讶，尤其是把对象传给其他包的时候）。</p>
+</div>
+</div>
+
+<p>打印一个任务会提供一份汇总，就本例而言，我们可以看到该任务有 32 个观测和 3 列（32 x 3），其中 <code>mpg</code> 是目标，没有特殊属性（<code>Properties: -</code>），并且有 2 个以双精度浮点格式存储的特征。</p>
+<div class="cell">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_mtcars</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;TaskRegr&gt; (32x3) ────────────────────────────────────────────────────
+• Target: mpg
+• Properties: -
+• Features (2):
+  • dbl (2): cyl, disp</code></pre>
+</div>
+</div>
+<p>我们可以用 <a href="https://mlr3viz.mlr-org.com"><code>mlr3viz</code></a> 包来绘制这个任务图，它会给出目标和特征值分布的图形化汇总：</p>
+<div class="cell">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3viz.mlr-org.com">mlr3viz</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">tsk_mtcars</span>, type <span class="op">=</span> <span class="st">"pairs"</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-mtcars" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Diagram shows six plots, three are line plots showing the relationship between continuous variables, and three are scatter plots showing relationships between other variables.">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-mtcars-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/data_and_basic_modeling_files/figure-html/fig-mtcars-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Diagram shows six plots, three are line plots showing the relationship between continuous variables, and three are scatter plots showing relationships between other variables.">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mtcars-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;2.2：mtcars 数据集概览。
+</figcaption></figure>
+</div>
+</div>
+</div>
+
+</section><section id="sec-retrieve-data" class="level3" data-number="2.1.2"><h3 data-number="2.1.2" class="anchored" data-anchor-id="sec-retrieve-data">
+<span class="header-section-number">2.1.2</span> 检索数据（Retrieving Data）</h3>
+<p>我们已经了解了如何创建任务来存储数据和元数据，现在我们将看看如何检索存储的数据。</p>
+<p>可以使用各种字段检索关于任务的元数据。例如，数据维度可以用 <code>$nrow</code> 和 <code>$ncol</code> 检索：</p>
+<div class="cell">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">tsk_mtcars</span><span class="op">$</span><span class="va">nrow</span>, <span class="va">tsk_mtcars</span><span class="op">$</span><span class="va">ncol</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 32  3</code></pre>
+</div>
+</div>
+<p>特征列和目标列的名称分别存放在 <code>$feature_names</code> 和 <code>$target_names</code> 槽（slots）中。</p>
+<div class="cell">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>Features <span class="op">=</span> <span class="va">tsk_mtcars</span><span class="op">$</span><span class="va">feature_names</span>,</span>
+<span>  Target <span class="op">=</span> <span class="va">tsk_mtcars</span><span class="op">$</span><span class="va">target_names</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Features1 Features2    Target 
+    "cyl"    "disp"     "mpg" </code></pre>
+</div>
+</div>
+<p>任务的列有唯一的 <code>character</code>（字符）型名称，行由唯一的自然数标识，称为行 ID（row IDs）。它们可以通过 <code>$row_ids</code> 字段访问：</p>
+<div class="cell">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">tsk_mtcars</span><span class="op">$</span><span class="va">row_ids</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1 2 3 4 5 6</code></pre>
+</div>
+</div>
+<p>行 ID 在训练或预测时不会用作特征，但它们是无数据，允许访问单个观测。注意，行 ID 并不等于行号。这一点最好用示例来说明，下面我们从一个随机数据创建回归任务，先打印原始的行 ID（它们对应行号 1-5），然后过滤掉三行（稍后我们会回到这个方法）并打印新的行 ID，此时它们不再对应行号。</p>
+<div class="cell">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">task</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/as_task_regr.html">as_task_regr</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="fl">5</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="fl">5</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  target <span class="op">=</span> <span class="st">"y"</span><span class="op">)</span></span>
+<span><span class="va">task</span><span class="op">$</span><span class="va">row_ids</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1 2 3 4 5</code></pre>
+</div>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">task</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">1</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">task</span><span class="op">$</span><span class="va">row_ids</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 4 1 3</code></pre>
+</div>
+</div>
+<p>这一设计决定使得任务和学习器能够透明地运行在真正的数据库管理系统上，因为在数据库中主键要求唯一，但不一定连续。关于把数据库用作任务的数据后端（data backend）的更多信息，参见<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-backends" class="quarto-xref"><span>第 10.4 节</span></a>。</p>
+<p>任务中包含的数据可以通过 <code>$data()</code> 访问，它返回一个 <a href="https://www.rdocumentation.org/packages/data.table/topics/data.table-package"><code>data.table</code></a> 对象。该方法有可选的 <code>rows</code> 和 <code>cols</code> 参数，用于指定要检索的数据子集。</p>
+<div class="cell">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># retrieve all data</span></span>
+<span><span class="va">tsk_mtcars</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     mpg cyl  disp
+ 1: 21.0   6 160.0
+ 2: 21.0   6 160.0
+ 3: 22.8   4 108.0
+ 4: 21.4   6 258.0
+ 5: 18.7   8 360.0
+---               
+28: 30.4   4  95.1
+29: 15.8   8 351.0
+30: 19.7   6 145.0
+31: 15.0   8 301.0
+32: 21.4   4 121.0</code></pre>
+</div>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># retrieve data for rows with IDs 1, 5, and 10 and all feature columns</span></span>
+<span><span class="va">tsk_mtcars</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span>rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">5</span>, <span class="fl">10</span><span class="op">)</span>, cols <span class="op">=</span> <span class="va">tsk_mtcars</span><span class="op">$</span><span class="va">feature_names</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   cyl  disp
+1:   6 160.0
+2:   8 360.0
+3:   6 167.6</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+按行号访问行（Accessing Rows by Number）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>你可以用 <code>$row_ids</code> 字段来提取给定行号对应的行 ID，从而按行号而不是行 ID 工作：</p>
+<div class="cell">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># select the 2nd row of the task by extracting the second row_id:</span></span>
+<span><span class="va">tsk_mtcars</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span>rows <span class="op">=</span> <span class="va">task</span><span class="op">$</span><span class="va">row_ids</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+</div>
+<p>你总是可以使用「标准」R 方法从任务中提取汇总数据，例如，要汇总底层数据：</p>
+<div class="cell">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html">summary</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">tsk_mtcars</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      mpg            cyl            disp      
+ Min.   :10.4   Min.   :4.00   Min.   : 71.1  
+ 1st Qu.:15.4   1st Qu.:4.00   1st Qu.:120.8  
+ Median :19.2   Median :6.00   Median :196.3  
+ Mean   :20.1   Mean   :6.19   Mean   :230.7  
+ 3rd Qu.:22.8   3rd Qu.:8.00   3rd Qu.:326.0  
+ Max.   :33.9   Max.   :8.00   Max.   :472.0  </code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>「行 ID（row_ids）≠ 行号（row number）」是 mlr3 设计中容易让新手困惑、却又非常重要的一个点。在 base R 中，<code>df[3, ]</code> 靠"位置"取行；一旦过滤、合并后位置就变了。mlr3 借鉴数据库"主键"思想，给每个观测一个稳定的、唯一的行 ID（通常来自原数据框的行名），<code>$filter()</code>、<code>$data()</code>、<code>$train(row_ids = ...)</code>、<code>$predict(row_ids = ...)</code> 都按主键对接。好处是：你可以把同样的 <code>splits$train</code> 行 ID 集合传给任意任务/学习器，训练集与测试集的划分与数据行本身的物理顺序无关；也便于将来对接数据库后端。注意 <code>$data(rows = task$row_ids[2])</code> 中 <code>task</code> 指的是上文被过滤后只剩 3 行的那个随机任务，因此取到的是它"当前第 2 行"对应的行 ID（4），而非 <code>tsk_mtcars</code> 的。</p>
+</div>
+</section><section id="sec-tasks-mutators" class="level3 page-columns page-full" data-number="2.1.3"><h3 data-number="2.1.3" class="anchored" data-anchor-id="sec-tasks-mutators">
+<span class="header-section-number">2.1.3</span> 任务修改器（Task Mutators）</h3>
+<p>任务创建之后，你可能需要对任务执行一些操作，比如过滤到行和列的子集，这在手动创建训练/测试划分，或在给定特征子集上拟合模型时经常有用。上面我们看到了如何用 <code>$data()</code> 访问底层数据集的子集，但是，这不会改变底层任务本身。因此，我们提供修改器（mutators），它们会原地（in place）修改给定 <code>Task</code>，这可以在下面的例子中看到。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">修改器（Mutators）</span></div></div>
+<p>按特征（列）取子集可以用 <code>$select()</code>，把想要的特征名作为字符向量传入；按观测（行）取子集则用 <code>$filter()</code>，把行 ID 作为数值向量传入。</p>
+<div class="cell">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_mtcars_small</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"mtcars"</span><span class="op">)</span> <span class="co"># initialize with the full task</span></span>
+<span><span class="va">tsk_mtcars_small</span><span class="op">$</span><span class="fu">select</span><span class="op">(</span><span class="st">"cyl"</span><span class="op">)</span> <span class="co"># keep only one feature</span></span>
+<span><span class="va">tsk_mtcars_small</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="fl">2</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span> <span class="co"># keep only these rows</span></span>
+<span><span class="va">tsk_mtcars_small</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    mpg cyl
+1: 21.0   6
+2: 22.8   4</code></pre>
+</div>
+</div>
+<p>由于 <code>R6</code> 使用引用语义（<a href="../chapter1/introduction_and_overview.html#sec-r6" class="quarto-xref"><span>第 1.5.1 节</span></a>），如果你想在修改一个任务的同时保持原始对象不变，就需要使用 <code>$clone()</code>。</p>
+<div class="cell">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># the wrong way</span></span>
+<span><span class="va">tsk_mtcars</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"mtcars"</span><span class="op">)</span></span>
+<span><span class="va">tsk_mtcars_wrong</span> <span class="op">=</span> <span class="va">tsk_mtcars</span></span>
+<span><span class="va">tsk_mtcars_wrong</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">)</span></span>
+<span><span class="co"># original data affected</span></span>
+<span><span class="va">tsk_mtcars</span><span class="op">$</span><span class="fu">head</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   mpg am carb cyl disp drat gear  hp  qsec vs    wt
+1:  21  1    4   6  160  3.9    4 110 16.46  0 2.620
+2:  21  1    4   6  160  3.9    4 110 17.02  0 2.875</code></pre>
+</div>
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># the right way</span></span>
+<span><span class="va">tsk_mtcars</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"mtcars"</span><span class="op">)</span></span>
+<span><span class="va">tsk_mtcars_right</span> <span class="op">=</span> <span class="va">tsk_mtcars</span><span class="op">$</span><span class="fu">clone</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">tsk_mtcars_right</span><span class="op">$</span><span class="fu">filter</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">)</span></span>
+<span><span class="co"># original data unaffected</span></span>
+<span><span class="va">tsk_mtcars</span><span class="op">$</span><span class="fu">head</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    mpg am carb cyl disp drat gear  hp  qsec vs    wt
+1: 21.0  1    4   6  160 3.90    4 110 16.46  0 2.620
+2: 21.0  1    4   6  160 3.90    4 110 17.02  0 2.875
+3: 22.8  1    1   4  108 3.85    4  93 18.61  1 2.320
+4: 21.4  0    1   6  258 3.08    3 110 19.44  1 3.215
+5: 18.7  0    2   8  360 3.15    3 175 17.02  0 3.440
+6: 18.1  0    1   6  225 2.76    3 105 20.22  1 3.460</code></pre>
+</div>
+</div>
+<p>若要给任务添加额外的行和列，可以分别使用 <code>$rbind()</code> 和 <code>$cbind()</code>：</p>
+<div class="cell">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_mtcars_small</span><span class="op">$</span><span class="fu">cbind</span><span class="op">(</span> <span class="co"># add another column</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>disp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">150</span>, <span class="fl">160</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">tsk_mtcars_small</span><span class="op">$</span><span class="fu">rbind</span><span class="op">(</span> <span class="co"># add another row</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>mpg <span class="op">=</span> <span class="fl">23</span>, cyl <span class="op">=</span> <span class="fl">5</span>, disp <span class="op">=</span> <span class="fl">170</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">tsk_mtcars_small</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    mpg cyl disp
+1: 21.0   6  150
+2: 22.8   4  160
+3: 23.0   5  170</code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>$select()/ $filter()/ $rbind()/ $cbind() 这四个"修改器"会原地修改任务对象（R6 引用语义）。这是与 tidyverse "返回新对象、不修改原对象"哲学的最大差异：dplyr 中 <code>df %&gt;% filter()</code> 得到新对象，原对象不动；而 mlr3 的 <code>task$filter()</code> 直接改源对象。如果你习惯了 dplyr，一定要警惕：需要保留原任务时务必先 <code>$clone()</code>（深拷贝）。此外 <code>$filter(2:3)</code> 传入的是行 ID 2 和 3，而不是"第 2、3 行"——再次体现行 ID 语义。实际项目中常见的正确用法是：训练前用 <code>task$clone</code> 构造 <code>task_train</code>，对它做特征工程（如只保留部分特征），再用另一克隆保存测试所需全特征。</p>
+</div>
+</section></section><section id="sec-learners" class="level2 page-columns page-full" data-number="2.2"><h2 data-number="2.2" class="anchored" data-anchor-id="sec-learners">
+<span class="header-section-number">2.2</span> 学习器（Learners）</h2>
+<p><a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 类对象为 R 中许多流行的机器学习算法提供了统一接口。<a href="https://mlr3.mlr-org.com/reference/mlr_learners.html"><code>mlr_learners</code></a> 字典包含 <code>mlr3</code> 中所有可用的学习器。我们将在<a href="#sec-lrns-add" class="quarto-xref"><span>第 2.7 节</span></a>讨论可用的学习器；现在，我们只用一个回归树学习器作为例子来讨论 <code>Learner</code> 接口。与任务一样，你可以用单个糖函数从字典中访问学习器，本例中即 <a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html"><code>lrn()</code></a>。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>Learner</code></span><span class="margin-aside"><code>mlr_learners</code></span><span class="margin-aside"><code><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.rpart"</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;LearnerRegrRpart&gt; (regr.rpart): Regression Tree ─────────────────────
+• Model: -
+• Parameters: xval=0
+• Packages: mlr3 and rpart
+• Predict Types: [response]
+• Feature Types: logical, integer, numeric, factor, and ordered
+• Encapsulation: none (fallback: -)
+• Properties: importance, missings, selected_features, and weights
+• Other settings: use_weights = 'use', predict_raw = 'FALSE'</code></pre>
+</div>
+</div>
+<p>所有 <code>Learner</code> 对象都包含以下元数据，可以在上面的输出中看到：</p>
+<ul>
+<li>
+<code>$feature_types</code>：学习器可以处理的特征类型。</li>
+<li>
+<code>$packages</code>：使用该学习器需要安装的包。</li>
+<li>
+<code>$properties</code>：学习器的属性。例如，「missings」属性表示模型可以处理缺失数据，「importance」表示它可以计算每个特征的相对重要性。</li>
+<li>
+<code>$predict_types</code>：模型可以做出的预测类型（<a href="#sec-predicting" class="quarto-xref"><span>第 2.2.2 节</span></a>）。</li>
+<li>
+<code>$param_set</code>：可用的超参数集合（<a href="#sec-param-set" class="quarto-xref"><span>第 2.2.3 节</span></a>）。</li>
+</ul>
+<p>要运行一个机器学习实验，学习器要经历两个阶段（<a href="#fig-basics-learner" class="quarto-xref">图&nbsp;<span>2.3</span></a>）：</p>
+<ul>
+<li>训练（Training）：把训练用的 <code>Task</code> 传给学习器的 <code>$train()</code> 函数，该函数训练并存储一个模型，即学习到的特征与目标之间的关系。</li>
+<li>预测（Predicting）：把新数据（可能是原始数据集的不同划分）传给已训练学习器的 <code>$predict()</code> 方法，以预测目标值。</li>
+</ul>
+<div class="no-row-height column-margin column-container"><span class="margin-aside">训练（Training）</span><span class="margin-aside">预测（Predicting）</span></div><div class="cell">
+<div class="cell-output-display">
+<div id="fig-basics-learner" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Diagram shows two boxes, the first is labeled &quot;$train() on Training Data&quot; and shows data pointing at the Learner. The second is labeled &quot;$predict() on New Data to Get Predictions&quot; and shows different data pointing at a learner which now includes a &quot;$model&quot;. An arrow then shows predictions being made from the &quot;Learner&quot; in the second box.">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-basics-learner-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/mlr3book_figures-2.svg" class="img-fluid figure-img" style="width:70.0%" alt="Diagram shows two boxes, the first is labeled &quot;$train() on Training Data&quot; and shows data pointing at the Learner. The second is labeled &quot;$predict() on New Data to Get Predictions&quot; and shows different data pointing at a learner which now includes a &quot;$model&quot;. An arrow then shows predictions being made from the &quot;Learner&quot; in the second box.">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-basics-learner-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;2.3：学习器不同阶段的概览。上方——将数据（特征和目标）传给（未训练的）学习器。下方——将新数据传给已训练的模型，模型对「缺失的」目标列做出预测。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<section id="sec-training" class="level3 page-columns page-full" data-number="2.2.1"><h3 data-number="2.2.1" class="anchored" data-anchor-id="sec-training">
+<span class="header-section-number">2.2.1</span> 训练（Training）</h3>
+<p>在最简单的用例中，模型通过 <code>$train()</code> 方法把任务传给学习器来训练：</p><div class="no-row-height column-margin column-container"><span class="margin-aside">$train()</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># load mtcars task</span></span>
+<span><span class="va">tsk_mtcars</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"mtcars"</span><span class="op">)</span></span>
+<span><span class="co"># load a regression tree</span></span>
+<span><span class="va">lrn_rpart</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.rpart"</span><span class="op">)</span></span>
+<span><span class="co"># pass the task to the learner via $train()</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_mtcars</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>训练完成后，拟合出的模型保存在 <code>$model</code> 字段中，供以后检查和预测之用：</p><div class="no-row-height column-margin column-container"><span class="margin-aside">$model</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># inspect the trained model</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="va">model</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>n= 32 
+
+node), split, n, deviance, yval
+      * denotes terminal node
+
+1) root 32 1126.00 20.09  
+  2) cyl&gt;=5 21  198.50 16.65  
+    4) hp&gt;=192.5 7   28.83 13.41 *
+    5) hp&lt; 192.5 14   59.87 18.26 *
+  3) cyl&lt; 5 11  203.40 26.66 *</code></pre>
+</div>
+</div>
+<p>我们看到，回归树识别出了任务中对目标（<code>mpg</code>）有预测作用的特征，并用它们对观测进行划分。模型的文本表示取决于学习器的类型。要了解更多关于任何模型的信息，请查看学习器帮助页，其访问方式与任务的 <code><a href="https://rdrr.io/r/utils/help.html">help()</a></code> 字段相同，例如 <code>lrn_rpart$help()</code>。</p>
+<section id="sec-basics-partition" class="level4 page-columns page-full" data-number="2.2.1.1"><h4 data-number="2.2.1.1" class="anchored" data-anchor-id="sec-basics-partition">
+<span class="header-section-number">2.2.1.1</span> 划分数据（Partitioning Data）</h4>
+<p>在评估模型预测的质量时，你很可能想把数据集划分开，以获得公平且无偏的模型泛化误差估计。在<a href="../chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>中，我们将研究重采样（resampling）和基准测试（benchmark）实验，更详细地介绍性能估计；但现在，我们只讨论用 <a href="https://mlr3.mlr-org.com/reference/partition.html"><code>partition()</code></a> 函数切分数据的最简单方法。该函数生成索引集，把给定的任务随机分成两个不相交的集合：一个训练集（默认占总数据的 67%）和一个测试集（其余 33%、不在训练集中的数据）。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code><a href="https://mlr3.mlr-org.com/reference/partition.html">partition()</a></code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">splits</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/partition.html">partition</a></span><span class="op">(</span><span class="va">tsk_mtcars</span><span class="op">)</span></span>
+<span><span class="va">splits</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$train
+ [1]  1  3  4  5  7  8  9 10 11 12 14 19 20 21 22 24 25 26 27 28 31
+
+$test
+ [1]  2  6 13 15 16 17 18 23 29 30 32
+
+$validation
+integer(0)</code></pre>
+</div>
+</div>
+<p>训练时，我们把 <code>partition</code> 得到的训练行 ID 传给 <code>$train()</code> 的 <code>row_ids</code> 参数，告诉模型只使用训练数据：</p>
+<div class="cell">
+<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_mtcars</span>, row_ids <span class="op">=</span> <span class="va">splits</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>现在我们可以用训练好的学习器对新数据做出预测了。</p>
+</section></section><section id="sec-predicting" class="level3 page-columns page-full" data-number="2.2.2"><h3 data-number="2.2.2" class="anchored" data-anchor-id="sec-predicting">
+<span class="header-section-number">2.2.2</span> 预测（Predicting）</h3>
+<p>从训练好的模型做预测，只需把你的数据作为 <code>Task</code> 传给已训练 <code>Learner</code> 的 <code>$predict()</code> 方法。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">$predict()</span></div></div>
+<p>紧接着我们上一个例子，我们调用训练好学习器的 <code>$predict()</code> 方法，并再次使用 <code>row_ids</code> 参数，但这回传递的是测试集的行 ID：</p>
+<div class="cell">
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span> <span class="op">=</span> <span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_mtcars</span>, row_ids <span class="op">=</span> <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p><code>$predict()</code> 方法返回一个继承自 <a href="https://mlr3.mlr-org.com/reference/Prediction.html"><code>Prediction</code></a> 的对象，本例中为 <a href="https://mlr3.mlr-org.com/reference/PredictionRegr.html"><code>PredictionRegr</code></a>，因为这是一个回归任务。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>Prediction</code></span><span class="margin-aside"><code>PredictionRegr</code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb45"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionRegr&gt; for 11 observations: ────────────────────────────────
+ row_ids truth response
+       2  21.0    17.25
+       6  18.1    17.25
+      13  17.3    17.25
+     ---   ---      ---
+      29  15.8    17.25
+      30  19.7    17.25
+      32  21.4    26.61</code></pre>
+</div>
+</div>
+<p><code>row_ids</code> 列对应于被预测观测的行 ID。<code>truth</code> 列包含真值数据（如果有的话），对象从任务中提取这些数据，本例中即 <code>tsk_mtcars$truth(splits$test)</code>。最后，<code>response</code> 列包含模型预测的值。用 <code><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table()</a></code>/<code><a href="https://rdrr.io/r/base/as.data.frame.html">as.data.frame()</a></code> 可以很容易地把 <code>Prediction</code> 对象分别转换为 <code>data.table</code> 或 <code>data.frame</code>。</p>
+<p>上面各列中的所有数据都可以直接访问，例如，要取出前两个预测响应：</p>
+<div class="cell">
+<div class="sourceCode" id="cb47"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span><span class="op">$</span><span class="va">response</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 17.25 17.25</code></pre>
+</div>
+</div>
+<p>与绘制 <code>Task</code> 类似，<a href="https://mlr3viz.mlr-org.com"><code>mlr3viz</code></a> 为 <code>Prediction</code> 对象提供了一个 <a href="https://www.rdocumentation.org/packages/ggplot2/topics/autoplot"><code>autoplot()</code></a> 方法。</p>
+<div class="cell">
+<div class="sourceCode" id="cb49"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3viz.mlr-org.com">mlr3viz</a></span><span class="op">)</span></span>
+<span><span class="va">prediction</span> <span class="op">=</span> <span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_mtcars</span>, <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">prediction</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-basics-truthresponse" class="quarto-float quarto-figure quarto-figure-center anchored" alt="A scatter plot with predicted values on one axis and ground truth values on the other. A trend line is fit to show that in general there is good agreement between predicted and ground truth values.">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-basics-truthresponse-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/data_and_basic_modeling_files/figure-html/fig-basics-truthresponse-1.png" class="img-fluid figure-img" style="width:70.0%" alt="A scatter plot with predicted values on one axis and ground truth values on the other. A trend line is fit to show that in general there is good agreement between predicted and ground truth values.">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-basics-truthresponse-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;2.4：比较 mtcars 数据集的预测值与真值。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>在上面的例子中，我们通过把任务传给 <code>$predict()</code> 来做预测。不过，如果你想直接传入 <code>data.frame</code> 类型的对象，可以使用 <code>$predict_newdata()</code>。注意，<code>truth</code> 列的值全部为 <code>NA</code>，因为我们在生成的数据中没有包含目标列。</p>
+<div class="cell">
+<div class="sourceCode" id="cb50"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">mtcars_new</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html">data.table</a></span><span class="op">(</span>cyl <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">6</span><span class="op">)</span>, disp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">120</span><span class="op">)</span>,</span>
+<span>  hp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">150</span><span class="op">)</span>, drat <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">3.9</span><span class="op">)</span>, wt <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">3.8</span>, <span class="fl">4.1</span><span class="op">)</span>,</span>
+<span>  qsec <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">18</span>, <span class="fl">19.5</span><span class="op">)</span>, vs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0</span><span class="op">)</span>, am <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  gear <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">6</span>, <span class="fl">4</span><span class="op">)</span>, carb <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">prediction</span> <span class="op">=</span> <span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">predict_newdata</span><span class="op">(</span><span class="va">mtcars_new</span><span class="op">)</span></span>
+<span><span class="va">prediction</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionRegr&gt; for 2 observations: ─────────────────────────────────
+ row_ids truth response
+       1    NA    17.25
+       2    NA    17.25</code></pre>
+</div>
+</div>
+<section id="changing-the-prediction-type" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="changing-the-prediction-type">改变预测类型（Changing the Prediction Type）</h4>
+<p>预测单个数值量是回归中最常见的预测类型，但不是唯一的预测类型。若干回归模型还能预测标准误差。要预测标准误差，必须在训练前把 <a href="https://mlr3.mlr-org.com/reference/LearnerRegr.html"><code>LearnerRegr</code></a> 的 <code>$predict_type</code> 字段从「response」（默认）改为 <code>"se"</code>。我们上面使用的 <code>"rpart"</code> 学习器不支持预测标准误差，所以下面的例子中我们将使用线性回归模型（<code>lrn("regr.lm")</code>）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb52"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3learners.mlr-org.com">mlr3learners</a></span><span class="op">)</span></span>
+<span><span class="va">lrn_lm</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.lm"</span>, predict_type <span class="op">=</span> <span class="st">"se"</span><span class="op">)</span></span>
+<span><span class="va">lrn_lm</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_mtcars</span>, <span class="va">splits</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span><span class="va">lrn_lm</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_mtcars</span>, <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionRegr&gt; for 11 observations: ────────────────────────────────
+ row_ids truth response    se
+       2  21.0    20.79 2.089
+       6  18.1    20.01 1.739
+      13  17.3    15.52 1.386
+     ---   ---      ---   ---
+      29  15.8    23.79 3.839
+      30  19.7    18.93 2.340
+      32  21.4    22.97 2.518</code></pre>
+</div>
+</div>
+<p>现在输出中按要求包含了一个 <code>se</code> 列。在<a href="#sec-basics-classif-learner" class="quarto-xref"><span>第 2.5.3 节</span></a>中，我们将看到预测类型在分类语境下扮演更重要的角色。</p>
+
+</section></section><section id="sec-param-set" class="level3 page-columns page-full" data-number="2.2.3"><h3 data-number="2.2.3" class="anchored" data-anchor-id="sec-param-set">
+<span class="header-section-number">2.2.3</span> 超参数（Hyperparameters）</h3>
+<p><code>Learner</code> 封装一个机器学习算法及其超参数，超参数影响算法的<em>运行方式</em>，可以由用户设置。超参数可能影响模型如何训练或如何做出预测，而决定如何设置超参数可能需要专业知识。超参数可以被自动优化（<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>），但在本章中，我们将专注于如何手动设置它们。</p>
+<section id="paradox-and-parameter-sets" class="level4 page-columns page-full" data-number="2.2.3.1"><h4 data-number="2.2.3.1" class="anchored" data-anchor-id="paradox-and-parameter-sets">
+<span class="header-section-number">2.2.3.1</span> paradox 与参数集（Paradox and Parameter Sets）</h4>
+<p>我们继续用回归树学习器的贯穿性示例。要访问决策树中的超参数，我们使用 <code>$param_set</code>：</p><div class="no-row-height column-margin column-container"><span class="margin-aside">$param_set</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb54"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rpart</span><span class="op">$</span><span class="va">param_set</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;ParamSet(10)&gt;
+                id    class lower upper nlevels        default  value
+ 1:             cp ParamDbl     0     1     Inf           0.01 [NULL]
+ 2:     keep_model ParamLgl    NA    NA       2          FALSE [NULL]
+ 3:     maxcompete ParamInt     0   Inf     Inf              4 [NULL]
+ 4:       maxdepth ParamInt     1    30      30             30 [NULL]
+ 5:   maxsurrogate ParamInt     0   Inf     Inf              5 [NULL]
+ 6:      minbucket ParamInt     1   Inf     Inf &lt;NoDefault[0]&gt; [NULL]
+ 7:       minsplit ParamInt     1   Inf     Inf             20 [NULL]
+ 8: surrogatestyle ParamInt     0     1       2              0 [NULL]
+ 9:   usesurrogate ParamInt     0     2       3              2 [NULL]
+10:           xval ParamInt     0   Inf     Inf             10      0</code></pre>
+</div>
+</div>
+<p>上面的输出是一个 <a href="https://paradox.mlr-org.com/reference/ParamSet.html"><code>ParamSet</code></a> 对象，由 <a href="https://paradox.mlr-org.com"><code>paradox</code></a> 包提供。<code>paradox</code> 包的更详细介绍见<a href="../chapter16/advanced_hyperparameter_specification_using_paradox.html" class="quarto-xref"><span>第 16 章</span></a>。这些对象提供超参数的信息，包括名称（<code>id</code>）、数据类型（<code>class</code>）、超参数值理论上合法的范围（<code>lower</code>、<code>upper</code>）、若数据类型是类别型时可取的 level 数量（<code>nlevels</code>）、来自底层包的默认值（<code>default</code>），以及最后设置的取值（<code>value</code>）。第二列引用 <a href="https://paradox.mlr-org.com"><code>paradox</code></a> 中定义的类，它们决定参数的类型以及它可以取的取值范围。<a href="#tbl-parameters-classes" class="quarto-xref">表&nbsp;<span>2.1</span></a> 列出了可能的超参数类型，它们都继承自 <a href="https://paradox.mlr-org.com/reference/Domain.html"><code>Domain</code></a>。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>ParamSet</code></span></div></div>
+<div id="tbl-parameters-classes" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-parameters-classes-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+表&nbsp;2.1：超参数类及其代表的超参数类型。
+</figcaption><div aria-describedby="tbl-parameters-classes-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead><tr class="header">
+<th>超参数类（Hyperparameter Class）</th>
+<th>超参数类型（Hyperparameter Type）</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>ParamDbl</code></td>
+<td>实数值（numeric）</td>
+</tr>
+<tr class="even">
+<td><code>ParamInt</code></td>
+<td>整数（Integer）</td>
+</tr>
+<tr class="odd">
+<td><code>ParamFct</code></td>
+<td>类别（factor）</td>
+</tr>
+<tr class="even">
+<td><code>ParamLgl</code></td>
+<td>逻辑/布尔（Logical / Boolean）</td>
+</tr>
+<tr class="odd">
+<td><code>ParamUty</code></td>
+<td>无类型（Untyped）</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>在我们的决策树示例中，可以从 <code>ParamSet</code> 输出推断出：</p>
+<ul>
+<li>
+<code>cp</code> 必须是「double」（<code>ParamDbl</code>），取值在 <code>0</code>（<code>lower</code>）和 <code>1</code>（<code>upper</code>）之间，默认值为 0.01（<code>default</code>）。</li>
+<li>
+<code>keep_model</code> 必须是「logical」（<code>ParamLgl</code>），取值为 <code>TRUE</code> 或 <code>FALSE</code>，默认为 <code>FALSE</code>。</li>
+<li>
+<code>xval</code> 必须是「integer」（<code>ParamInt</code>），取值在 <code>0</code> 和 <code>Inf</code> 之间，默认为 <code>10</code>，且已设置的值为 <code>0</code>。</li>
+</ul>
+<p>在少数情况下（我们尽可能把它减到最少），超参数会被初始化为偏离底层包默认值的值。发生这种情况时，原因总会写在学习器帮助页中。就 <code>lrn("regr.rpart")</code> 而言，<code>xval</code> 超参数被初始化为 <code>0</code>，是因为 <code>xval</code> 控制内部交叉验证，如果用户不小心保留默认的 <code>10</code>，模型训练可能花费不必要地长时间。</p>
+</section><section id="getting-and-setting-hyperparameter-values" class="level4 page-columns page-full" data-number="2.2.3.2"><h4 data-number="2.2.3.2" class="anchored" data-anchor-id="getting-and-setting-hyperparameter-values">
+<span class="header-section-number">2.2.3.2</span> 读取和设置超参数值（Getting and Setting Hyperparameter Values）</h4>
+<p>既然我们已经了解了超参数集如何存储，现在可以考虑读取和设置它们。回到我们的决策树，假设我们想种一棵深度为 <code>1</code> 的树，也称为「决策桩（decision stump）」，即数据只被划分一次，分成两个终端节点。从参数输出中，我们知道 <code>maxdepth</code> 参数默认值为 <code>30</code>，并且它取整数。</p>
+<p>改变这个超参数有几种不同的方式。最简单的方式是在构造学习器时，把超参数名和新值传给 <code><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn()</a></code>：</p>
+<div class="cell">
+<div class="sourceCode" id="cb56"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rpart</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.rpart"</span>, maxdepth <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>我们可以用 <code>$param_set$values</code> 获得非默认超参数（即那些已被设置的）列表：</p>
+<div class="cell">
+<div class="sourceCode" id="cb57"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rpart</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$maxdepth
+[1] 1
+
+$xval
+[1] 0</code></pre>
+</div>
+</div>
+<p>现在我们可以看到 <code>maxdepth = 1</code>（正如我们上面讨论的，<code>xval = 0</code> 在构造时被改动），并且学到的回归树也反映了这一点：</p>
+<div class="cell">
+<div class="sourceCode" id="cb59"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"mtcars"</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">model</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>n= 32 
+
+node), split, n, deviance, yval
+      * denotes terminal node
+
+1) root 32 1126.0 20.09  
+  2) cyl&gt;=5 21  198.5 16.65 *
+  3) cyl&lt; 5 11  203.4 26.66 *</code></pre>
+</div>
+</div>
+<p><code>$values</code> 字段只是返回一个已被设置参数组成的 <code>list</code>，所以更新超参数的另一种方式就是更新列表中的一个元素：</p>
+<div class="cell">
+<div class="sourceCode" id="cb61"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rpart</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">maxdepth</span> <span class="op">=</span> <span class="fl">2</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$maxdepth
+[1] 2
+
+$xval
+[1] 0</code></pre>
+</div>
+<div class="sourceCode" id="cb63"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># now with depth 2</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"mtcars"</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">model</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>n= 32 
+
+node), split, n, deviance, yval
+      * denotes terminal node
+
+1) root 32 1126.00 20.09  
+  2) cyl&gt;=5 21  198.50 16.65  
+    4) hp&gt;=192.5 7   28.83 13.41 *
+    5) hp&lt; 192.5 14   59.87 18.26 *
+  3) cyl&lt; 5 11  203.40 26.66 *</code></pre>
+</div>
+</div>
+<p>要一次设置多个值，我们建议要么在构造时设置，要么使用 <code>$set_values()</code>，该方法用相应值更新给定超参数（参数名）。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">$set_values()</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb65"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rpart</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.rpart"</span>, maxdepth <span class="op">=</span> <span class="fl">3</span>, xval <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$maxdepth
+[1] 3
+
+$xval
+[1] 1</code></pre>
+</div>
+<div class="sourceCode" id="cb67"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># or with set_values</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">set_values</span><span class="op">(</span>xval <span class="op">=</span> <span class="fl">2</span>, cp <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$cp
+[1] 0.5
+
+$maxdepth
+[1] 3
+
+$xval
+[1] 2</code></pre>
+</div>
+</div>
+<p>除 <code>$set_values()</code> 之外，<code>$configure()</code> 还能同时设置超参数和学习器字段。与参数名匹配的参数会被设置为超参数，其余参数则被设置为学习器字段，例如 <code>timeout</code>（<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-encapsulation" class="quarto-xref"><span>第 10.2.1 节</span></a>）：</p>
+<div class="cell">
+<div class="sourceCode" id="cb69"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rpart</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.rpart"</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">configure</span><span class="op">(</span>maxdepth <span class="op">=</span> <span class="fl">3</span>, timeout <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>train <span class="op">=</span> <span class="fl">10</span>, predict <span class="op">=</span> <span class="cn">Inf</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="va">timeout</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  train predict 
+     10     Inf </code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+用 <code>list</code> 设置超参数（Setting Hyperparameters Using a <code>list</code>）
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>由于 <code>lrn_rpart$param_set$values</code> 返回一个 <code>list</code>，有些用户可能会想把一个新的 <code>list</code> 赋给 <code>$values</code> 来设置超参数——这确实可行，但<strong>我们不推荐这么做</strong>。原因是：传入一个 <code>list</code> 会把列表中不包含的任何既有超参数值全部清空。例如：</p>
+<div class="cell">
+<div class="sourceCode" id="cb71"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># set xval and cp</span></span>
+<span><span class="va">lrn_rpart_params</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.rpart"</span>, xval <span class="op">=</span> <span class="fl">0</span>, cp <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="co"># passing maxdepth through a list, removing all other values</span></span>
+<span><span class="va">lrn_rpart_params</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>maxdepth <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="co"># we have removed xval and cp by mistake</span></span>
+<span><span class="va">lrn_rpart_params</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$maxdepth
+[1] 1</code></pre>
+</div>
+<div class="sourceCode" id="cb73"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># now with set_values</span></span>
+<span><span class="va">lrn_rpart_params</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.rpart"</span>, xval <span class="op">=</span> <span class="fl">0</span>, cp <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart_params</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="fu">set_values</span><span class="op">(</span>maxdepth <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart_params</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$cp
+[1] 1
+
+$maxdepth
+[1] 1
+
+$xval
+[1] 0</code></pre>
+</div>
+</div>
+</div>
+</div>
+<p>不管你选择哪种方法，所有方法都带有安全检查，以确保你的新值落在允许的参数范围内：</p>
+<div class="cell">
+<div class="sourceCode" id="cb75"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.rpart"</span>, cp <span class="op">=</span> <span class="fl">2</span>, maxdepth <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `self$assert()`:
+! Assertion on 'xs' failed: cp: Element 1 is not &lt;= 1.</code></pre>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>paradox 是 mlr3 生态的"参数系统"包，负责描述一个学习器有哪些超参数、每个参数的类型与合法范围、彼此的依赖关系。它的 <code>ParamDbl</code>/<code>ParamInt</code>/<code>ParamFct</code>/<code>ParamLgl</code>/<code>ParamUty</code> 对应 Python 里 scikit-learn 的 <code>_validate_params</code> 与 <code>scipy.stats</code> 搜索空间（如 <code>randint</code>、<code>rvs</code>），或 tidymodels 中 <code>tune()</code> + <code>parameters()</code> 的对象。理解 <code>$param_set$values</code> 只是"已设置参数清单"这一关键点，就能避免踩坑：直接整表覆盖 <code>$values</code> 会清空其余设置。rpart 的 <code>xval</code> 默认被 mlr3 改为 0 是出于性能考虑（内部 10 折 CV 纯属浪费），这种"与底层包默认值不同"的改动都会记录在帮助页中，值得留意。</p>
+</div>
+</section><section id="hyperparameter-dependencies" class="level4" data-number="2.2.3.3"><h4 data-number="2.2.3.3" class="anchored" data-anchor-id="hyperparameter-dependencies">
+<span class="header-section-number">2.2.3.3</span> 超参数依赖（Hyperparameter Dependencies）</h4>
+<div class="callout callout-style-simple callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+本节涉及高级 ML 或技术细节。
+</div>
+</div>
+<div class="callout-body-container callout-body">
+
+</div>
+</div>
+<p>更复杂的超参数空间可能包含依赖关系，即设置某个超参数以另一超参数的取值为条件；这在模型调优（model tuning）语境下最为重要（<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>）。一个例子是支持向量机（<code>lrn("regr.svm")</code>）。<code>$deps</code> 字段返回一个 <code>data.table</code>，列出 <code>Learner</code> 中的超参数依赖。例如，可以看到 <code>cost</code>（<code>id</code> 列）参数依赖于 <code>type</code>（<code>on</code> 列）参数。</p>
+<div class="cell">
+<div class="sourceCode" id="cb77"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.svm"</span><span class="op">)</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">deps</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        id     on                  cond
+1:   coef0 kernel &lt;Condition:CondAnyOf&gt;
+2:    cost   type &lt;Condition:CondAnyOf&gt;
+3:  degree kernel &lt;Condition:CondEqual&gt;
+4: epsilon   type &lt;Condition:CondEqual&gt;
+5:   gamma kernel &lt;Condition:CondAnyOf&gt;
+6:      nu   type &lt;Condition:CondEqual&gt;</code></pre>
+</div>
+</div>
+<p><code>cond</code> 列告诉我们条件是什么，它要么表示当 <code>on</code> 等于单个值时可以设置 <code>id</code>（<a href="https://paradox.mlr-org.com/reference/condition_test.html"><code>CondEqual</code></a>），要么表示当 <code>on</code> 等于列出的集合中任意值时可以设置 <code>id</code>（<a href="https://paradox.mlr-org.com/reference/condition_test.html"><code>CondAnyOf</code></a>）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb79"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.svm"</span><span class="op">)</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">deps</span><span class="op">[[</span><span class="fl">1</span>, <span class="st">"cond"</span><span class="op">]</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CondAnyOf: x %in% {polynomial, sigmoid}</code></pre>
+</div>
+<div class="sourceCode" id="cb81"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.svm"</span><span class="op">)</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">deps</span><span class="op">[[</span><span class="fl">3</span>, <span class="st">"cond"</span><span class="op">]</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CondEqual: x == polynomial</code></pre>
+</div>
+</div>
+<p>这告诉我们：只有当 <code>type</code> 参数取 <code>"eps-regression"</code> 或 <code>"nu-regression"</code> 之一时，才应该设置 <code>cost</code> 参数；只有当 <code>kernel</code> 等于 <code>"polynomial"</code> 时，才应该设置 <code>degree</code>。</p>
+<p>如果在其条件未满足时设置了受依赖的超参数，<code>Learner</code> 会报错：</p>
+<div class="cell">
+<div class="sourceCode" id="cb83"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># error as kernel is not polynomial</span></span>
+<span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.svm"</span>, kernel <span class="op">=</span> <span class="st">"linear"</span>, degree <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `self$assert()`:
+! Assertion on 'xs' failed: degree: can only be set if the following condition is met 'kernel == polynomial'. Instead the current parameter value is: kernel == linear.</code></pre>
+</div>
+<div class="sourceCode" id="cb85"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># works because kernel is polynomial</span></span>
+<span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.svm"</span>, kernel <span class="op">=</span> <span class="st">"polynomial"</span>, degree <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;LearnerRegrSVM&gt; (regr.svm): Support Vector Machine ──────────────────
+• Model: -
+• Parameters: degree=1, kernel=polynomial
+• Packages: mlr3, mlr3learners, and e1071
+• Predict Types: [response]
+• Feature Types: logical, integer, and numeric
+• Encapsulation: none (fallback: -)
+• Properties:
+• Other settings: use_weights = 'error', predict_raw = 'FALSE'</code></pre>
+</div>
+</div>
+
+</section></section><section id="sec-basics-featureless" class="level3 page-columns page-full" data-number="2.2.4"><h3 data-number="2.2.4" class="anchored" data-anchor-id="sec-basics-featureless">
+<span class="header-section-number">2.2.4</span> 基线学习器（Baseline Learners）</h3>
+<p>在我们继续学习学习器评估之前，我们先强调一类重要的学习器。这些是极其简单或「弱」的学习器，称为基线（baselines）。基线的价值在于模型比较（<a href="../chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>）以及作为回退学习器（fallback learners）（<a href="../chapter5/advanced_tuning_methods_and_black_box_optimization.html#sec-encapsulation-fallback" class="quarto-xref"><span>第 5.1.1 节</span></a>、<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-fallback" class="quarto-xref"><span>第 10.2.2 节</span></a>）。对于回归，我们实现了基线 <code>lrn("regr.featureless")</code>，它总是把新值预测为训练数据中目标值的平均数（如果 <code>robust</code> 超参数设为 <code>TRUE</code>，则为中位数）：</p><div class="no-row-height column-margin column-container"><span class="margin-aside">基线（Baselines）</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb87"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># generate data</span></span>
+<span><span class="va">df</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/as_task_regr.html">as_task_regr</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="fl">1000</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="fl">1000</span>, <span class="fl">2</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  target <span class="op">=</span> <span class="st">"y"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.featureless"</span><span class="op">)</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">df</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">995</span><span class="op">)</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">df</span>, <span class="fl">996</span><span class="op">:</span><span class="fl">1000</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionRegr&gt; for 5 observations: ─────────────────────────────────
+ row_ids truth response
+     996 2.581    1.976
+     997 2.344    1.976
+     998 2.869    1.976
+     999 1.054    1.976
+    1000 0.391    1.976</code></pre>
+</div>
+</div>
+<p>把所有新模型都跟基线对照，以及在包含多个其他模型的实验里也把基线放进去，是好的实践。一般来说，一个不如基线的模型就是「差」模型；反过来，一个超过基线的模型不一定就是「好」模型。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>「基线（baseline）」在机器学习里指"最朴素直白的预测器"：回归基线永远预测训练目标均值/中位数，分类基线永远预测最频繁类（或按频率随机抽）。它回答的问题是"你的模型到底学到东西没有"——如果你的模型连"永远猜平均值"都打不过，那说明模型（或训练过程、数据预处理）出了问题。这与统计学中"空模型/截距模型（null model / intercept-only model）"、以及 ISLR 中的"可减少误差 vs 不可减少误差"（irreducible error）思想一脉相承。在信用卡（german_credit）等不平衡数据上，基线甚至能拿到高"准确率"，正因如此，仅看精度是不足信的（见 2.5.4 节）。</p>
+</div>
+</section></section><section id="sec-eval" class="level2 page-columns page-full" data-number="2.3"><h2 data-number="2.3" class="anchored" data-anchor-id="sec-eval">
+<span class="header-section-number">2.3</span> 评估（Evaluation）</h2>
+<p>应用机器学习流程中最重要的一步也许就是评估模型性能了。没有这一步，我们就无从知道训练出的模型是做了非常准确的预测，还是比随机猜测还差，或者介于两者之间。我们继续用决策树例子来确定我们预测的质量是否「好」；首先，为了让阅读更容易衔接，我们重新运行一遍上面的代码。</p>
+<div class="cell">
+<div class="sourceCode" id="cb89"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rpart</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.rpart"</span><span class="op">)</span></span>
+<span><span class="va">tsk_mtcars</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"mtcars"</span><span class="op">)</span></span>
+<span><span class="va">splits</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/partition.html">partition</a></span><span class="op">(</span><span class="va">tsk_mtcars</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_mtcars</span>, <span class="va">splits</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span><span class="va">prediction</span> <span class="op">=</span> <span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_mtcars</span>, <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span></code></pre></div>
+</div>
+<section id="measures" class="level3 page-columns page-full" data-number="2.3.1"><h3 data-number="2.3.1" class="anchored" data-anchor-id="measures">
+<span class="header-section-number">2.3.1</span> 度量（Measures）</h3>
+<p>预测的质量用度量（measures）来评估，度量把预测与监督学习任务的真值数据进行比较。与 <code>Task</code> 和 <code>Learner</code> 类似，<code>mlr3</code> 中可用的度量存储在一个叫 <a href="https://mlr3.mlr-org.com/reference/mlr_measures.html"><code>mlr_measures</code></a> 的字典中，可以用 <code><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr()</a></code> 访问：</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>mlr_measures</code></span><span class="margin-aside">msr()</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb90"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                  key                          label task_type
+  1:              aic   Akaike Information Criterion      &lt;NA&gt;
+  2: best_valid_score          Best Validation Score      &lt;NA&gt;
+  3:              bic Bayesian Information Criterion      &lt;NA&gt;
+  4:               ci                     Default CI      &lt;NA&gt;
+  5:         ci.con_z        Conservative-Z Interval      &lt;NA&gt;
+ ---                                                          
+130:     surv.uno_tpr                      Uno's TPR      surv
+131:       surv.xu_r2          Xu and O'Quigley's R2      surv
+132:        time_both                   Elapsed Time      &lt;NA&gt;
+133:     time_predict                   Elapsed Time      &lt;NA&gt;
+134:       time_train                   Elapsed Time      &lt;NA&gt;
+4 variables not shown: [packages, predict_type, properties, task_properties]</code></pre>
+</div>
+</div>
+<p><code>mlr3</code> 中实现的所有度量主要由三个要素定义：1）定义度量的函数；2）值是越小越好还是越大越好；3）度量可以取的取值范围。除了这些定义性要素外，在选择和使用 <code>Measure</code> 时还有其他需要重点考虑的元数据，包括该度量是否有任何特殊属性（例如要求训练数据）、该度量能评估什么类型的预测，以及该度量是否有「控制参数」。所有这些信息都封装在 <a href="https://mlr3.mlr-org.com/reference/Measure.html"><code>Measure</code></a> 对象中。例如，我们来看平均绝对误差（mean absolute error, MAE）：</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>Measure</code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb92"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">measure</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"regr.mae"</span><span class="op">)</span></span>
+<span><span class="va">measure</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;MeasureRegrSimple&gt; (regr.mae): Mean Absolute Error ──────────────────
+• Packages: mlr3 and mlr3measures
+• Range: [0, Inf]
+• Minimize: TRUE
+• Average: macro
+• Parameters: list()
+• Properties: weights and obs_loss
+• Predict type: response
+• Predict sets: test
+• Aggregator: mean()</code></pre>
+</div>
+</div>
+<p>这个度量比较真实值与预测值之间的绝对差（「误差」）：<span class="math inline">\(f(y, \hat{y}) = | y - \hat{y} |\)</span>。数值越小越好（<code>Minimize: TRUE</code>），这很直观，因为我们希望真实值 <span class="math inline">\(y\)</span> 与预测值 <span class="math inline">\(\hat{y}\)</span> 在数值上相同（或尽可能接近）。我们可以看到，该学习器可以取的取值范围是从 <span class="math inline">\(0\)</span> 到 <span class="math inline">\(\infty\)</span>（<code>Range: [0, Inf]</code>），它没有特殊属性（<code>Properties: -</code>），它评估回归模型的 <code>response</code> 类型预测（<code>Predict type: response</code>），并且它没有控制参数（<code>Parameters: list()</code>）。</p>
+
+<p>现在让我们看看如何用这个度量来给我们的预测打分（scoring）。</p>
+</section><section id="scoring-predictions" class="level3 page-columns page-full" data-number="2.3.2"><h3 data-number="2.3.2" class="anchored" data-anchor-id="scoring-predictions">
+<span class="header-section-number">2.3.2</span> 预测打分（Scoring Predictions）</h3>
+<p>通常，监督学习的度量会比较预测值与真值之间的差异。如前所见，<code>mlr3</code> 把预测结果和真实结果都存放在 <a href="https://mlr3.mlr-org.com/reference/Prediction.html"><code>Prediction</code></a> 对象中，从而简化了把这些数量凑在一起的过程。</p>
+<div class="cell">
+<div class="sourceCode" id="cb94"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionRegr&gt; for 11 observations: ────────────────────────────────
+ row_ids truth response
+       6  18.1    24.43
+       8  24.4    24.43
+       9  22.8    24.43
+     ---   ---      ---
+      27  26.0    24.43
+      28  30.4    24.43
+      31  15.0    16.22</code></pre>
+</div>
+</div>
+<p>要计算模型性能，我们只需调用 <code>Prediction</code> 对象的 <code>$score()</code> 方法，并把想要计算的度量作为唯一参数传入：</p><div class="no-row-height column-margin column-container"><span class="margin-aside">$score()</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb96"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">measure</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>regr.mae 
+   2.937 </code></pre>
+</div>
+</div>
+<p>注意，所有任务类型都有默认度量，当省略传给 <code>$score()</code> 的参数时会使用它们；对回归而言，默认度量是均方误差（mean squared error，<code>msr("regr.mse")</code>），即真实值与预测值之差的平方：<span class="math inline">\(f(y, \hat{y}) = (y - \hat{y})^2\)</span>，在测试集上求平均。</p>
+<p>可以同时计算多个度量，方法是向 <code>$score()</code> 传入多个度量。例如，下面我们同时计算均方误差（<code>"regr.mse"</code>）和平均绝对误差（<code>"regr.mae"</code>）的性能——注意我们使用 <code><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msrs()</a></code> 一次加载多个度量。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">msrs()</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb98"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">measures</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msrs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"regr.mse"</span>, <span class="st">"regr.mae"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">measures</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>regr.mse regr.mae 
+  14.603    2.937 </code></pre>
+</div>
+</div>
+</section><section id="sec-basics-measures-tech" class="level3 page-columns page-full" data-number="2.3.3"><h3 data-number="2.3.3" class="anchored" data-anchor-id="sec-basics-measures-tech">
+<span class="header-section-number">2.3.3</span> 技术度量（Technical Measures）</h3>
+<div class="callout callout-style-simple callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+本节涉及高级 ML 或技术细节。
+</div>
+</div>
+<div class="callout-body-container callout-body">
+
+</div>
+</div>
+<p><code>mlr3</code> 还提供一些并不量化模型预测质量、而是提供模型「元」信息的度量。包括：</p>
+<ul>
+<li>
+<code>msr("time_train")</code> —— 训练一个模型所花的时间。</li>
+<li>
+<code>msr("time_predict")</code> —— 模型做出预测所花的时间。</li>
+<li>
+<code>msr("time_both")</code> —— 训练模型然后做出预测所花的总时间。</li>
+<li>
+<code>msr("selected_features")</code> —— 模型选中的特征数量，只有在模型有「selected_features」属性时才可以使用。</li>
+</ul>
+<p>例如，我们可以给决策树打分，看看训练模型和做出预测各花了几秒：</p>
+<div class="cell">
+<div class="sourceCode" id="cb100"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">measures</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msrs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"time_train"</span>, <span class="st">"time_predict"</span>, <span class="st">"time_both"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">measures</span>, learner <span class="op">=</span> <span class="va">lrn_rpart</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  time_train time_predict    time_both 
+       0.003        0.002        0.005 </code></pre>
+</div>
+</div>
+<p>注意这些度量的几个关键属性：</p>
+<ol type="1">
+<li>
+<code>time_both</code> 就是 <code>time_train</code> 与 <code>time_predict</code> 之和。</li>
+<li>我们必须把 <code>learner = lrn_rpart</code> 传给 <code>$score()</code>，因为这些度量具有 <code>requires_learner</code> 属性：</li>
+</ol>
+<div class="cell">
+<div class="sourceCode" id="cb102"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"time_train"</span><span class="op">)</span><span class="op">$</span><span class="va">properties</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "requires_learner"       "requires_no_prediction"</code></pre>
+</div>
+</div>
+<ol start="3" type="1">
+<li>这些度量可以在模型训练和预测之后使用，因为每当调用 <code>$train()</code> 和 <code>$predict()</code> 时，我们都会自动存储模型的运行时间，所以上面的度量等价于：</li>
+</ol>
+<div class="cell">
+<div class="sourceCode" id="cb104"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">lrn_rpart</span><span class="op">$</span><span class="va">timings</span>, both <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">lrn_rpart</span><span class="op">$</span><span class="va">timings</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  train predict    both 
+  0.003   0.002   0.005 </code></pre>
+</div>
+</div>
+<p><code>selected_features</code> 度量计算拟合模型中使用了多少特征。</p>
+<div class="cell">
+<div class="sourceCode" id="cb106"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">msr_sf</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"selected_features"</span><span class="op">)</span></span>
+<span><span class="va">msr_sf</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;MeasureSelectedFeatures&gt; (selected_features): Absolute or Relative Fr
+• Packages: mlr3
+• Range: [0, Inf]
+• Minimize: TRUE
+• Average: macro
+• Parameters: normalize=FALSE
+• Properties: requires_task, requires_learner, requires_model, and
+requires_no_prediction
+• Predict type: NA
+• Predict sets:
+• Aggregator: mean()</code></pre>
+</div>
+</div>
+<p>我们可以看到这个度量包含控制参数（<code>Parameters: normalize=FALSE</code>），它们控制度量如何计算。与超参数一样，这些可以用 <code>$param_set</code> 访问：</p><div class="no-row-height column-margin column-container"><span class="margin-aside">控制参数（Control Parameters）</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb108"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">msr_sf</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"selected_features"</span><span class="op">)</span></span>
+<span><span class="va">msr_sf</span><span class="op">$</span><span class="va">param_set</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;ParamSet(1)&gt;
+          id    class lower upper nlevels        default value
+1: normalize ParamLgl    NA    NA       2 &lt;NoDefault[0]&gt; FALSE</code></pre>
+</div>
+</div>
+<p><code>normalize</code> 超参数指定返回的已选特征数是否应该按特征总数归一化，当你需要跨特征数量不同的任务比较该值时很有用。我们改变这个参数的方式与上面改变学习器完全相同：</p>
+<div class="cell">
+<div class="sourceCode" id="cb110"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">msr_sf</span><span class="op">$</span><span class="va">param_set</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">normalize</span> <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">msr_sf</span>, task <span class="op">=</span> <span class="va">tsk_mtcars</span>, learner <span class="op">=</span> <span class="va">lrn_rpart</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>selected_features 
+              0.1 </code></pre>
+</div>
+</div>
+<p>注意，我们把任务和学习器都传了进去，因为这个度量有 <code>requires_task</code> 和 <code>requires_learner</code> 属性。</p>
+
+</section></section><section id="sec-basics-regr-experiment" class="level2 page-columns page-full" data-number="2.4"><h2 data-number="2.4" class="anchored" data-anchor-id="sec-basics-regr-experiment">
+<span class="header-section-number">2.4</span> 我们的第一个回归实验（Our First Regression Experiment）</h2>
+<p>我们现在已经看到了如何训练模型、做出预测并给它们打分。我们还没有尝试的，是判断我们的预测是否「好」。所以，在我们看 <code>mlr3</code> 的构件如何扩展到分类之前，我们先短暂停顿一下，把上面所有内容组合到一个评估预测质量的小实验中。我们将通过比较一个无特征（featureless）回归学习器和一个改了超参数的决策树的性能来做这件事。</p>
+<div class="cell">
+<div class="sourceCode" id="cb112"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3.mlr-org.com">mlr3</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">349</span><span class="op">)</span></span>
+<span><span class="co"># load and partition our task</span></span>
+<span><span class="va">tsk_mtcars</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"mtcars"</span><span class="op">)</span></span>
+<span><span class="va">splits</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/partition.html">partition</a></span><span class="op">(</span><span class="va">tsk_mtcars</span><span class="op">)</span></span>
+<span><span class="co"># load featureless learner</span></span>
+<span><span class="va">lrn_featureless</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.featureless"</span><span class="op">)</span></span>
+<span><span class="co"># load decision tree and set hyperparameters</span></span>
+<span><span class="va">lrn_rpart</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"regr.rpart"</span>, cp <span class="op">=</span> <span class="fl">0.2</span>, maxdepth <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span><span class="co"># load MSE and MAE measures</span></span>
+<span><span class="va">measures</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msrs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"regr.mse"</span>, <span class="st">"regr.mae"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># train learners</span></span>
+<span><span class="va">lrn_featureless</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_mtcars</span>, <span class="va">splits</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_mtcars</span>, <span class="va">splits</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span><span class="co"># make and score predictions</span></span>
+<span><span class="va">lrn_featureless</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_mtcars</span>, <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">measures</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>regr.mse regr.mae 
+  63.288    6.409 </code></pre>
+</div>
+<div class="sourceCode" id="cb114"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_mtcars</span>, <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">measures</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>regr.mse regr.mae 
+  21.806    3.664 </code></pre>
+</div>
+</div>
+<p>实验开始前，我们加载了 <code>mlr3</code> 库并设置了一个种子（seed）。我们用 <code><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk()</a></code> 加载 <code>mtcars</code> 任务，然后用默认的 2/3 划分比例的 <code>partition</code> 来切分。接下来，我们用一个 <code><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn()</a></code> 函数加载了无特征基线学习器（<code>"regr.featureless"</code>）。然后，我们加载了一个决策树（<code>lrn("regr.rpart")</code>）但把复杂度参数和树的最大深度从默认值改掉。我们接着用 <code><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msrs()</a></code> 一次加载多个度量：均方误差（MSE：<code>regr.mse</code>）和平均绝对误差（MAE：<code>regr.mae</code>）。所有对象加载完毕后，我们训练了模型，确保把相同的训练数据传给二者。最后，我们从训练好的模型做出预测并打分。对 MSE 和 MAE 来说，数值越小越「好」（<code>Minimize: TRUE</code>），因此我们可以得出结论：我们的决策树比无特征基线表现更好。在<a href="../chapter3/evaluation_and_benchmarking.html#sec-benchmarking" class="quarto-xref"><span>第 3.3 节</span></a>中，我们将看到如何用 <a href="https://mlr3.mlr-org.com/reference/benchmark.html"><code>benchmark()</code></a> 以更高效的方式形式化模型之间的比较。</p>
+<p>现在我们把所有东西组合起来之后，你可能会注意到，我们的学习器和度量都带有 <code>"regr."</code> 前缀，这是一个便捷的提醒：我们正在处理一个回归任务，因此必须使用为回归构建的学习器和度量。在下一节中，我们将把 <code>mlr3</code> 的构件扩展到分类任务，分类任务使用带有 <code>"classif."</code> 前缀的学习器和度量。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>这个"第一个实验"串联了 Task → Learner → Resampling(partition) → Prediction → Measure 完整链路。两点值得留意：① <code>set.seed(349)</code> 固定了随机划分与采样，保证结果可复现；② 代码中 `lrn("regr.rpart", cp = 0.2, maxdepth = 5)` 把决策树的复杂度参数提升到 0.2（默认 0.01），相当于给树"剪枝"，避免过拟合（对应决策树的 bias-variance 权衡，参见 ESL 第 9 章/ISLR 第 8 章）。在「基线 vs 模型」比较中，MSE 由 63.29 降到 21.81 是很明显的提升。前缀体系 `regr.*`/`classif.*` 是 mlr3 命名空间约定，与 sklearn 文档中 `classifier/regressor` 的模块划分作用类似。</p>
+</div>
+</section><section id="sec-classif" class="level2 page-columns page-full" data-number="2.5"><h2 data-number="2.5" class="anchored" data-anchor-id="sec-classif">
+<span class="header-section-number">2.5</span> 分类（Classification）</h2>
+<p>分类问题是这样一类问题：模型预测的是离散的、类别型的目标，而不是连续的数值量。例如，根据企鹅的物理特征预测企鹅的物种就是一个分类问题，因为物种有确定的范围。<code>mlr3</code> 确保所有任务的接口尽可能相似（甚至完全相同），因此我们不会重复上一节的内容，只专注于那些让分类成为一个独特机器学习问题的差异。我们将首先通过一个与<a href="#sec-basics-regr-experiment" class="quarto-xref"><span>第 2.4 节</span></a>非常相似的实验来展示回归与分类的相似之处，所用的代码你现在应该已经熟悉了。然后我们转向任务、学习器和预测的差异，最后看阈值化（thresholding）——一种分类特有的方法。</p>
+<section id="sec-basics-classif-experiment" class="level3" data-number="2.5.1"><h3 data-number="2.5.1" class="anchored" data-anchor-id="sec-basics-classif-experiment">
+<span class="header-section-number">2.5.1</span> 我们的第一个分类实验（Our First Classification Experiment）</h3>
+<p>分类任务、学习器和度量的接口，与回归设置相同，只是底层对象分别继承自 <a href="https://mlr3.mlr-org.com/reference/TaskClassif.html"><code>TaskClassif</code></a>、<a href="https://mlr3.mlr-org.com/reference/LearnerClassif.html"><code>LearnerClassif</code></a> 和 <a href="https://mlr3.mlr-org.com/reference/MeasureClassif.html"><code>MeasureClassif</code></a>。因此，我们可以运行一个和上面非常相似的实验。</p>
+<div class="cell">
+<div class="sourceCode" id="cb116"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3.mlr-org.com">mlr3</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">349</span><span class="op">)</span></span>
+<span><span class="co"># load and partition our task</span></span>
+<span><span class="va">tsk_penguins</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"penguins"</span><span class="op">)</span></span>
+<span><span class="va">splits</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/partition.html">partition</a></span><span class="op">(</span><span class="va">tsk_penguins</span><span class="op">)</span></span>
+<span><span class="co"># load featureless learner</span></span>
+<span><span class="va">lrn_featureless</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.featureless"</span><span class="op">)</span></span>
+<span><span class="co"># load decision tree and set hyperparameters</span></span>
+<span><span class="va">lrn_rpart</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.rpart"</span>, cp <span class="op">=</span> <span class="fl">0.2</span>, maxdepth <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span><span class="co"># load accuracy measure</span></span>
+<span><span class="va">measure</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span></span>
+<span><span class="co"># train learners</span></span>
+<span><span class="va">lrn_featureless</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_penguins</span>, <span class="va">splits</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_penguins</span>, <span class="va">splits</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span><span class="co"># make and score predictions</span></span>
+<span><span class="va">lrn_featureless</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_penguins</span>, <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">measure</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>classif.acc 
+     0.4561 </code></pre>
+</div>
+<div class="sourceCode" id="cb118"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_penguins</span>, <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">measure</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>classif.acc 
+     0.9474 </code></pre>
+</div>
+</div>
+<p>在这个实验中，我们加载了基于 <a href="https://www.rdocumentation.org/packages/palmerpenguins/topics/penguins"><code>penguins</code></a> 数据集的预定义任务 <code>penguins</code>，然后把数据划分成训练集和测试集。我们加载了无特征分类基线（使用默认设置，即总是预测训练数据中最常见的类，但也有选项预测（均匀或加权的）随机响应值）和一个分类决策树，然后加载准确率度量（正确预测数除以总预测数），训练模型，最后做出预测并打分。我们再次可以为我们的预测感到满意，它们远比基线准确。</p>
+<p>既然我们已经看到了分类与回归的相似之处，就可以转向一些关键差异了。</p>
+</section><section id="taskclassif" class="level3 page-columns page-full" data-number="2.5.2"><h3 data-number="2.5.2" class="anchored" data-anchor-id="taskclassif">
+<span class="header-section-number">2.5.2</span> TaskClassif</h3>
+<p>分类任务，即继承自 <a href="https://mlr3.mlr-org.com/reference/TaskClassif.html"><code>TaskClassif</code></a> 的对象，与回归任务非常相似，区别只在于目标变量是因子（factor）类型的，只有有限数量的可能类/类别供观测落入其中。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>TaskClassif</code></span></div></div>
+<p>可以过滤 <code>mlr_tasks</code> 字典来查看 <code>mlr3</code> 中预定义的分类任务：</p>
+<div class="cell">
+<div class="sourceCode" id="cb120"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">mlr_tasks</span><span class="op">)</span><span class="op">[</span><span class="va">task_type</span> <span class="op">==</span> <span class="st">"classif"</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>              key                    label task_type   nrow ncol
+ 1:    adult_test                     &lt;NA&gt;   classif  15315   13
+ 2:   adult_train                     &lt;NA&gt;   classif  30718   13
+ 3: breast_cancer  Wisconsin Breast Cancer   classif    683   10
+ 4:       cifar10  CIFAR-10 Classification   classif  60000    2
+ 5:      cifar100 CIFAR-100 Classification   classif  60000    2
+---                                                             
+19:          spam        HP Spam Detection   classif   4601   58
+20: tiny_imagenet          ImageNet Subset   classif 110000    2
+21:       titanic                  Titanic   classif   1309   11
+22:          wine             Wine Regions   classif    178   14
+23:           zoo              Zoo Animals   classif    101   17
+10 variables not shown: [properties, lgl, int, dbl, chr, fct, ord, pxc, dte, lt]</code></pre>
+</div>
+</div>
+<p>你可以用 <a href="https://mlr3.mlr-org.com/reference/as_task_classif.html"><code>as_task_classif</code></a> 创建自己的任务。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>as_task_classif</code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb122"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/as_task_classif.html">as_task_classif</a></span><span class="op">(</span><span class="fu">palmerpenguins</span><span class="fu">::</span><span class="va"><a href="https://allisonhorst.github.io/palmerpenguins/reference/penguins.html">penguins</a></span>, target <span class="op">=</span> <span class="st">"species"</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;TaskClassif&gt; (344x8) ────────────────────────────────────────────────
+• Target: species
+• Properties: multiclass
+• Features (7):
+  • int (3): body_mass_g, flipper_length_mm, year
+  • dbl (2): bill_depth_mm, bill_length_mm
+  • fct (2): island, sex
+• Target classes: Adelie (44%), Gentoo (36%), Chinstrap (20%)</code></pre>
+</div>
+</div>
+<p><code>mlr3</code> 支持两类分类任务：二分类（binary classification），其中结果只能是两个类别之一；以及多分类（multiclass classification），其中结果可以是三个或更多类别之一。</p>
+<p><code>sonar</code> 任务是二分类问题的例子，因为目标只能取两个不同的值，用 <code>mlr3</code> 术语说它有「twoclass」属性：</p>
+<div class="cell">
+<div class="sourceCode" id="cb124"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_sonar</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"sonar"</span><span class="op">)</span></span>
+<span><span class="va">tsk_sonar</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;TaskClassif&gt; (208x61): Sonar: Mines vs. Rocks ───────────────────────
+• Target: Class
+• Properties: twoclass
+• Features (60):
+  • dbl (60): V1, V10, V11, V12, V13, V14, V15, V16, V17, V18, V19, V2,
+  V20, V21, V22, V23, V24, V25, V26, V27, V28, V29, V3, V30, V31, V32,
+  V33, V34, V35, V36, V37, V38, V39, V4, V40, V41, V42, V43, V44, V45,
+  V46, V47, V48, V49, V5, V50, V51, V52, V53, V54, V55, V56, V57, V58,
+  V59, V6, V60, V7, V8, V9
+• Target classes: M (positive class, 53%), R (47%)</code></pre>
+</div>
+<div class="sourceCode" id="cb126"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_sonar</span><span class="op">$</span><span class="va">class_names</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "M" "R"</code></pre>
+</div>
+</div>
+<p>相反，<code>tsk("penguins")</code> 是一个多分类问题，因为企鹅的物种不止两种；它带有「multiclass」属性：</p>
+<div class="cell">
+<div class="sourceCode" id="cb128"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_penguins</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"penguins"</span><span class="op">)</span></span>
+<span><span class="va">tsk_penguins</span><span class="op">$</span><span class="va">properties</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "multiclass"</code></pre>
+</div>
+<div class="sourceCode" id="cb130"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tsk_penguins</span><span class="op">$</span><span class="va">class_names</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Adelie"    "Chinstrap" "Gentoo"   </code></pre>
+</div>
+</div>
+<p>这些任务之间的另一个差异是，二分类任务还有一个叫作 <code>$positive</code> 的额外字段，它定义「正」类。在二分类中，由于只有两种可能的类别，按约定其中一个被称为「正」类，另一个被称为「负」类。哪个是哪个是任意的，不过通常会把更「重要」（而且常常更少）的那个类设为正类。你可以在构造期间或之后设置正类。如果没有指定正类，<code>mlr3</code> 会假设 <code>target</code> 列的第一个水平是正类，这可能导致误导性的结果。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">$positive</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb132"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># Load the "Sonar" dataset from the "mlbench" package as an example</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html">data</a></span><span class="op">(</span><span class="va">Sonar</span>, package <span class="op">=</span> <span class="st">"mlbench"</span><span class="op">)</span></span>
+<span><span class="co"># specifying the positive class:</span></span>
+<span><span class="va">tsk_classif</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/as_task_classif.html">as_task_classif</a></span><span class="op">(</span><span class="va">Sonar</span>, target <span class="op">=</span> <span class="st">"Class"</span>, positive <span class="op">=</span> <span class="st">"R"</span><span class="op">)</span></span>
+<span><span class="va">tsk_classif</span><span class="op">$</span><span class="va">positive</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "R"</code></pre>
+</div>
+<div class="sourceCode" id="cb134"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># changing after construction</span></span>
+<span><span class="va">tsk_classif</span><span class="op">$</span><span class="va">positive</span> <span class="op">=</span> <span class="st">"M"</span></span>
+<span><span class="va">tsk_classif</span><span class="op">$</span><span class="va">positive</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "M"</code></pre>
+</div>
+</div>
+<p>虽然正类与负类的选择是任意的，但它们对于确保模型和性能度量的结果按预期解读至关重要——这一点在我们讨论阈值化（<a href="#sec-classif-prediction" class="quarto-xref"><span>第 2.5.4 节</span></a>）和 ROC 度量（<a href="../chapter3/evaluation_and_benchmarking.html#sec-roc" class="quarto-xref"><span>第 3.4 节</span></a>）时最能体现。</p>
+<p>最后，可以借助 <a href="https://mlr3viz.mlr-org.com/reference/autoplot.TaskClassif.html"><code>autoplot.TaskClassif</code></a> 绘图，下面我们画出目标列与特征的对比。</p>
+<div class="cell">
+<div class="sourceCode" id="cb136"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org">ggplot2</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"penguins"</span><span class="op">)</span>, type <span class="op">=</span> <span class="st">"duo"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html">theme</a></span><span class="op">(</span>strip.text.y <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span><span class="op">(</span>angle <span class="op">=</span> <span class="op">-</span><span class="fl">45</span>, size <span class="op">=</span> <span class="fl">8</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-penguins-overview" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Diagram showing the distribution of target and feature values for a subset of the penguins data. The 'Adelie' species has an even split between male/female, short bill length and average bill depth. The 'Chinstrap' species only come from the island 'Dream' and have a lower body mass. The 'Gentoo' species only come from the island 'Biscoe', and have a longer flipper length and higher body mass.">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-penguins-overview-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/data_and_basic_modeling_files/figure-html/fig-penguins-overview-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Diagram showing the distribution of target and feature values for a subset of the penguins data. The 'Adelie' species has an even split between male/female, short bill length and average bill depth. The 'Chinstrap' species only come from the island 'Dream' and have a lower body mass. The 'Gentoo' species only come from the island 'Biscoe', and have a longer flipper length and higher body mass.">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-penguins-overview-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;2.5：penguins 数据集部分数据概览。
+</figcaption></figure>
+</div>
+</div>
+</div>
+
+</section><section id="sec-basics-classif-learner" class="level3 page-columns page-full" data-number="2.5.3"><h3 data-number="2.5.3" class="anchored" data-anchor-id="sec-basics-classif-learner">
+<span class="header-section-number">2.5.3</span> LearnerClassif 与 MeasureClassif</h3>
+<p>分类学习器继承自 <a href="https://mlr3.mlr-org.com/reference/LearnerClassif.html"><code>LearnerClassif</code></a>，其接口与回归学习器几乎相同。然而，一个关键区别是，分类中可能的预测要么是 <code>"response"</code>——预测某个观测的类别（在我们的例子中即企鹅的物种，有时也叫「硬标签 hard labeling」）——要么是 <code>"prob"</code>——预测一个概率向量，也叫「后验概率（posterior probabilities）」，表示观测属于每个类别的概率。在分类中，后者往往更有用，因为它提供了关于预测置信度的信息：</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>LearnerClassif</code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb137"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rpart</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.rpart"</span>, predict_type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_penguins</span>, <span class="va">splits</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span><span class="va">prediction</span> <span class="op">=</span> <span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_penguins</span>, <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span>
+<span><span class="va">prediction</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionClassif&gt; for 114 observations: ────────────────────────────
+ row_ids     truth  response prob.Adelie prob.Chinstrap prob.Gentoo
+       1    Adelie    Adelie     0.97030         0.0297     0.00000
+       2    Adelie    Adelie     0.97030         0.0297     0.00000
+       3    Adelie    Adelie     0.97030         0.0297     0.00000
+     ---       ---       ---         ---            ---         ---
+     338 Chinstrap Chinstrap     0.04255         0.9362     0.02128
+     339 Chinstrap Chinstrap     0.04255         0.9362     0.02128
+     342 Chinstrap Chinstrap     0.04255         0.9362     0.02128</code></pre>
+</div>
+</div>
+<p>请注意，预测包含了所有三个类别的预测概率，同时也包含 <code>response</code>，即（默认地）预测概率最高的那个类别。</p>
+<p>此外，逻辑上属于 <a href="https://mlr3.mlr-org.com/reference/MeasureClassif.html"><code>MeasureClassif</code></a> 类的分类度量，其接口与回归度量完全相同。使用上的关键区别在于，你需要确保所选的度量评估的是你关心的预测类型。要评估 <code>"response"</code> 预测，你需要 <code>predict_type = "response"</code> 的度量；要评估概率预测，则需要 <code>predict_type = "prob"</code> 的度量。找到这些度量最容易的方式是过滤 <a href="https://mlr3.mlr-org.com/reference/mlr_measures.html"><code>mlr_measures</code></a> 字典：</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>MeasureClassif</code></span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb139"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">[</span></span>
+<span>    <span class="va">task_type</span> <span class="op">==</span> <span class="st">"classif"</span> <span class="op">&amp;</span> <span class="va">predict_type</span> <span class="op">==</span> <span class="st">"prob"</span> <span class="op">&amp;</span></span>
+<span>    <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">sapply</a></span><span class="op">(</span><span class="va">task_properties</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="st">"twoclass"</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">x</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                 key                                      label
+1:   classif.logloss                                   Log Loss
+2: classif.mauc_au1p    Weighted average 1 vs. 1 multiclass AUC
+3: classif.mauc_au1u             Average 1 vs. 1 multiclass AUC
+4: classif.mauc_aunp Weighted average 1 vs. rest multiclass AUC
+5: classif.mauc_aunu          Average 1 vs. rest multiclass AUC
+6:   classif.mauc_mu                          Multiclass mu AUC
+7:    classif.mbrier                     Multiclass Brier Score
+5 variables not shown: [task_type, packages, predict_type, properties, task_properties]</code></pre>
+</div>
+</div>
+<p>我们还做了过滤，去掉了带有 <code>"twoclass"</code> 属性的度量，因为那会与我们的 <code>"multiclass"</code> 任务冲突。这一步我们得用 <code>sapply</code>，因为 <code>task_properties</code> 列是一个列表列。我们可以同时提供多个度量，来同时评估我们的概率预测和 response 预测的质量：</p>
+<div class="cell">
+<div class="sourceCode" id="cb141"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">measures</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msrs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"classif.mbrier"</span>, <span class="st">"classif.logloss"</span>, <span class="st">"classif.acc"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="va">measures</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> classif.mbrier classif.logloss     classif.acc 
+         0.1029          0.7548          0.9386 </code></pre>
+</div>
+</div>
+<p>准确率度量评估的是 <code>"response"</code> 预测，而 Brier 分数（<code>"classif.mbrier"</code>，预测概率与真值之差的平方）和 logloss（<code>"classif.logloss"</code>，真实类别预测概率的负对数）评估的是概率预测。</p>
+<p>如果没有向 <code>$score()</code> 传度量，默认是分类误差（classification error，<code>msr("classif.ce")</code>），即错误分类数除以预测数，也就是 <span class="math inline">\(1 -\)</span> <code>msr("classif.acc")</code>。</p>
+
+</section><section id="sec-classif-prediction" class="level3 page-columns page-full" data-number="2.5.4"><h3 data-number="2.5.4" class="anchored" data-anchor-id="sec-classif-prediction">
+<span class="header-section-number">2.5.4</span> <code>PredictionClassif</code>、混淆矩阵（Confusion Matrix）与阈值化（Thresholding）</h3>
+<p><a href="https://mlr3.mlr-org.com/reference/PredictionClassif.html"><code>PredictionClassif</code></a> 对象与其回归对应的对象相比有两个重要差异。第一，增加了 <code>$confusion</code> 字段；第二，增加了 <code>$set_threshold()</code> 方法。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>PredictionClassif</code></span></div></div>
+<section id="confusion-matrix" class="level4 unnumbered unlisted page-columns page-full"><h4 class="unnumbered unlisted anchored" data-anchor-id="confusion-matrix">混淆矩阵（Confusion matrix）</h4>
+<p>混淆矩阵是一种展示分类（response）预测质量的热门方式，通过它可以看到模型是否擅长（误）分类某个特定类的观测。对于二分类和多分类，混淆矩阵存放在 <a href="https://mlr3.mlr-org.com/reference/PredictionClassif.html"><code>PredictionClassif</code></a> 对象的 <code>$confusion</code> 字段中：</p><div class="no-row-height column-margin column-container"><span class="margin-aside">混淆矩阵（Confusion Matrix）</span><span class="margin-aside">$confusion</span></div></div>
+<div class="cell">
+<div class="sourceCode" id="cb143"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span><span class="op">$</span><span class="va">confusion</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           truth
+response    Adelie Chinstrap Gentoo
+  Adelie        48         2      0
+  Chinstrap      4        14      1
+  Gentoo         0         0     45</code></pre>
+</div>
+</div>
+<p>混淆矩阵的行是预测类，列是真实类。所有非对角线元素都是被错误分类的观测，所有对角线元素都是正确分类的。<code>mlr3</code> 在数据被分析时自动检测每个观测属于哪个类。在本例中，分类器对所有企鹅的分类都做得相当好，但也有可能我们发现它只把 Adelie 种分类得好，却经常把 Chinstrap 和 Gentoo 混淆，等等。</p>
+<p>你可以用 <code>autoplot.PredictionClassif()</code> 可视化预测的类别标签。</p>
+<div class="cell">
+<div class="sourceCode" id="cb145"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">prediction</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-basics-classlabels" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Two stacked bar plots. Bottom left corresponds to true number of Gentoo species (41), middle left is true Chinstrap (22) and top left is true Adelie (50). Bottom right is predicted number of Gentoo species (41), middle right is Chinstrap (20), and top right is Adelie (52).">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-basics-classlabels-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/data_and_basic_modeling_files/figure-html/fig-basics-classlabels-1.png" class="img-fluid figure-img" style="width:70.0%" alt="Two stacked bar plots. Bottom left corresponds to true number of Gentoo species (41), middle left is true Chinstrap (22) and top left is true Adelie (50). Bottom right is predicted number of Gentoo species (41), middle right is Chinstrap (20), and top right is Adelie (52).">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-basics-classlabels-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;2.6：真值数据中各类别标签的计数（左）与预测（右）。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>在二分类情形下，左上角元素对应真正例（true positives），右上角对应假正例（false positives），左下角对应假反例（false negatives），右下角对应真反例（true negatives）。以 <code>tsk_sonar</code> 为例、<code>M</code> 作为正类：</p>
+<div class="cell">
+<div class="sourceCode" id="cb146"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">splits</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/partition.html">partition</a></span><span class="op">(</span><span class="va">tsk_sonar</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span></span>
+<span>  <span class="fu">train</span><span class="op">(</span><span class="va">tsk_sonar</span>, <span class="va">splits</span><span class="op">$</span><span class="va">train</span><span class="op">)</span><span class="op">$</span></span>
+<span>  <span class="fu">predict</span><span class="op">(</span><span class="va">tsk_sonar</span>, <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span><span class="op">$</span></span>
+<span>  <span class="va">confusion</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        truth
+response  M  R
+       M 16 13
+       R 13 27</code></pre>
+</div>
+</div>
+<p>我们将在<a href="../chapter3/evaluation_and_benchmarking.html#sec-roc" class="quarto-xref"><span>第 3.4 节</span></a>更详细地回到二分类（误）分类的概念上。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>混淆矩阵（confusion matrix）是"分类体检表"。二分类下四个格子构成两个主要尺度：① 精确率（precision）= TP/(TP+FP)，"预测为正的里面有多少是真的正"；② 召回率/灵敏度（recall/sensitivity）= TP/(TP+FN)，"真正的正类里被找出多少"。真正例率 TPR = 召回率，假正例率 FPR = FP/(FP+TN)。这些量是 ROC 曲线与 PR 曲线的原料（第 3 章）。注意"正类"必须明确：你把 M 还是 R 当 positive，混淆矩阵解读就完全不同。文中 'M' 作为正类的例子里，FP=13 意味着把 13 个真岩石误报为矿，FN=13 则意味着漏掉了 13 个矿。医疗场景常要求高灵敏度（少漏诊），金融反欺诈则常要求高精确率（少误伤）。</p>
+</div>
+</section><section id="thresholding" class="level4 unnumbered unlisted page-columns page-full"><h4 class="unnumbered unlisted anchored" data-anchor-id="thresholding">阈值化（Thresholding）</h4>
+<p>我们将讨论的与回归相比的最后一个重要差异是阈值化。我们之前看到，默认的 <code>response</code> 预测类型就是预测概率最高的类。对于预测概率为 <span class="math inline">\(p_1,\dots,p_k\)</span> 的 <span class="math inline">\(k\)</span> 个类，这等价于说 <code>response</code> = argmax<span class="math inline">\(\{p_1,\dots,p_k\}\)</span>。如果最大概率不唯一，即多个类被预测为具有最高的概率，则从这些类中随机选择作为 response。在二分类中，这意味着如果预测正类的概率大于 50%，就选正类，否则选负类。</p><div class="no-row-height column-margin column-container"><span class="margin-aside">阈值化（Thresholding）</span></div></div>
+<p>这个 50% 的值被称为阈值（threshold），在以下情形改变这个阈值可能有用：存在类别不平衡（class imbalance，即数据集中某一类过代表或欠代表）、不同类别有不同的成本，或者仅仅是因为偏好在某个类别上「过度」预测。举例来说，我们取 <code>tsk("german_credit")</code>，其中有 700 个信用良好客户和 300 个信用不佳客户。我们很容易就能造出一个准确率约「70%」的模型——只要总是预测客户信用良好：</p>
+<div class="cell">
+<div class="sourceCode" id="cb148"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">task_credit</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"german_credit"</span><span class="op">)</span></span>
+<span><span class="va">lrn_featureless</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.featureless"</span>, predict_type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span></span>
+<span><span class="va">split</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/partition.html">partition</a></span><span class="op">(</span><span class="va">task_credit</span><span class="op">)</span></span>
+<span><span class="va">lrn_featureless</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">task_credit</span>, <span class="va">split</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span><span class="va">prediction</span> <span class="op">=</span> <span class="va">lrn_featureless</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">task_credit</span>, <span class="va">split</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span>
+<span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>classif.acc 
+     0.6576 </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb150"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">prediction</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-basics-classlabels-german" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Two stacked bar plots. Bottom left corresponds to true number of 'good' customers (231) and top left is 'bad' customers (99). Right is a single bar corresponding to 330 'good' predictions, 'bad' is never predicted.">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-basics-classlabels-german-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/data_and_basic_modeling_files/figure-html/fig-basics-classlabels-german-1.png" class="img-fluid figure-img" style="width:70.0%" alt="Two stacked bar plots. Bottom left corresponds to true number of 'good' customers (231) and top left is 'bad' customers (99). Right is a single bar corresponding to 330 'good' predictions, 'bad' is never predicted.">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-basics-classlabels-german-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;2.7：类别标签的真实值（左）与预测（右）。该学习器完全忽略了「bad」类。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>虽然这个模型的性能表面上看似乎不错，但实际上它只是忽略了所有「bad」客户——这在金融例子中会引发大问题，在医疗保健任务以及其他假正例（false positive）比假反例（false negative）代价更高的场景中同样如此（关于代价敏感分类，见<a href="../chapter13/beyond_regression_and_classification.html#sec-cost-sens" class="quarto-xref"><span>第 13.1 节</span></a>）。</p>
+<p>阈值化允许以不同的概率阈值来选择类别，因此，我们不再是在 P(good) &lt; 50% 时预测客户信用不佳，而是可能在 P(good) &lt; 70% 时就预测信用不佳——注意我们是如何用正类的措辞来表达的，本任务中的正类是 'good'。让我们看看实际效果：</p>
+<div class="cell">
+<div class="sourceCode" id="cb151"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span><span class="op">$</span><span class="fu">set_threshold</span><span class="op">(</span><span class="fl">0.7</span><span class="op">)</span></span>
+<span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>classif.acc 
+     0.6576 </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb153"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rpart</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.rpart"</span>, predict_type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">task_credit</span>, <span class="va">split</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span><span class="va">prediction</span> <span class="op">=</span> <span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">task_credit</span>, <span class="va">split</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span>
+<span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>classif.acc 
+     0.6727 </code></pre>
+</div>
+<div class="sourceCode" id="cb155"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span><span class="op">$</span><span class="va">confusion</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        truth
+response good bad
+    good  196  87
+    bad    21  26</code></pre>
+</div>
+<div class="sourceCode" id="cb157"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span><span class="op">$</span><span class="fu">set_threshold</span><span class="op">(</span><span class="fl">0.7</span><span class="op">)</span></span>
+<span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>classif.acc 
+     0.6727 </code></pre>
+</div>
+<div class="sourceCode" id="cb159"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span><span class="op">$</span><span class="va">confusion</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        truth
+response good bad
+    good  196  87
+    bad    21  26</code></pre>
+</div>
+</div>
+<p>虽然我们的模型总体上表现得「更差」，即准确率更低，但它仍然是一个「更好」的模型，因为它更准确地捕捉了类之间的关系。</p>
+<p>在二分类设置下，<code>$set_threshold()</code> 只需要一个数值参数，它对应正类的阈值——因此确保你的任务中正确设置正类至关重要。</p>
+<p>在多分类中，阈值化的运作方式是：先给 <span class="math inline">\(n\)</span> 个类各分配一个阈值，把每个类的预测概率除以各自的阈值，得到 <span class="math inline">\(n\)</span> 个比值，然后选择比值最高的那个类。例如，假设我们在预测一个新观测将属于 A、B、C 还是 D 类，并且已预测 <span class="math inline">\(P(A = 0.2), P(B = 0.4), P(C = 0.1), P(D = 0.3)\)</span>。假设所有类的阈值都相同，都是 <code>1</code>：</p>
+<div class="cell">
+<div class="sourceCode" id="cb161"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">probs</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">0.4</span>, <span class="fl">0.1</span>, <span class="fl">0.3</span><span class="op">)</span></span>
+<span><span class="va">thresholds</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>A <span class="op">=</span> <span class="fl">1</span>, B <span class="op">=</span> <span class="fl">1</span>, C <span class="op">=</span> <span class="fl">1</span>, D <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">probs</span><span class="op">/</span><span class="va">thresholds</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  A   B   C   D 
+0.2 0.4 0.1 0.3 </code></pre>
+</div>
+</div>
+<p>因此我们会预测这个观测属于 B 类，因为它的比值最高。然而，我们可以改变阈值，让 D 的阈值最低、最容易被预测到，A 的阈值最高，而 B 和 C 的阈值相等：</p>
+<div class="cell">
+<div class="sourceCode" id="cb163"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">thresholds</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>A <span class="op">=</span> <span class="fl">0.5</span>, B <span class="op">=</span> <span class="fl">0.25</span>, C <span class="op">=</span> <span class="fl">0.25</span>, D <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span>
+<span><span class="va">probs</span><span class="op">/</span><span class="va">thresholds</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  A   B   C   D 
+0.4 1.6 0.4 3.0 </code></pre>
+</div>
+</div>
+<p>现在我们的观测将被预测为 D 类。</p>
+<p>在 <code>mlr3</code> 中，这是通过把命名列表（named list）传给 <code>$set_threshold()</code> 实现的。下面用 <code>tsk("zoo")</code> 演示。在改变阈值之前，有些类从未被预测到，而有些类的被预测次数超过了它们的真实出现次数。</p>
+<div class="cell">
+<div class="sourceCode" id="cb165"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org">ggplot2</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com">patchwork</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">tsk_zoo</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"zoo"</span><span class="op">)</span></span>
+<span><span class="va">splits</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/partition.html">partition</a></span><span class="op">(</span><span class="va">tsk_zoo</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.rpart"</span>, predict_type <span class="op">=</span> <span class="st">"prob"</span><span class="op">)</span></span>
+<span><span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">tsk_zoo</span>, <span class="va">splits</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span><span class="va">prediction</span> <span class="op">=</span> <span class="va">lrn_rpart</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">tsk_zoo</span>, <span class="va">splits</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span>
+<span><span class="va">before</span> <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">prediction</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ggtitle</a></span><span class="op">(</span><span class="st">"Default thresholds"</span><span class="op">)</span></span>
+<span><span class="va">new_thresh</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/proportions.html">proportions</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html">table</a></span><span class="op">(</span><span class="va">tsk_zoo</span><span class="op">$</span><span class="fu">truth</span><span class="op">(</span><span class="va">splits</span><span class="op">$</span><span class="va">train</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">new_thresh</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+       mammal          bird       reptile          fish     amphibian 
+      0.38235       0.20588       0.07353       0.11765       0.05882 
+       insect mollusc.et.al 
+      0.10294       0.05882 </code></pre>
+</div>
+<div class="sourceCode" id="cb167"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span><span class="op">$</span><span class="fu">set_threshold</span><span class="op">(</span><span class="va">new_thresh</span><span class="op">)</span></span>
+<span><span class="va">after</span> <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html">autoplot</a></span><span class="op">(</span><span class="va">prediction</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ggtitle</a></span><span class="op">(</span><span class="st">"Inverse weighting thresholds"</span><span class="op">)</span></span>
+<span><span class="va">before</span> <span class="op">+</span> <span class="va">after</span> <span class="op">+</span> <span class="fu"><a href="https://patchwork.data-imaginist.com/reference/plot_layout.html">plot_layout</a></span><span class="op">(</span>guides <span class="op">=</span> <span class="st">"collect"</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-zoopreds" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Four stacked barplots comparing predictions before and after thresholding. Before thresholding some classes are over-predicted and some are never predicted. After thresholding there is still some imbalance but less drastic.">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-zoopreds-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/data_and_basic_modeling_files/figure-html/fig-zoopreds-1.png" class="img-fluid figure-img" style="width:100.0%" alt="Four stacked barplots comparing predictions before and after thresholding. Before thresholding some classes are over-predicted and some are never predicted. After thresholding there is still some imbalance but less drastic.">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-zoopreds-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;2.8：比较 zoo 数据集的预测值与真值。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>我们再次看到，阈值化之后模型能更好地代表所有类别。在这个例子中，我们把新阈值设为训练集中各类别的比例。这被称为逆向加权（inverse weighting），因为我们在选择比值最高的标签之前，用这些类别比例去除预测概率。</p>
+<p>在<a href="../chapter13/beyond_regression_and_classification.html#sec-cost-sens" class="quarto-xref"><span>第 13.1 节</span></a>中，我们将研究代价敏感分类（cost-sensitive classification），其中的混淆矩阵每个格子都有不同的相关代价。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>阈值化是分类中最实用也最容易忽略的"免费杠杆"。核心思想：概率模型给的 <span class="math inline">\(p\)</span> 只是"信心分数"，把它切成哪两类取决于业务。二分类时默认 0.5 阈值隐含假设"两类误判代价对称、类别大致平衡"，一旦类别不平衡或误判代价不对称（如癌症漏诊 vs 误诊、风控放款损失 vs 拒贷损失），0.5 就未必最优。调高阈值（如只在 P(good)≥0.7 才放款）会降低假正例（误放给坏客户）但损失部分好客户，通常伴随准确率下降——本书因此强调"性能指标要与业务目标对齐"。多分类的推广是"比值法"：<span class="math inline">\(\hat{y} = \arg\max_i p_i / t_i\)</span>；把阈值设成类别先验比例（逆向加权）会让稀有类更容易被"选上"。注意 <code>set_threshold</code> 也有原文一个印刷问题，见下节正文。</p>
+</div>
+</section></section></section><section id="sec-row-col-roles" class="level2 page-columns page-full" data-number="2.6"><h2 data-number="2.6" class="anchored" data-anchor-id="sec-row-col-roles">
+<span class="header-section-number">2.6</span> 任务列角色（Task Column Roles）</h2>
+<div class="callout callout-style-simple callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+本节涉及高级 ML 或技术细节。
+</div>
+</div>
+<div class="callout-body-container callout-body">
+
+</div>
+</div>
+<p>既然我们已经覆盖了回归和分类，我们简要回到任务，特别是列角色（column roles），它们用于进一步定制任务。列角色被 <code>Task</code> 对象使用，用来定义能被学习器和其他对象用于与任务交互的重要元数据。名副其实，它们把特定的角色分配给数据中的列，我们已经看到了一些正在发挥作用的角色，例如目标和特征。共有七种列角色：</p>
+<ol type="1">
+<li>
+<code>"feature"</code>：用于预测的特征。</li>
+<li>
+<code>"target"</code>：待预测的目标变量。</li>
+<li>
+<code>"name"</code>：行名/观测标签，例如对 <code>mtcars</code> 而言，就是 <code>"model"</code> 列。</li>
+<li>
+<code>"order"</code>：用于对 <code>$data()</code> 返回的数据进行排序的变量；必须能用 <code><a href="https://rdrr.io/r/base/order.html">order()</a></code> 排序。</li>
+<li>
+<code>"group"</code>：用于在重采样（resampling）时保持观测在一起的变量。</li>
+<li>
+<code>"stratum"</code>：用于在重采样时进行分层（stratify）的变量。</li>
+<li>
+<code>"weights_learner"</code>：训练时学习器使用的权重。只能有一个数值列承担该角色。</li>
+<li>
+<code>"weights_measure"</code>：打分时度量使用的权重。只能有一个数值列承担该角色。</li>
+</ol>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>原文此处列出了 8 项却声称"七种（seven）列角色"，属于原文的笔误——第 7、8 项 <code>weights_learner</code>/<code>weights_measure</code> 实际是互相关联的"行权重"角色；按类别划分，这 8 项分别覆盖 feature/target/name/order/group/stratum/weights。正确理解应以实际列出的 8 种为准。特殊的是 <code>order</code>、<code>group</code>、<code>stratum</code>、<code>weights_*</code> 这几类"非特征"角色：它们不会作为 x 进入模型，而是向数据添加结构语义（排序、随机化约束、样本权重）。ISLR 第 5 章讨论交叉验证时提到的"分组/分层抽样"在本框架下就对应 <code>group</code> 与 <code>stratum</code> 角色，第 3 章 3.2.6 节会详述。</p>
+</div>
+<p>我们在<a href="#sec-tasks" class="quarto-xref"><span>第 2.1 节</span></a>中已经看到特征和目标如何工作，它们也是每个任务必须拥有的仅有的列角色。在<a href="../chapter3/evaluation_and_benchmarking.html#sec-strat-group" class="quarto-xref"><span>第 3.2.6 节</span></a>中，我们将研究 <code>stratum</code> 和 <code>group</code> 列角色。所以，现阶段我们只看 <code>order</code> 和 <code>weight</code>。我们不会深入讨论 <code>name</code>，它主要用于绘图，并且几乎总是底层数据的 <code><a href="https://rdrr.io/r/base/colnames.html">rownames()</a></code>。</p>
+<p>列角色用 <code>$set_col_roles()</code> 更新。当我们设置 <code>"order"</code> 列角色时，数据会按该列（或多列）排序。在下面的例子中，我们设置 <code>"order"</code> 列角色，然后通过包含 <code>ordered = TRUE</code> 让数据按该列排序：</p>
+<div class="cell">
+<div class="sourceCode" id="cb168"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">df</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span><span class="va">mtcars</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, <span class="op">]</span>, idx <span class="op">=</span> <span class="fl">2</span><span class="op">:</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">tsk_mtcars_order</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/as_task_regr.html">as_task_regr</a></span><span class="op">(</span><span class="va">df</span>, target <span class="op">=</span> <span class="st">"mpg"</span><span class="op">)</span></span>
+<span><span class="co"># original order</span></span>
+<span><span class="va">tsk_mtcars_order</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span>ordered <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   mpg am carb cyl disp drat gear  hp idx  qsec vs    wt
+1:  21  1    4   6  160  3.9    4 110   2 16.46  0 2.620
+2:  21  1    4   6  160  3.9    4 110   1 17.02  0 2.875</code></pre>
+</div>
+<div class="sourceCode" id="cb170"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># order by "idx" column</span></span>
+<span><span class="va">tsk_mtcars_order</span><span class="op">$</span><span class="fu">set_col_roles</span><span class="op">(</span><span class="st">"idx"</span>, roles <span class="op">=</span> <span class="st">"order"</span><span class="op">)</span></span>
+<span><span class="va">tsk_mtcars_order</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span>ordered <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   mpg am carb cyl disp drat gear  hp  qsec vs    wt
+1:  21  1    4   6  160  3.9    4 110 17.02  0 2.875
+2:  21  1    4   6  160  3.9    4 110 16.46  0 2.620</code></pre>
+</div>
+</div>
+<p>在这个例子中，我们可以看到，通过把 <code>"idx"</code> 设置为 <code>"order"</code> 列角色，当我们运行 <code>$data()</code> 时它不再被用作特征，而是按其值对观测进行排序。这个元数据不会传给学习器。</p>
+<p><code>weights_learner</code> 列角色用于给数据点赋予不同的权重。这样做的原因之一是严重类别不平衡的分类任务，此时给少数类赋予更大的权重可能提高模型对该类的预测性能。例如在 <code>breast_cancer</code> 数据集中，良性肿瘤的实例多于恶性肿瘤，因此如果我们想更好地预测恶性肿瘤，就可以对数据偏向该类进行加权：</p>
+<div class="cell">
+<div class="sourceCode" id="cb172"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">cancer_unweighted</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"breast_cancer"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html">summary</a></span><span class="op">(</span><span class="va">cancer_unweighted</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">class</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>malignant    benign 
+      239       444 </code></pre>
+</div>
+<div class="sourceCode" id="cb174"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># add column where weight is 2 if class "malignant", and 1 otherwise</span></span>
+<span><span class="va">df</span> <span class="op">=</span> <span class="va">cancer_unweighted</span><span class="op">$</span><span class="fu">data</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">df</span><span class="op">$</span><span class="va">weights</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html">ifelse</a></span><span class="op">(</span><span class="va">df</span><span class="op">$</span><span class="va">class</span> <span class="op">==</span> <span class="st">"malignant"</span>, <span class="fl">2</span>, <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># create new task and role</span></span>
+<span><span class="va">cancer_weighted</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/as_task_classif.html">as_task_classif</a></span><span class="op">(</span><span class="va">df</span>, target <span class="op">=</span> <span class="st">"class"</span><span class="op">)</span></span>
+<span><span class="va">cancer_weighted</span><span class="op">$</span><span class="fu">set_col_roles</span><span class="op">(</span><span class="st">"weights"</span>, roles <span class="op">=</span> <span class="st">"weights_learner"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># compare weighted and unweighted predictions</span></span>
+<span><span class="va">split</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/partition.html">partition</a></span><span class="op">(</span><span class="va">cancer_unweighted</span><span class="op">)</span></span>
+<span><span class="va">lrn_rf</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.ranger"</span><span class="op">)</span></span>
+<span><span class="va">lrn_rf</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">cancer_unweighted</span>, <span class="va">split</span><span class="op">$</span><span class="va">train</span><span class="op">)</span><span class="op">$</span></span>
+<span>  <span class="fu">predict</span><span class="op">(</span><span class="va">cancer_unweighted</span>, <span class="va">split</span><span class="op">$</span><span class="va">test</span><span class="op">)</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>classif.ce 
+   0.05333 </code></pre>
+</div>
+<div class="sourceCode" id="cb176"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">lrn_rf</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">cancer_weighted</span>, <span class="va">split</span><span class="op">$</span><span class="va">train</span><span class="op">)</span><span class="op">$</span></span>
+<span>  <span class="fu">predict</span><span class="op">(</span><span class="va">cancer_weighted</span>, <span class="va">split</span><span class="op">$</span><span class="va">test</span><span class="op">)</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>classif.ce 
+      0.04 </code></pre>
+</div>
+</div>
+<p>在这个例子中，加权提升了整体模型性能（但更严格全面的比较方法见<a href="../chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>）。并非所有模型都能处理任务中的权重，所以请检查学习器的属性，确保这个列角色按预期被使用。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>「样本权重（sample weights）」是处理类别不平衡与"不等重要性样本"的通用技术。注意两个角色：<code>weights_learner</code> 把权重传给训练算法（如 ranger 里对应 case.weights，xgboost 里对应 w），<code>weights_measure</code> 在打分时让不同样本的误差权重不同。支持的算法才能在 <code>$properties</code> 里看到 <code>weights</code>（如 ranger 支持），否则会报错。handler: 在 <code>as_task_classif</code> 之后调用 <code>$set_col_roles</code> 把它标为权重列，该列不会进入特征集合。相比"过采样/欠采样（oversampling/undersampling）"，加权不改变样本本身，只是改变损失贡献，更"温和"；<code>classif.ranger</code> 在此例中把分类误差从 0.053 降到 0.04。注意必须给两个任务传相同的划分（这里 <code>split</code> 来自 unweighted 任务，因为映射到行 ID 一致才可比）。</p>
+</div>
+</section><section id="sec-lrns-add" class="level2" data-number="2.7"><h2 data-number="2.7" class="anchored" data-anchor-id="sec-lrns-add">
+<span class="header-section-number">2.7</span> 支持的机器学习算法（Supported Learning Algorithms）</h2>
+<p><code>mlr3</code> 以 <code>Learner</code> 的形式支持许多机器学习算法（有些有多个实现）。它们主要由 <a href="https://mlr3.mlr-org.com"><code>mlr3</code></a>、<a href="https://mlr3learners.mlr-org.com"><code>mlr3learners</code></a> 和 <a href="https://mlr3extralearners.mlr-org.com"><code>mlr3extralearners</code></a> 包提供。不过，所有实现新任务（<a href="../chapter13/beyond_regression_and_classification.html" class="quarto-xref"><span>第 13 章</span></a>）的包也会附带少数简单算法。</p>
+<p><code>mlr3</code> 中内置的学习器列表刻意保持很小，以避免庞大的依赖集：</p>
+<ul>
+<li>无特征学习器（<code>"regr.featureless"</code>/<code>"classif.featureless"</code>），它们是基线学习器（<a href="#sec-basics-featureless" class="quarto-xref"><span>第 2.2.4 节</span></a>）。</li>
+<li>调试学习器（<code>"regr.debug"</code>/<code>"classif.debug"</code>），用于调试代码（<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-error-handling" class="quarto-xref"><span>第 10.2 节</span></a>）。</li>
+<li>分类与回归树（也称 CART：<code>"regr.rpart"</code>/<code>"classif.rpart"</code>）。</li>
+</ul>
+<p><a href="https://mlr3learners.mlr-org.com"><code>mlr3learners</code></a> 包包含 mlr 团队挑选的一组算法（和一些实现），我们建议把它们作为大多数实验的良好起点：</p>
+<ul>
+<li>线性回归（<code>"regr.lm"</code>）和逻辑回归（<code>"classif.log_reg"</code>）。</li>
+<li>惩罚广义线性模型（penalized generalized linear models），惩罚要么作为超参数暴露（<code>"regr.glmnet"</code>/<code>"classif.glmnet"</code>），要么被自动优化（<code>"regr.cv_glmnet"</code>/<code>"classif.cv_glmnet"</code>）。</li>
+<li>加权 <span class="math inline">\(k\)</span> 近邻（Weighted k-Nearest Neighbors）（<code>"regr.kknn"</code>/<code>"classif.kknn"</code>）。</li>
+<li>克里金 / 高斯过程回归（Kriging / Gaussian process regression）（<code>"regr.km"</code>）。</li>
+<li>线性判别分析（<code>"classif.lda"</code>）和二次判别分析（<code>"classif.qda"</code>）。</li>
+<li>朴素贝叶斯分类（<code>"classif.naive_bayes"</code>）。</li>
+<li>支持向量机（<code>"regr.svm"</code>/<code>"classif.svm"</code>）。</li>
+<li>梯度提升（Gradient boosting）（<code>"regr.xgboost"</code>/<code>"classif.xgboost"</code>）。</li>
+<li>随机森林回归与分类（<code>"regr.ranger"</code>/<code>"classif.ranger"</code>）。</li>
+</ul>
+<p>其余大多数受支持的学习器都在 <a href="https://mlr3extralearners.mlr-org.com"><code>mlr3extralearners</code></a> 中。你可以在 <a href="https://mlr-org.com/learners.html">https://mlr-org.com/learners.html</a> 找到最新的学习器列表。</p>
+<p><a href="https://mlr3.mlr-org.com/reference/mlr_learners.html"><code>mlr_learners</code></a> 字典包含已加载包中受支持的学习器：</p>
+<div class="cell">
+<div class="sourceCode" id="cb178"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">learners_dt</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="va">mlr_learners</span><span class="op">)</span></span>
+<span><span class="va">learners_dt</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                    key                                      label
+  1: classif.AdaBoostM1                          Adaptive Boosting
+  2:        classif.C50                           Tree-based Model
+  3:        classif.IBk                           Nearest Neighbor
+  4:        classif.J48                           Tree-based Model
+  5:       classif.JRip                 Propositional Rule Learner
+ ---                                                              
+298:         surv.rpart                              Survival Tree
+299:       surv.survdnn SurvDNN (torch-based deep survival models)
+300:           surv.svm            Survival Support Vector Machine
+301:   surv.xgboost.aft              Extreme Gradient Boosting AFT
+302:   surv.xgboost.cox              Extreme Gradient Boosting Cox
+5 variables not shown: [task_type, feature_types, packages, properties, predict_types]</code></pre>
+</div>
+</div>
+<p>得到的 <code>data.table</code> 包含大量元数据，对识别具有特定属性的学习器很有用。例如，我们可以列出所有支持分类问题的学习器：</p>
+<div class="cell">
+<div class="sourceCode" id="cb180"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">learners_dt</span><span class="op">[</span><span class="va">task_type</span> <span class="op">==</span> <span class="st">"classif"</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                          key                      label task_type
+  1:       classif.AdaBoostM1          Adaptive Boosting   classif
+  2:              classif.C50           Tree-based Model   classif
+  3:              classif.IBk           Nearest Neighbor   classif
+  4:              classif.J48           Tree-based Model   classif
+  5:             classif.JRip Propositional Rule Learner   classif
+ ---                                                              
+118:         classif.vgg16_bn                     VGG 16   classif
+119:            classif.vgg19                     VGG 19   classif
+120:         classif.vgg19_bn                     VGG 19   classif
+121: classif.voted_perceptron           Voted Perceptron   classif
+122:          classif.xgboost  Extreme Gradient Boosting   classif
+4 variables not shown: [feature_types, packages, properties, predict_types]</code></pre>
+</div>
+</div>
+<p>我们还可以按多个条件过滤，例如列出所有能够预测标准误差的回归学习器：</p>
+<div class="cell">
+<div class="sourceCode" id="cb182"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">learners_dt</span><span class="op">[</span><span class="va">task_type</span> <span class="op">==</span> <span class="st">"regr"</span> <span class="op">&amp;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">sapply</a></span><span class="op">(</span><span class="va">predict_types</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="st">"se"</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">x</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                key
+ 1:        regr.bam
+ 2:      regr.bcart
+ 3:        regr.bgp
+ 4:     regr.bgpllm
+ 5:        regr.blm
+---                
+25:        regr.mob
+26:      regr.mqgam
+27: regr.polynomial
+28:       regr.qgam
+29:     regr.ranger
+6 variables not shown: [label, task_type, feature_types, packages, properties, predict_types]</code></pre>
+</div>
+</div>
+
+</section><section id="conclusion" class="level2" data-number="2.8"><h2 data-number="2.8" class="anchored" data-anchor-id="conclusion">
+<span class="header-section-number">2.8</span> 结论（Conclusion）</h2>
+<p>在本章中，我们覆盖了 <a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 的基本构件。我们先介绍了基础的 ML 方法论，然后展示了它在 <code>mlr3</code> 中如何实现。我们首先看了 <a href="https://mlr3.mlr-org.com/reference/Task.html"><code>Task</code></a> 类，它用于定义机器学习任务或要解决的问题。然后我们看了 <a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 类，它封装机器学习算法、超参数和其他元信息。最后，我们考虑了如何用 <a href="https://mlr3.mlr-org.com/reference/Measure.html"><code>Measure</code></a> 类的对象评估机器学习模型。在看回归实现之后，我们把以上全部扩展到分类设置，最后又看了一些关于任务及 <code>mlr3</code> 中实现的学习算法的额外细节。本书其余部分将基于本章见到的基本元素进一步展开，首先在<a href="../chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>介绍更高级的模型比较方法，然后在<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>用自动化超参数调优来提高模型性能。</p>
+<div id="tbl-basics-api" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-basics-api-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+表&nbsp;2.2：本章涉及的类与函数，附底层类（如适用）、类的构造函数或函数，以及重要的类字段与方法（如适用）。
+</figcaption><div aria-describedby="tbl-basics-api-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead><tr class="header">
+<th>类（Class）</th>
+<th>构造函数/函数（Constructor/Function）</th>
+<th>字段/方法（Fields/Methods）</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://mlr3.mlr-org.com/reference/Task.html"><code>Task</code></a></td>
+<td>
+<a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html"><code>tsk()</code></a>/<a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html"><code>tsks()</code></a>/<code>as_task_X</code>
+</td>
+<td>
+<code>$filter()</code>；<code>$select()</code>；<code>$data()</code>
+</td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a></td>
+<td>
+<a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html"><code>lrn()</code></a>/<a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html"><code>lrns()</code></a>
+</td>
+<td>
+<code>$train()</code>；<code>$predict()</code>；<code>$predict_newdata()</code>；<code>$model()</code>；<code>$configure()</code>
+</td>
+</tr>
+<tr class="odd">
+<td><a href="https://mlr3.mlr-org.com/reference/Prediction.html"><code>Prediction</code></a></td>
+<td><code>some_learner$predict()</code></td>
+<td>
+<code>$score()</code>；<code>$set_threshold()</code>；<code>$confusion</code>
+</td>
+</tr>
+<tr class="even">
+<td><a href="https://mlr3.mlr-org.com/reference/Measure.html"><code>Measure</code></a></td>
+<td>
+<a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html"><code>msr()</code></a>/<a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html"><code>msrs()</code></a>
+</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section><section id="exercises" class="level2" data-number="2.9"><h2 data-number="2.9" class="anchored" data-anchor-id="exercises">
+<span class="header-section-number">2.9</span> 练习（Exercises）</h2>
+<ol type="1">
+<li>用 <code>classif.rpart</code> 学习器在合成的「diabetes」数据集上训练一个分类模型。不要使用 <code>tsk("diabetes")</code>，而是从 <code>mlbench</code> 包中的数据集构造任务：<code>data("SynthDiabetes2", package = "mlbench")</code>。确保把 <code>pos</code> 结果定义为正类。在给定数据的随机 80% 子集上训练模型，并在剩余数据上用分类误差度量评估其性能。（注意该数据集的特征中存在 NA。你可以依赖 <code>rpart</code> 内部处理它们的能力（「替代分裂 surrogate splits」），或者用 <code>na.omit</code> 把它们从初始 <code>data.frame</code> 中删除。</li>
+<li>计算练习 1 中模型所做预测的真正例、假正例、真反例和假反例率。尝试用两种方法解决：(a) 使用 <code>mlr3measures</code> 预定义的度量对象；(b) 不使用 <code>mlr3</code> 工具，直接基于真值向量和预测向量计算。比较结果。</li>
+<li>改变练习 1 中模型的阈值，使假正例率低于假反例率。这么做的一个现实理由可能是什么？</li>
+</ol></section><section id="citation" class="level2" data-number="2.10"><h2 data-number="2.10" class="anchored" data-anchor-id="citation">
+<span class="header-section-number">2.10</span> 引用（Citation）</h2>
+<p>请按如下方式引用本章：</p>
+<p>Foss N, Kotthoff L. (2024). Data and Basic Modeling. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/data_and_basic_modeling.html.</p>
+<div class="sourceCode" id="cb184"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb184-1"><a href="#cb184-1" aria-hidden="true" tabindex="-1"></a><span class="va">@incollection</span>{<span class="ot">citekey</span>,</span>
+<span id="cb184-2"><a href="#cb184-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span> = "<span class="st">Natalie Foss and Lars Kotthoff</span>",</span>
+<span id="cb184-3"><a href="#cb184-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span> = "<span class="st">Data and Basic Modeling</span>",</span>
+<span id="cb184-4"><a href="#cb184-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">booktitle</span> = "<span class="st">Applied Machine Learning Using {m}lr3 in {R}</span>",</span>
+<span id="cb184-5"><a href="#cb184-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">publisher</span> = "<span class="st">CRC Press</span>", <span class="st">year</span> = "<span class="st">2024</span>",</span>
+<span id="cb184-6"><a href="#cb184-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">editor</span> = "<span class="st">Bernd Bischl and Raphael Sonabend and Lars Kotthoff and Michel Lang</span>",</span>
+<span id="cb184-7"><a href="#cb184-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">url</span> = "<span class="st">https://mlr3book.mlr-org.com/data_and_basic_modeling.html</span>"</span>
+<span id="cb184-8"><a href="#cb184-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+</section>
+  </main>
+  <nav class="chnav">
+    <a class="" href="ch01-introduction-overview.html"><span class="dir">上一章</span><span class="ch">第 1 章 绪论与概览</span></a>
+    <a class="" href="ch03-evaluation-benchmarking.html"><span class="dir">下一章</span><span class="ch">第 3 章 评估与基准测试</span></a>
+  </nav>
+  <div class="footer">
+    <div>《Applied Machine Learning Using mlr3 in R》中文译本 · 非官方翻译</div>
+    <div class="lic">原文 © 2024 CRC Press（Bischl, Sonabend, Kotthoff &amp; Lang 主编，CC BY-NC-SA 4.0）· 本站由志愿翻译，仅供学习交流</div>
+  </div>
+</div>
+<script>
+MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] } };
+</script>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
+</body>
+</html>

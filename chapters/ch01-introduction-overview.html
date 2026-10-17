@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Introduction and Overview</title>
+<script>
+(function(){
+  var saved = localStorage.getItem("mlr3-theme");
+  if (saved === null) saved = "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+})();
+</script>
+<style>
+:root {
+  --bg: #1e2228; --fg: #d8dee4; --muted: #9aa4b0;
+  --panel: #262c34; --panel2: #2e3540; --border: #3a4350;
+  --accent: #4ea1ff; --accent2: #8f7ae6;
+  --code-bg: #161a20; --code-fg: #d8dee4;
+  --note-bg: #2a3450; --note-border: #5a7fff;
+  --callout-bg: #2b3826; --callout-border: #6bbf59;
+  --table-head: #2e3540; --table-row: #262c34; --link: #6cb0ff;
+  --h-border: #3a4350;
+}
+[data-theme="light"] {
+  --bg: #f7f8fa; --fg: #24292f; --muted: #57606a;
+  --panel: #ffffff; --panel2: #f0f2f5; --border: #d9dee3;
+  --accent: #0969da; --accent2: #8250df;
+  --code-bg: #f3f4f6; --code-fg: #24292f;
+  --note-bg: #eef2ff; --note-border: #5a7fff;
+  --callout-bg: #eff7ec; --callout-border: #6bbf59;
+  --table-head: #eef1f4; --table-row: #ffffff; --link: #0969da;
+  --h-border: #d9dee3;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  line-height: 1.78; font-size: 16px;
+  transition: background .2s, color .2s;
+}
+.container { max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+/* 顶栏 */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+}
+.topbar .brand { font-weight: 600; font-size: 15px; color: var(--fg); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+.topbar .brand .logo { color: var(--accent); }
+.topbar .right { display: flex; align-items: center; gap: 10px; }
+.topbar .home-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+.topbar .home-link:hover { color: var(--accent); }
+.theme-toggle {
+  background: var(--panel2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+/* 章头 */
+.header-block { padding: 34px 0 12px; border-bottom: 1px solid var(--h-border); margin-bottom: 26px; }
+.header-block .part { color: var(--accent2); font-size: 13px; letter-spacing: .08em; margin-bottom: 6px; }
+.header-block h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.35; }
+.header-block .subtitle { color: var(--muted); font-size: 14px; }
+/* 章节导航 */
+.chnav { display: flex; justify-content: space-between; gap: 12px; margin: 30px 0 6px; flex-wrap: wrap; }
+.chnav a {
+  background: var(--panel); border: 1px solid var(--border); color: var(--fg);
+  text-decoration: none; font-size: 14px; padding: 10px 16px; border-radius: 8px;
+  max-width: 46%; display: block;
+}
+.chnav a:hover { border-color: var(--accent); color: var(--accent); }
+.chnav .dir { color: var(--muted); font-size: 12px; display: block; }
+.chnav .ch { font-weight: 600; }
+.chnav a.disabled { opacity: .4; pointer-events: none; }
+/* 正文 */
+main { padding: 0 0 20px; }
+main h1 { font-size: 26px; margin: 40px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--h-border); }
+main h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--h-border); }
+main h3 { font-size: 18px; margin: 28px 0 10px; }
+main h4 { font-size: 16px; margin: 22px 0 8px; color: var(--accent); }
+main p { margin: 10px 0; }
+main a { color: var(--link); text-decoration: none; }
+main a:hover { text-decoration: underline; }
+main strong { font-weight: 600; }
+main ul, main ol { padding-left: 26px; }
+main li { margin: 5px 0; }
+main blockquote {
+  margin: 12px 0; padding: 10px 16px; border-left: 4px solid var(--border);
+  background: var(--panel2); color: var(--muted); border-radius: 0 6px 6px 0;
+}
+main hr { border: none; border-top: 1px solid var(--border); margin: 26px 0; }
+main img { max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 6px; }
+main table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+main th { background: var(--table-head); font-weight: 600; }
+main th, main td { border: 1px solid var(--border); padding: 7px 11px; }
+main tr:nth-child(even) td { background: var(--table-row); }
+/* 代码 */
+pre {
+  background: var(--code-bg); color: var(--code-fg);
+  padding: 14px 16px; border-radius: 8px; overflow-x: auto;
+  border: 1px solid var(--border); font-size: 13.5px; line-height: 1.6;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+code {
+  font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+  background: var(--panel2); color: var(--accent);
+  padding: 2px 5px; border-radius: 4px; font-size: 13.5px;
+}
+pre code { background: none; color: var(--code-fg); padding: 0; }
+/* 代码块容器（Quarto 结构） */
+.sourceCode { margin: 14px 0; }
+.sourceCode pre { margin: 0; }
+/* 输出块 */
+.cell { margin: 6px 0; }
+.cell-output { margin: 0 0 6px; }
+.cell-output pre { background: var(--panel2); border-style: dashed; }
+.cell-output-stderr { border-color: #d29922; }
+.cell-output-stdout pre { border-color: var(--border); }
+/* figure */
+figure { margin: 18px 0; text-align: center; }
+figure img { margin: 0 auto; }
+figcaption, .caption { color: var(--muted); font-size: 13px; margin-top: 6px; text-align: center; }
+.quarto-float { margin: 18px 0; }
+.quarto-figure { margin: 18px 0; text-align: center; }
+/* 背景与解释（译者注）框 */
+.bg-note {
+  background: var(--note-bg); border: 1px solid var(--note-border);
+  border-radius: 8px; padding: 14px 18px; margin: 18px 0;
+  font-size: 15px;
+}
+.bg-note p { margin: 6px 0; }
+.bg-note .bg-title { font-weight: 600; color: var(--accent); }
+/* 原书 callout 提示框 */
+.callout {
+  border-radius: 8px; padding: 12px 18px; margin: 16px 0;
+  border-left: 5px solid var(--accent); background: var(--panel2);
+}
+.callout-tip { border-left-color: #6bbf59; }
+.callout-note { border-left-color: var(--accent); }
+.callout-warning { border-left-color: #d29922; }
+.callout-important { border-left-color: #e05d5d; }
+.callout-header { font-weight: 600; margin-bottom: 4px; }
+.callout-title-container { display: inline; }
+.callout-body p { margin: 6px 0; }
+.callout-icon-container { display: none; }
+/* 脚注 */
+.footnote-ref { font-size: 12px; vertical-align: super; }
+/* 页脚 */
+.footer {
+  margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 13px; text-align: center;
+}
+.footer .lic { margin-top: 6px; font-size: 12px; }
+/* 表格滚动 */
+main table { display: block; overflow-x: auto; }
+/* banner 样式（原书 callout 可能以其他名目出现） */
+[class*="callout"] > p:first-child { margin-top: 4px; }
+</style>
+<script>
+function toggleTheme(){
+  var cur = document.documentElement.getAttribute("data-theme");
+  var next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("mlr3-theme", next);
+}
+</script>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="logo">&#9638;</span> mlr3 中文版</a>
+  <div class="right">
+    <a class="home-link" href="index.html">目录</a>
+    <button class="theme-toggle" onclick="toggleTheme()">&#9681; 主题</button>
+  </div>
+</div>
+<div class="container">
+  <div class="header-block">
+    <div class="part">第一部分前瞻</div>
+    <h1>Introduction and Overview</h1>
+    <div class="subtitle">《Applied Machine Learning Using mlr3 in R》中文翻译 · 章节 第 1 章 绪论与概览</div>
+  </div>
+  <main>
+<p><strong>Lars Kotthoff</strong> <br><em>美国怀俄明大学（University of Wyoming）</em></p>
+<p><strong>Raphael Sonabend</strong> <br><em>英国帝国理工学院（Imperial College London）</em></p>
+<p><strong>Natalie Foss</strong> <br><em>美国怀俄明大学（University of Wyoming）</em></p>
+<p><strong>Bernd Bischl</strong> <br><em>德国慕尼黑大学（Ludwig-Maximilians-Universität München），及慕尼黑机器学习中心（Munich Center for Machine Learning, MCML）</em> <br><br></p>
+<p>欢迎来到「R 中的机器学习（Machine Learning in R）」宇宙。在本书中，我们将一步步带你领略 <code>mlr3</code> 所提供的功能。如果你想为我们的宇宙贡献力量、提出任何问题、阅读文档，或者只是想和团队聊聊，可以前往 <a href="https://github.com/mlr-org/mlr3">https://github.com/mlr-org/mlr3</a>，其 README 中有若干有用的链接。</p>
+<p><a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 包 <span class="citation" data-cites="mlr3">(<a href="../references.html#ref-mlr3" role="doc-biblioref">Lang et al. 2019</a>)</span> 以及更广泛的 <code>mlr3</code> 生态系统为 R 语言 <span class="citation" data-cites="R">(<a href="../references.html#ref-R" role="doc-biblioref">R Core Team 2019</a>)</span> 提供了一个通用、面向对象且可扩展的框架，用于回归（回归, Regression）（<a href="../chapter2/data_and_basic_modeling.html#sec-tasks" class="quarto-xref"><span>第 2.1 节</span></a>）、分类（分类, Classification）（<a href="../chapter2/data_and_basic_modeling.html#sec-classif" class="quarto-xref"><span>第 2.5 节</span></a>）以及其他机器学习任务（<a href="../chapter13/beyond_regression_and_classification.html" class="quarto-xref"><span>第 13 章</span></a>）。在最基本的层面上，这个统一接口提供了训练、测试和评估许多机器学习算法的功能。你还可以在此基础上更进一步，进行超参数优化（hyperparameter optimization）、计算流水线（computational pipelines）、模型解释（model interpretation）等等。<code>mlr3</code> 的整体目标与 R 的 <code>caret</code> 和 <code>tidymodels</code>、Python 的 <code>scikit-learn</code> 以及 Julia 的 <code>MLJ</code> 类似。总体而言，<a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 的设计目标是在提供比其他 ML 框架更多的灵活性的同时，仍为使用高级功能提供简便的途径。虽然 <code>tidymodels</code> 特别擅长让简单的 ML 任务变得非常容易，但 <a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 更面向高级 ML。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>本书所指的「ML 任务（Task）」与日常所说的"任务/工作"含义不同，而是 <code>mlr3</code> 中的核心概念——一个 R6 对象，它封装了「数据集 + 预测目标」构成建模问题。回归与分类即监督学习（supervised learning）的两大基本问题：回归的目标变量是连续数值（如房价），分类的目标变量是离散类别（如物种）。同时注意 <code>mlr3</code> 与 <code>caret</code>、<code>tidymodels</code> 的关系：它们都是 R 生态中的机器学习统一框架，相当于建立一个"统一的 API"来调用底层大量算法；但 <code>mlr3</code> 默认基于 R6 的引用语义（reference semantics）和嵌套表格（data.table、list-column）设计，更强调灵活性、可扩展性与可组合性，也因此在构建复杂流水线、调优与基准测试（benchmarking）时表现更强。</p>
+</div>
+<p>在我们展示 <code>mlr3</code> 的全部威力之前，我们建议你先安装 <a href="https://mlr3verse.mlr-org.com"><code>mlr3verse</code></a> 包，它会一次性安装 <code>mlr3</code> 生态系统中的若干重要包。</p>
+<div class="cell">
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"mlr3verse"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>在本书纸质版出版之后新增的章节，都会用「+」号标注。</p>
+<section id="installguide" class="level2 page-columns page-full" data-number="1.1"><h2 data-number="1.1" class="anchored" data-anchor-id="installguide">
+<span class="header-section-number">1.1</span> 安装指南（Installation Guidelines）</h2>
+<p>在 <code>mlr3</code> 生态系统中，有许多包可能是你通读本书过程中想要使用的。我们所有的包都可以从 GitHub 和 R-universe<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> 安装；其中大多数（但不是全部）包也可以从 CRAN 安装。我们建议你把 mlr-org 的 R-universe 添加到你的 R 选项中，这样你就可以直接用 <code><a href="https://rdrr.io/r/utils/install.packages.html">install.packages()</a></code> 安装所有包，而不必担心它来自哪个软件仓库。为此，请安装 <a href="https://cran.r-project.org/package=usethis"><code>usethis</code></a> 并运行以下命令：</p>
+<div class="no-row-height column-margin column-container"><div id="fn1"><p><sup>1</sup>&nbsp;R-universe 是除 CRAN 之外的另一个包仓库。下面这段代码告诉 R 在尝试安装包时同时查看 R-universe 和 CRAN。R 总是会安装软件包的最新版本。</p></div></div><div class="cell">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">usethis</span><span class="fu">::</span><span class="fu">edit_r_profile</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>在打开的文件中，添加或修改 <code>options</code> 里的 <code>repos</code> 参数，使其看起来像下面的代码（你可能需要添加下面整个代码块，或者只编辑现有的 <code>options</code> 函数）。</p>
+<div class="cell">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html">options</a></span><span class="op">(</span>repos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span></span>
+<span>  mlrorg <span class="op">=</span> <span class="st">"https://mlr-org.r-universe.dev"</span>,</span>
+<span>  CRAN <span class="op">=</span> <span class="st">"https://cloud.r-project.org/"</span></span>
+<span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>保存文件，重启你的 R 会话，就可以开始使用了！</p>
+<p>如果你想要我们任何包的最新开发版本，请运行</p>
+<div class="cell">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html">install_github</a></span><span class="op">(</span><span class="st">"mlr-org/{pkg}"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>把 <code>{pkg}</code> 替换成你想要安装的包名即可。你可以在这里看到我们所有扩展包的最新列表：<a href="https://github.com/mlr-org/mlr3/wiki/Extension-Packages">https://github.com/mlr-org/mlr3/wiki/Extension-Packages</a>。</p>
+<section id="docker-images" class="level3 unnumbered unlisted"><h3 class="unnumbered unlisted anchored" data-anchor-id="docker-images">Docker 镜像（Docker Images）</h3>
+<p>作为在 R 中安装包之外的另一选项，你可以使用来自 <a href="https://github.com/mlr-org/mlr3docker">https://github.com/mlr-org/mlr3docker</a> 仓库的、预构建好的 Docker 镜像。这些镜像提供了开箱即用的环境，其中已经安装好了 <code>mlr3</code> 及其生态系统。你可以从 <a href="https://hub.docker.com/u/mlrorg">https://hub.docker.com/u/mlrorg</a> 拉取这些镜像：</p>
+<ul>
+<li>
+<code>mlrorg/mlr3-slim:latest</code>：一个轻量级镜像，基于 <code>rocker/r-ver:latest</code> 构建，已安装 <code>mlr3verse</code>。</li>
+<li>
+<code>mlrorg/mlr3-full:latest</code>：一个完整镜像，基于 <code>rocker/rstudio:latest</code> 构建，已安装 <code>mlr3verse</code> 以及带全部依赖的 <code>mlr3extralearners</code>。</li>
+</ul>
+<p>要拉取并运行其中一个镜像，请使用：</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>docker pull mlrorg<span class="sc">/</span>mlr3<span class="sc">-</span>slim<span class="sc">:</span>latest</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>docker run <span class="sc">-</span>it mlrorg<span class="sc">/</span>mlr3<span class="sc">-</span>slim<span class="sc">:</span>latest R</span></code></pre></div>
+</div>
+<p>完整镜像（full image）包含 RStudio，容器运行后可以通过 Web 浏览器访问。</p>
+</section></section><section id="howtouse" class="level2" data-number="1.2"><h2 data-number="1.2" class="anchored" data-anchor-id="howtouse">
+<span class="header-section-number">1.2</span> 如何使用本书（How to Use This Book）</h2>
+<p>你可以从头到尾通读这本书，但按照你的需求在各章节之间跳着读可能获益更多，我们提供了全面的索引，帮助你找到相关的页面和小节。我们确实建议你完整阅读本书的第 1 部分，因为它会为你提供我们的基础基础设施和设计的完整概览，这些在我们的整个生态系统中都被使用。</p>
+<p>对于某些在技术或方法细节上特别复杂、首次阅读时可以跳过的章节，我们用以下信息框进行了标记：</p>
+<div class="callout callout-style-simple callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+本节涉及高级 ML 或技术细节。
+</div>
+</div>
+<div class="callout-body-container callout-body">
+
+</div>
+</div>
+<p>每一章都包含示例、API 参考和方法论解释。在书的每一部分末尾，我们都收入了练习题（exercises），供你检验所学知识；你可以在 <a href="https://mlr3book.mlr-org.com/solutions.html">https://mlr3book.mlr-org.com/solutions.html</a> 找到这些练习题的解答。我们用星号「*」标记了更具挑战性（也可能更花时间）的练习。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>原文将本书结构分为若干"部分（part）"，每一部分末尾附有练习题。与 ISLR（《统计学习导论》）等教材按章节布置习题不同，mlr3book 以"部分"为单位组织习题；另有在线版的附录与字典（dictionaries）总表可供查阅。若你主要使用 R 进行应用型机器学习（applied ML），建议把本书当作"上手手册"配合官方文档使用。</p>
+</div>
+<p>如果你想更详细地了解本书使用的任何任务，或者需要所有 <code>mlr3</code> 字典的链接，请参阅本书在线版（<a href="https://mlr3book.mlr-org.com/">https://mlr3book.mlr-org.com/</a>）的附录。</p>
+<section id="reproducibility" class="level4 unnumbered unlisted"><h4 class="unnumbered unlisted anchored" data-anchor-id="reproducibility">可复现性（Reproducibility）</h4>
+<p>在每章开头，我们都会运行 <code>set.seed(123)</code>，并使用 <a href="https://cran.r-project.org/package=renv"><code>renv</code></a> 管理包版本，你可以在 <a href="https://github.com/mlr-org/mlr3book/blob/main/book/renv.lock">https://github.com/mlr-org/mlr3book/blob/main/book/renv.lock</a> 找到我们的 lockfile（锁定文件）。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong><code>set.seed(123)</code> 用于固定 R 随机数生成器的种子，使涉及随机性的步骤（如交叉验证折的划分、自助抽样）在每次运行时产生相同结果，以便复现书中的输出。`renv` 是 R 的依赖管理工具，类似 Python 的 `requirements.txt`/`pipenv`：lockfile 记录每个包的确切版本，保证"同样的代码 + 同样的环境"得到同样的结果。这也是机器学习研究中「可复现性（reproducibility）」的基本要求，值得中文读者在自行实验时也养成习惯。</p>
+</div>
+</section></section><section id="styleguide" class="level2" data-number="1.3"><h2 data-number="1.3" class="anchored" data-anchor-id="styleguide">
+<span class="header-section-number">1.3</span> mlr3book 代码风格（mlr3book Code Style）</h2>
+<p>在本书中，我们将统一采用以下代码风格：</p>
+<ol type="1">
+<li><p>赋值一律使用 <code>=</code>，而不是 <code>&lt;-</code>。</p></li>
+<li><p>类名使用 <code>UpperCamelCase</code>（大驼峰命名法）。</p></li>
+<li><p>函数名和方法名使用 <code>lower_snake_case</code>（小写下划线命名法）。</p></li>
+<li><p>提到函数时，我们只会为 <code>mlr3</code> 宇宙之外的函数，或可能存在歧义（无法判断函数存在于哪个包中）的函数加上包前缀（例如 <code>pkg::function</code>）。注意你可以用 <code>environment(function)</code> 查看某个函数是从哪个命名空间加载的。</p></li>
+<li>
+<p>我们按如下方式标记包（package）、字段（field）、方法（method）和函数（function）：</p>
+<ul>
+<li>
+<code>package</code>（首次出现时高亮）</li>
+<li>
+<code>package::function()</code> 或 <code>function()</code>（见第 4 点）</li>
+<li>
+<code>$field</code> 表示字段（封装在 R6 类中的数据）</li>
+<li>
+<code>$method()</code> 表示方法（封装在 R6 类中的函数）</li>
+<li>
+<code>Class</code>（主要用于 R6 类，可以通过语境与包区分）</li>
+</ul>
+</li>
+</ol>
+<p>现在让我们通过第一个示例看看这在实践中是如何运作的。</p>
+</section><section id="mlr3-by-example" class="level2" data-number="1.4"><h2 data-number="1.4" class="anchored" data-anchor-id="mlr3-by-example">
+<span class="header-section-number">1.4</span> 示例入门 mlr3（mlr3 by Example）</h2>
+<p><code>mlr3</code> 宇宙包含一系列广泛的工具，可以带你从基础 ML 走向复杂实验。作为入门，这里是一个最简单功能的示例——训练一个模型并做出预测。</p>
+<div class="cell">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3.mlr-org.com">mlr3</a></span><span class="op">)</span></span>
+<span><span class="va">task</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsk</a></span><span class="op">(</span><span class="st">"penguins"</span><span class="op">)</span></span>
+<span><span class="va">split</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/partition.html">partition</a></span><span class="op">(</span><span class="va">task</span><span class="op">)</span></span>
+<span><span class="va">learner</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.rpart"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">learner</span><span class="op">$</span><span class="fu">train</span><span class="op">(</span><span class="va">task</span>, row_ids <span class="op">=</span> <span class="va">split</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span><span class="va">learner</span><span class="op">$</span><span class="va">model</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>n= 230 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+ 1) root 230 131 Adelie (0.430435 0.200000 0.369565)  
+   2) flipper_length&lt; 207 142  43 Adelie (0.697183 0.295775 0.007042)  
+     4) bill_length&lt; 42.2 94   1 Adelie (0.989362 0.010638 0.000000) *
+     5) bill_length&gt;=42.2 48   7 Chinstrap (0.125000 0.854167 0.020833)  
+      10) island=Biscoe,Torgersen 7   1 Adelie (0.857143 0.000000 0.142857) *
+      11) island=Dream 41   0 Chinstrap (0.000000 1.000000 0.000000) *
+   3) flipper_length&gt;=207 88   4 Gentoo (0.000000 0.045455 0.954545) *</code></pre>
+</div>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span> <span class="op">=</span> <span class="va">learner</span><span class="op">$</span><span class="fu">predict</span><span class="op">(</span><span class="va">task</span>, row_ids <span class="op">=</span> <span class="va">split</span><span class="op">$</span><span class="va">test</span><span class="op">)</span></span>
+<span><span class="va">prediction</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+── &lt;PredictionClassif&gt; for 114 observations: ────────────────────────────
+ row_ids     truth  response
+       2    Adelie    Adelie
+       3    Adelie    Adelie
+      12    Adelie    Adelie
+     ---       ---       ---
+     340 Chinstrap    Gentoo
+     341 Chinstrap Chinstrap
+     344 Chinstrap Chinstrap</code></pre>
+</div>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">prediction</span><span class="op">$</span><span class="fu">score</span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>classif.acc 
+     0.9386 </code></pre>
+</div>
+</div>
+<p>在这个示例中，我们在 <a href="https://www.rdocumentation.org/packages/palmerpenguins/topics/penguins"><code>penguins</code></a> 数据集的一个子集上训练了一棵决策树（decision tree），在其余数据上做出预测，然后用准确率（accuracy）这一度量（measure）进行评估。我们会在<a href="../chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>中更详细地展开这一过程。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>这段代码蕴含了 <code>mlr3</code> 的核心范式，也是与 base R/caret 差异最大的地方：任务（Task）—学习器（Learner）—预测（Prediction）—度量（Measure）。<code>tsk("penguins")</code> 用"字典键（key）"直接从内置数据字典中加载封装好的任务；<code>partition()</code> 把数据按约 2/3、1/3 的比例划分训练集与测试集；<code>lrn()</code> 创建学习器；然后通过 R6 的 <code>$</code> 操作符调用 <code>$train()</code>、<code>$predict()</code>、<code>$score()</code> 方法。相比 <code>caret</code> 的函数式接口（如 <code>train()</code>），R6 把"状态"封装在对象内部（如学习器是否已训练、模型存在哪里），这是理解全书代码的关键。`partition()` 划分后，每个观测的行号（row_ids）即为主键，训练/预测都基于行号而非重新赋予的索引。</p>
+</div>
+<p><code>mlr3</code> 的接口还可以让你仅用几行代码就运行更复杂的实验：</p>
+<div class="cell">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3verse.mlr-org.com">mlr3verse</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">tasks</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">tsks</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"breast_cancer"</span>, <span class="st">"sonar"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">glrn_rf_tuned</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/as_learner.html">as_learner</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/ppl.html">ppl</a></span><span class="op">(</span><span class="st">"robustify"</span><span class="op">)</span> <span class="op"><a href="https://mlr3pipelines.mlr-org.com/reference/grapes-greater-than-greater-than-grapes.html">%&gt;&gt;%</a></span> <span class="fu"><a href="https://mlr3tuning.mlr-org.com/reference/auto_tuner.html">auto_tuner</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://mlr3tuning.mlr-org.com/reference/tnr.html">tnr</a></span><span class="op">(</span><span class="st">"grid_search"</span>, resolution <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.ranger"</span>, num.trees <span class="op">=</span> <span class="fu"><a href="https://paradox.mlr-org.com/reference/to_tune.html">to_tune</a></span><span class="op">(</span><span class="fl">200</span>, <span class="fl">500</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"holdout"</span><span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">glrn_rf_tuned</span><span class="op">$</span><span class="va">id</span> <span class="op">=</span> <span class="st">"RF"</span></span>
+<span></span>
+<span><span class="va">glrn_stack</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/as_learner.html">as_learner</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/ppl.html">ppl</a></span><span class="op">(</span><span class="st">"robustify"</span><span class="op">)</span> <span class="op"><a href="https://mlr3pipelines.mlr-org.com/reference/grapes-greater-than-greater-than-grapes.html">%&gt;&gt;%</a></span> <span class="fu"><a href="https://mlr3pipelines.mlr-org.com/reference/ppl.html">ppl</a></span><span class="op">(</span><span class="st">"stacking"</span>,</span>
+<span>    <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrns</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"classif.rpart"</span>, <span class="st">"classif.kknn"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn</a></span><span class="op">(</span><span class="st">"classif.log_reg"</span><span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">glrn_stack</span><span class="op">$</span><span class="va">id</span> <span class="op">=</span> <span class="st">"Stack"</span></span>
+<span></span>
+<span><span class="va">learners</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">glrn_rf_tuned</span>, <span class="va">glrn_stack</span><span class="op">)</span></span>
+<span><span class="va">bmr</span> <span class="op">=</span> <span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark.html">benchmark</a></span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/benchmark_grid.html">benchmark_grid</a></span><span class="op">(</span><span class="va">tasks</span>, <span class="va">learners</span>, <span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">rsmp</a></span><span class="op">(</span><span class="st">"cv"</span>, folds <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">bmr</span><span class="op">$</span><span class="fu">aggregate</span><span class="op">(</span><span class="fu"><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">msr</a></span><span class="op">(</span><span class="st">"classif.acc"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>         task_id learner_id classif.acc
+1: breast_cancer         RF      0.9649
+2: breast_cancer      Stack      0.9342
+3:         sonar         RF      0.7536
+4:         sonar      Stack      0.7246</code></pre>
+</div>
+</div>
+<p>在这个（复杂得多的！）示例中，我们选择了两个任务和两个学习器，用自动调优（automated tuning）来优化随机森林学习器中的树的数量（<a href="../chapter4/hyperparameter_optimization.html" class="quarto-xref"><span>第 4 章</span></a>），并用了一个机器学习流水线来插补缺失数据、合并因子水平并堆叠各模型（<a href="../chapter7/sequential_pipelines.html" class="quarto-xref"><span>第 7 章</span></a>和<a href="../chapter8/non-sequential_pipelines_and_tuning.html" class="quarto-xref"><span>第 8 章</span></a>）。我们还展示了诸如加载学习器（<a href="../chapter2/data_and_basic_modeling.html" class="quarto-xref"><span>第 2 章</span></a>）以及为基准测试（benchmarking）选择重采样（resampling）策略（<a href="../chapter3/evaluation_and_benchmarking.html" class="quarto-xref"><span>第 3 章</span></a>）之类的基础功能。最后，我们使用三折交叉验证（three-fold cross-validation）下的平均准确率比较了各模型的性能。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>这个例子几乎预告了全书的主题：<code>ppl("robustify")</code> 是一个"稳健化"流水线（自动处理缺失值插补、类别水平合并、特征标准化等预处理）；<code>auto_tuner()</code> 将调优器（如网格搜索 grid search）与学习器、重采样策略打包成一个"自动调优学习器"（automated tuner）；<code>ppl("stacking")</code> 实现集成学习中的"堆叠（stacking）"——用一个元学习器（meta-learner，这里是逻辑回归 <code>classif.log_reg</code>）组合多个基学习器的输出。<code>as_learner()</code> 把流水线对象转化为"图学习器（Graph Learner）"，从而能用统一的 Lemer 接口使用它们。<code>benchmark()</code> 则批量运行"任务 × 学习器 × 重采样"的全组合并汇总性能。可以看到 <code>mlr3</code> 把标记性思路推向极致，这也是它能在一行内组合出复杂实验的原因。</p>
+</div>
+<p>在本书中你将学会如何做所有这一切，以及更多。</p>
+</section><section id="the-mlr3-ecosystem" class="level2 page-columns page-full" data-number="1.5"><h2 data-number="1.5" class="anchored" data-anchor-id="the-mlr3-ecosystem">
+<span class="header-section-number">1.5</span> <code>mlr3</code> 生态系统（The <code>mlr3</code> Ecosystem）</h2>
+<p>在本书中，我们经常提到 <code>mlr3</code>，它可能指单一的 <a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 基础包，但通常指我们生态系统中的全部包，这一点应该根据语境来判断。<a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> <em>包</em>提供了生态系统中其余部分所依赖的、用于构建更高级机器学习工具的基础功能。<a href="#fig-mlr3verse" class="quarto-xref">图&nbsp;<span>1.1</span></a> 展示了我们生态系统中那些以预处理、流水线化、可视化、附加学习器、附加任务类型等方式扩展 <a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 的包。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-mlr3verse" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Mindmap showing the packages of the mlr3verse and their relationship. Center `mlr3`, immediately connected to that are 'Learners', 'Evaluation', 'Tuning', 'Feature Selection', 'Utilities', 'Special Tasks', 'Data', and 'Pipelines'. Within each group is: Learners: `mlr3learners`, `mlr3extralearners`, `mlr3torch`; Evaluation: `mlr3measures`, `mlr3benchmark`; Tuning: `mlr3tuning`, `miesmuschel`, `mlr3hyperband`, `mlr3mbo`, `bbotk`, `mlr3tuningspaces`; Feature Selection: `mlr3filters`, `mlr3fselect`; Utilities: `mlr3misc`, `mlr3viz`, `mlr3verse`, `mlr3batchmark`, `paradox`; Special Tasks: `mlr3spatiotempcv`, `mlr3spatial`, `mlr3proba`, `mlr3cluster`, `mlr3fda`, `mlr3fairness`; Data: `mlr3db`, `mlr3oml`, `mlr3data`; Pipelines: `mlr3pipelines`. `mlr3fda` and `mlr3torch` are connected by gray dashed lines.">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-mlr3verse-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/Figures/mlr3_ecosystem.svg" class="img-fluid figure-img" style="width:100.0%" alt="Mindmap showing the packages of the mlr3verse and their relationship. Center `mlr3`, immediately connected to that are 'Learners', 'Evaluation', 'Tuning', 'Feature Selection', 'Utilities', 'Special Tasks', 'Data', and 'Pipelines'. Within each group is: Learners: `mlr3learners`, `mlr3extralearners`, `mlr3torch`; Evaluation: `mlr3measures`, `mlr3benchmark`; Tuning: `mlr3tuning`, `miesmuschel`, `mlr3hyperband`, `mlr3mbo`, `bbotk`, `mlr3tuningspaces`; Feature Selection: `mlr3filters`, `mlr3fselect`; Utilities: `mlr3misc`, `mlr3viz`, `mlr3verse`, `mlr3batchmark`, `paradox`; Special Tasks: `mlr3spatiotempcv`, `mlr3spatial`, `mlr3proba`, `mlr3cluster`, `mlr3fda`, `mlr3fairness`; Data: `mlr3db`, `mlr3oml`, `mlr3data`; Pipelines: `mlr3pipelines`. `mlr3fda` and `mlr3torch` are connected by gray dashed lines.">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mlr3verse-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+图&nbsp;1.1：<code>mlr3</code> 生态系统概览，以灰色虚线相连的包仍在开发中，其余包的接口均已稳定。
+</figcaption></figure>
+</div>
+</div>
+</div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>图中 "Special Tasks"（特殊任务）一类展示了 mlr3 生态的可扩展性：除了回归与分类，还能处理生存分析（<code>mlr3proba</code> 还提供概率预测与分布模型）、聚类（<code>mlr3cluster</code>）、时空数据（<code>mlr3spatiotempcv</code>）、函数型数据（<code>mlr3fda</code>）、公平性评估（<code>mlr3fairness</code>）等。「Tuning」（调优）类中的 <code>mlr3mbo</code> 提供基于模型的贝叶斯优化（model-based optimization / Bayesian optimization），<code>mlr3hyperband</code> 提供搜索效率更高的连续减半法；「Feature Selection」类做特征选择（特征筛选）。这些包共同构成一个"平台"：你可以只装 <code>mlr3verse</code> 全家桶，也可以按需只挑少数几个包，这正是本书第 1.1 节建议配置多仓库（R-universe + CRAN）的原因。</p>
+</div>
+<p>扩展包的完整、最新列表可以在 <a href="https://mlr-org.com/ecosystem.html">https://mlr-org.com/ecosystem.html</a> 找到。</p>
+<p>除了 <code>mlr3</code> 生态系统内部的包之外，<code>mlr3verse</code> 中的软件还依赖于以下几个广受欢迎且久经考验的包：</p>
+<ul>
+<li>
+<a href="https://cran.r-project.org/package=R6"><code>R6</code></a>：<code>mlr3</code> 主要使用的类系统。</li>
+<li>
+<a href="https://cran.r-project.org/package=data.table"><code>data.table</code></a>：R 的 <code>data.frame</code> 的高性能扩展。</li>
+<li>
+<a href="https://cran.r-project.org/package=digest"><code>digest</code></a>：密码学哈希函数。</li>
+<li>
+<a href="https://cran.r-project.org/package=uuid"><code>uuid</code></a>：通用唯一标识符（universally unique identifiers）的生成。</li>
+<li>
+<a href="https://cran.r-project.org/package=lgr"><code>lgr</code></a>：可配置的日志（logging）库。</li>
+<li>
+<a href="https://cran.r-project.org/package=mlbench"><code>mlbench</code></a> 和 <a href="https://cran.r-project.org/package=palmerpenguins"><code>palmerpenguins</code></a>：机器学习数据集。</li>
+<li>
+<a href="https://cran.r-project.org/package=future"><code>future</code></a> / <a href="https://cran.r-project.org/package=future.apply"><code>future.apply</code></a> / <a href="https://cran.r-project.org/package=parallelly"><code>parallelly</code></a>：用于并行化（<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-parallelization" class="quarto-xref"><span>第 10.1 节</span></a>）。</li>
+<li>
+<a href="https://cran.r-project.org/package=evaluate"><code>evaluate</code></a>：用于捕获输出、警告和异常（<a href="../chapter10/advanced_technical_aspects_of_mlr3.html#sec-error-handling" class="quarto-xref"><span>第 10.2 节</span></a>）。</li>
+</ul>
+<p>我们在 <a href="https://cran.r-project.org/package=R6"><code>R6</code></a> 之上构建面向对象功能，用 <a href="https://cran.r-project.org/package=data.table"><code>data.table</code></a> 存储和操作表格数据。由于两者都是 <code>mlr3</code> 的核心，我们为初学者<em>简要</em>介绍这两个包；使用 <code>mlr3</code> 并不需要这两个包的深入专业知识。</p>
+<section id="sec-r6" class="level3 page-columns page-full" data-number="1.5.1"><h3 data-number="1.5.1" class="anchored" data-anchor-id="sec-r6">
+<span class="header-section-number">1.5.1</span> 面向初学者的 R6（R6 for Beginners）</h3>
+<p><a href="https://cran.r-project.org/package=R6"><code>R6</code></a> 是 R 较新的一种面向对象编程范式。如果你有任何（基于类的）面向对象编程经验，那么 R6 应该会让你感到熟悉。我们只关注使用 <code>mlr3</code> 所需要了解的 R6 部分。</p>
+<p><em>对象（Objects）</em> 是通过用 <code>$new()</code> 初始化方法构造一个 <a href="https://www.rdocumentation.org/packages/R6/topics/R6Class"><code>R6Class</code></a> 变量的实例而创建的。例如，假设我们已经实现了一个名为 <code>Foo</code> 的类，那么 <code>foo = Foo$new(bar = 1)</code> 就会创建一个 <code>Foo</code> 类的新对象，并把构造函数的 <code>bar</code> 参数设为值 <code>1</code>。在实践中，我们在 <code>mlr3</code> 里实现了很多"糖函数（sugar）"功能（<a href="#sec-mlr3-utilities" class="quarto-xref"><span>第 1.6 节</span></a>），使构造和访问更加方便。</p>
+<p>一些 <code>R6</code> 对象可能会有可变状态（mutable states），这些状态封装在它们的<em>字段（fields）</em>中，可以通过美元符号 <code>$</code> 操作符访问。接续前面的例子，我们可以用 <code>foo$bar</code> 访问 <code>foo</code> 对象中的 <code>bar</code> 值，也可以给它赋一个新值，例如 <code>foo$bar = 2</code>。这些字段还可以是「活动绑定（active bindings）」，即在被引用或修改时执行额外的计算。</p>
+<p>除了字段之外，<em>方法（methods）</em> 允许用户检查对象的状态、获取信息，或执行一个改变对象内部状态的动作。例如，在 <code>mlr3</code> 中，学习器的 <code>$train()</code> 方法会通过构建并存储一个模型来改变学习器的内部状态。修改对象内部状态的方法常常会返回对象自身。其他方法可能返回一个新的 R6 对象。在两种情况下，都可以用 <code>$</code> 操作符一个接一个地调用方法，实现方法的「链式（chain）」调用；这与 <code>tidyverse</code> 包中使用的 <code>%&gt;%</code> 操作符类似。例如，<code>Foo$bar()$hello_world()</code> 会先运行对象 <code>Foo</code> 的 <code>$bar()</code> 方法，再运行 <code>$bar()</code> 返回的对象（可能还是 <code>Foo</code> 自身）的 <code>$hello_world()</code> 方法。</p>
+<p>字段和方法可以是公有的（public），也可以是私有的（private）。公有字段和方法定义了与对象交互的 API。在 <code>mlr3</code> 中，除非你想通过添加新类来扩展我们的宇宙（<a href="../chapter10/advanced_technical_aspects_of_mlr3.html" class="quarto-xref"><span>第 10 章</span></a>），否则可以安全地忽略私有方法。</p>
+<p>最后，<code>R6</code> 对象是 <code>environment</code>（环境），因此具有引用语义（reference semantics）。这意味着，例如，<code>foo2 = foo</code> 并不会创建一个新的、名为 <code>foo2</code> 且是 <code>foo</code> 副本的变量；相反，它创建了一个引用 <code>foo</code> 的、名为 <code>foo2</code> 的变量，因此设置 <code>foo$bar = 3</code> 也会把 <code>foo2$bar</code> 改成 <code>3</code>，反之亦然。要复制一个对象，请使用 <code>$clone(deep = TRUE)</code> 方法，所以想要复制 <code>foo</code> 应写成：<code>foo2 = foo$clone(deep = TRUE)</code>。</p><div class="no-row-height column-margin column-container"><span class="margin-aside"><code>$clone()</code></span></div></div>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>引用语义是 R6 与 base R 的 S3/S4 对象系统（以及 R 中"函数式 + 复制即改"习惯）最本质的区别：普通 R 变量赋值是"值复制"，而 R6 对象是"引用共享"。若忘记 <code>$clone(deep = TRUE)</code> 而直接把 <code>foo2 = foo</code>，两处"对象"实际指向同一份状态，一处修改会"波及"另一处——这是新手最常踩的坑。另外 <code>$clone(deep = TRUE)</code> 强调"深拷贝"：浅拷贝（<code>deep = FALSE</code>）只复制顶层环境，其内嵌的字段（如表数据）仍被共享。这与 Python 对象的"可变对象引用"行为类似。对于只读地调用方法而言这些差别无感，但一旦涉及 <code>$train()</code>、修改数据等写操作就要小心。</p>
+</div>
+<p>更长的介绍我们推荐查阅 <code>R6</code> vignette（小册子），地址是 <a href="https://r6.r-lib.org/">https://r6.r-lib.org/</a>；更多细节可参见 <a href="https://adv-r.hadley.nz/r6.html">https://adv-r.hadley.nz/r6.html</a>。</p>
+</section><section id="sec-data.table" class="level3" data-number="1.5.2"><h3 data-number="1.5.2" class="anchored" data-anchor-id="sec-data.table">
+<span class="header-section-number">1.5.2</span> 面向初学者的 data.table（data.table for Beginners）</h3>
+<p><a href="https://cran.r-project.org/package=data.table"><code>data.table</code></a> 包实现了 <a href="https://www.rdocumentation.org/packages/data.table/topics/data.table-package"><code>data.table()</code></a>，它是 R 的 <code><a href="https://rdrr.io/r/base/data.frame.html">data.frame()</a></code> 的一个流行替代品。我们之所以使用 <a href="https://cran.r-project.org/package=data.table"><code>data.table</code></a>，是因为它速度极快，并且可以很好地扩展到更大的数据。</p>
+<p>和 <code>data.frame</code> 一样，<code>data.table</code> 可以用 <a href="https://www.rdocumentation.org/packages/data.table/topics/data.table-package"><code>data.table()</code></a> 或 <a href="https://www.rdocumentation.org/packages/data.table/topics/as.data.table"><code>as.data.table()</code></a> 构造：</p>
+<div class="cell">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com">data.table</a></span><span class="op">)</span></span>
+<span><span class="co"># converting a matrix with as.data.table</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="fl">4</span><span class="op">)</span>, <span class="fl">2</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       V1     V2
+1: 0.2989 0.5856
+2: 0.1594 0.1488</code></pre>
+</div>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># using data.table</span></span>
+<span><span class="va">dt</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html">data.table</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">6</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="va">letters</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>, each <span class="op">=</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">dt</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   x y
+1: 1 a
+2: 2 a
+3: 3 b
+4: 4 b
+5: 5 c
+6: 6 c</code></pre>
+</div>
+</div>
+<p><code>data.table</code> 的使用方法与 <code>data.frame</code> 非常相似，但它们提供了额外的功能，让复杂操作变得更容易。例如，数据可以在 <code>[</code> 操作符中用 <code>by</code> 参数按组汇总，还可以用 <code>:=</code> 操作符原地（in-place）修改。</p>
+<div class="cell">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># mean of x column in groups given by y</span></span>
+<span><span class="va">dt</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span>, by <span class="op">=</span> <span class="st">"y"</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   y  V1
+1: a 1.5
+2: b 3.5
+3: c 5.5</code></pre>
+</div>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># adding a new column with :=</span></span>
+<span><span class="va">dt</span><span class="op">[</span>, <span class="va">z</span> <span class="op">:=</span> <span class="va">x</span> <span class="op">*</span> <span class="fl">3</span><span class="op">]</span></span>
+<span><span class="va">dt</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   x y  z
+1: 1 a  3
+2: 2 a  6
+3: 3 b  9
+4: 4 b 12
+5: 5 c 15
+6: 6 c 18</code></pre>
+</div>
+</div>
+<p>最后，<code>data.table</code> 也使用引用语义，所以你需要用 <a href="https://www.rdocumentation.org/packages/data.table/topics/copy"><code>copy()</code></a> 来复制（clone）一个 <code>data.table</code>。深入的介绍我们推荐名为 <span class="citation" data-cites="datatable"><span>“Introduction to Data.table”</span> (<a href="../references.html#ref-datatable" role="doc-biblioref">2023</a>)</span> 的 vignette。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong><code>by</code> 参数实现"分组-汇总"（split-apply-combine），等价于 base R 的 <code>aggregate()</code> 或 <code>tidyverse</code> 的 <code>group_by()</code> + <code>summarise()</code>；<code>:=</code> 则实现原地添加/修改列，不需要重复复制整张表，这正是 <code>data.table</code> 快的秘诀之一。与 R6 一样，<code>data.table</code> 也是引用语义：当把 <code>dt</code> 赋给另一个变量再修改时，原表也会跟着变，须用 <code>copy()</code> 显式复制。作为统计学习者，若更熟悉 tidyverse（dplyr）语法，可把 data.table 与 dplyr 对照记忆：<code>dt[i, j, by]</code> 中的 i 对应 <code>filter</code>（行筛选），j 对应 <code>mutate/summarise</code>（列操作），by 对应 <code>group_by</code>（分组）。二者的取舍在现代 R 中常与"易读性 vs 性能"挂钩。</p>
+</div>
+</section></section><section id="sec-mlr3-utilities" class="level2" data-number="1.6"><h2 data-number="1.6" class="anchored" data-anchor-id="sec-mlr3-utilities">
+<span class="header-section-number">1.6</span> 重要的 mlr3 工具（Essential mlr3 Utilities）</h2>
+<p><code>mlr3</code> 包含几个对我们生态系统中简化代码至关重要的实用工具。</p>
+<section id="sugar-functions" class="level3 unnumbered unlisted"><h3 class="unnumbered unlisted anchored" data-anchor-id="sugar-functions">糖函数（Sugar Functions）</h3>
+<p><code>mlr3</code> 中的大多数对象都可以通过称为辅助函数（helper functions）或糖函数（sugar functions）的便捷函数创建。它们为常见的代码惯用法提供了快捷方式，减少了用户需要编写的代码量。例如，<code>lrn("regr.rpart")</code> 会返回这个学习器，而不必显式创建一个新的 R6 对象。在本书中，我们大量使用糖函数，并在每章末尾提供相应的「完整形式（full form）」，以呈现完整细节。糖函数的设计覆盖了大多数用户的绝大多数使用场景；只有当你想要构建自定义对象或扩展时，才需要了解完整的 <code>R6</code> 后端知识。</p>
+<p><code>mlr3</code> 中的许多对象名都按照以下约定标准化：<code>mlr_&lt;type&gt;_&lt;key&gt;</code>，其中 <code>&lt;type&gt;</code> 是 <code>tasks</code>、<code>learners</code>、<code>measures</code> 以及本书将介绍的其它类，<code>&lt;key&gt;</code> 指对象的 ID。为了简化构造对象的过程，你只需要知道对象键（object key）和用于构造该类型的糖函数即可。例如：<code>mlr_tasks_mtcars</code> 变成 <code>tsk("mtcars")</code>；<code>mlr_learners_regr.rpart</code> 变成 <code>lrn("regr.rpart")</code>；<code>mlr_measures_regr.mse</code> 变成 <code>msr("regr.mse")</code>。在本书中，我们将用这种缩写形式指代所有对象。</p>
+</section><section id="dictionaries" class="level3 unnumbered unlisted"><h3 class="unnumbered unlisted anchored" data-anchor-id="dictionaries">字典（Dictionaries）</h3>
+<p><code>mlr3</code> 用字典（dictionaries）存储 R6 类，字典将键（key，唯一标识符）与对象（R6 对象）关联起来。字典中的值通常通过从相应字典中检索对象的糖函数来访问，例如 <code>lrn("regr.rpart")</code> 是 <code>mlr_learners$get("regr.rpart")</code> 的一个包装器，因而是一种从 <a href="https://mlr3.mlr-org.com/reference/mlr_learners.html"><code>mlr_learners</code></a> 加载决策树学习器的更简单方式。我们用字典来归组大量相关的对象，以便轻松地列出和检索它们。例如，你可以用 <code>as.data.table(mlr_learners)</code> 查看可用学习器（即在已加载包中的学习器）及其属性的概览，也可以不带任何参数调用糖函数，例如 <code><a href="https://mlr3.mlr-org.com/reference/mlr_sugar.html">lrn()</a></code>。</p>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>「字典（Dictionary）」是 mlr3 借鉴了设计模式（design pattern）中"注册表（Registry）"思想的做法：把一大群同类对象（所有任务、所有学习器、所有度量、所有重采样）用字符串键组织成一张可查询的注册表。以 <code>tsk()</code>/<code>lrn()</code>/<code>msr()</code>/<code>rsmp()</code> 四个糖函数对应 tasks/learners/measures/resamplings 四类字典，是 mlr3 入门最重要的记忆口诀。相比 <code>caret</code> 只把算法当作函数参数（<code>method = "rf"</code>），字典允许以字符串键动态加载、列出、检索对象，配合 <code>as.data.table()</code> 还可以表格形式查看对象属性，为自动化和可扩展性提供了基础。</p>
+</div>
+</section><section id="mlr3viz" class="level3 unnumbered unlisted"><h3 class="unnumbered unlisted anchored" data-anchor-id="mlr3viz">mlr3viz</h3>
+<p><a href="https://mlr3viz.mlr-org.com"><code>mlr3viz</code></a> 包含 <code>mlr3</code> 中全部的绘图功能，底层使用 <a href="https://cran.r-project.org/package=ggplot2"><code>ggplot2</code></a>。我们在所有图中都用 <a href="https://www.rdocumentation.org/packages/ggplot2/topics/theme_minimal"><code>theme_minimal()</code></a> 来统一美学风格，但与所有 <code>ggplot</code> 输出一样，用户可以完全自定义。<a href="https://mlr3viz.mlr-org.com"><code>mlr3viz</code></a> 扩展了 <code>fortify</code> 和 <code>autoplot</code>，用于处理常见的 <a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 输出，包括 <a href="https://mlr3.mlr-org.com/reference/Prediction.html"><code>Prediction</code></a>、<a href="https://mlr3.mlr-org.com/reference/Learner.html"><code>Learner</code></a> 和 <a href="https://mlr3.mlr-org.com/reference/BenchmarkResult.html"><code>BenchmarkResult</code></a> 对象（这些对象我们将在接下来的章节中介绍和讲解）。我们将贯穿全书介绍主要的绘图类型。学习 <a href="https://mlr3viz.mlr-org.com"><code>mlr3viz</code></a> 的最佳方式是亲手实验：加载这个包，看看对某个 <code>mlr3</code> 对象运行 <code>autoplot</code> 会发生什么。绘图类型记录在相应的帮助页中，可以通过 <code>?autoplot.&lt;class&gt;</code> 访问，例如运行 <code>?autoplot.TaskRegr</code> 可以找到回归任务的不同绘图类型。</p>
+</section></section><section id="design-principles" class="level2" data-number="1.7"><h2 data-number="1.7" class="anchored" data-anchor-id="design-principles">
+<span class="header-section-number">1.7</span> 设计原则（Design Principles）</h2>
+<div class="callout callout-style-simple callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+
+</div>
+<div class="callout-title-container flex-fill">
+本节涉及高级 ML 或技术细节。
+</div>
+</div>
+<div class="callout-body-container callout-body">
+
+</div>
+</div>
+<p>在从 <a href="https://cran.r-project.org/package=mlr"><code>mlr</code></a> 到 <a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 的十多年设计与演进中，我们在 <a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 生态系统中遵循以下设计原则：</p>
+<ul>
+<li>
+<strong>面向对象编程（Object-oriented programming）</strong>。我们采用 <a href="https://cran.r-project.org/package=R6"><code>R6</code></a>，以获得清晰、面向对象的设计、对象状态更改和引用语义。这意味着常见对象（例如任务（task, <a href="../chapter2/data_and_basic_modeling.html#sec-tasks" class="quarto-xref"><span>第 2.1 节</span></a>）和学习器（learner, <a href="../chapter2/data_and_basic_modeling.html#sec-learners" class="quarto-xref"><span>第 2.2 节</span></a>））的状态都封装在对象内部，例如跟踪模型是否已训练，而无需用户操心。我们还使用继承（inheritance）来特化对象，例如所有学习器都派生自一个提供基础功能的共同基类。</li>
+<li>
+<strong>表格数据（Tabular data）</strong>。采用 <a href="https://cran.r-project.org/package=data.table"><code>data.table</code></a>，因为它有顶尖的计算性能，并且表格数据是一种易于进一步处理的结构。</li>
+<li>
+<strong>统一的表格化输入输出数据格式（Unified tabular input and output data formats）</strong>。这大大简化了 API，并允许轻松进行选择和「拆分-应用-合并（split-apply-combine）」（聚合）操作。我们把 <code>data.table</code> 与 <code>R6</code> 结合起来，在表中放置对非原子和复合对象的引用，并大量使用列表列（list columns）。</li>
+<li>
+<strong>防御式编程与类型安全（Defensive programming and type safety）</strong>。所有用户输入都用 <a href="https://cran.r-project.org/package=checkmate"><code>checkmate</code></a> <span class="citation" data-cites="checkmate">(<a href="../references.html#ref-checkmate" role="doc-biblioref">Lang 2017</a>)</span> 检查。我们使用 <code>data.table</code>，它的行为比若干 base R 方法更一致（例如，对 <code>data.frame</code> 索引时，如果省略 <code>drop</code> 参数，结果会"降维简化"）。而且我们还有大量的单元测试（unit tests）！</li>
+<li>
+<strong>精简依赖（Light on dependencies）</strong>。<a href="https://cran.r-project.org/package=mlr"><code>mlr</code></a> 的主要维护负担之一，就是要跟上它所依赖的众多包的算法接口和行为变化。<a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 需要的包少得多，这使得安装和维护更加容易。我们仍然提供相同的功能，但把它拆分到更多包中，每个包各自依赖较少。</li>
+<li>
+<strong>计算与呈现分离（Separation of computation and presentation）</strong>。<a href="https://mlr3.mlr-org.com"><code>mlr3</code></a> 生态系统的大多数包专注于处理和变换数据、应用 ML 算法以及计算结果。我们的核心包不提供可视化，因为它们的依赖会使安装变得不必要地复杂，尤其是在无头服务器（headless servers，即没有显示器的计算机，图形库未安装）上。因此，数据和结果的可视化由 <a href="https://mlr3viz.mlr-org.com"><code>mlr3viz</code></a> 提供。</li>
+</ul>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>这六条设计原则是理解 mlr3 哲学的钥匙，与老一代 <code>mlr</code> 及 <code>caret</code> 形成明显对照：<code>caret</code> 的接口相对"扁平"（函数调用为主），而 mlr3 强调对象状态封装（R6）、统一数据格式（data.table + 行号引用）、类型检查（checkmate，可在错误参数传入时就报错而非藏在模型内部）、依赖最小化（故安装轻量，也兼容无图形库的服务器）以及"呈现与计算分离"（故可视化统一在 <code>mlr3viz</code>）。这种设计的代价是需要先理解抽象概念（任务/学习器/重采样/度量），收益是可组合性、可扩展性和生产环境鲁棒性都更强。对于有 scikit-learn 经验的中文读者，可粗略把 Task 比作 sklearn 的 <code>Dataset + target</code>，Learner 比作 Estimator，Resampling 比作 <code>cross_val_score</code> 的 cv 参数，Measure 比作 scorer。</p>
+</div>
+</section><section id="citation" class="level2" data-number="1.8"><h2 data-number="1.8" class="anchored" data-anchor-id="citation">
+<span class="header-section-number">1.8</span> 引用（Citation）</h2>
+<p>请按如下方式引用本章：</p>
+<p>Kotthoff L, Sonabend R, Foss N, Bischl B. (2024). Introduction and Overview. In Bischl B, Sonabend R, Kotthoff L, Lang M, (Eds.), <em>Applied Machine Learning Using mlr3 in R</em>. CRC Press. https://mlr3book.mlr-org.com/introduction_and_overview.html.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="va">@incollection</span>{<span class="ot">citekey</span>,</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span> = "<span class="st">Lars Kotthoff and Raphael Sonabend and Natalie Foss and Bernd Bischl</span>",</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span> = "<span class="st">Introduction and Overview</span>",</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">booktitle</span> = "<span class="st">Applied Machine Learning Using {m}lr3 in {R}</span>",</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">publisher</span> = "<span class="st">CRC Press</span>", <span class="st">year</span> = "<span class="st">2024</span>",</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">editor</span> = "<span class="st">Bernd Bischl and Raphael Sonabend and Lars Kotthoff and Michel Lang</span>",</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">url</span> = "<span class="st">https://mlr3book.mlr-org.com/introduction_and_overview.html</span>"</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+</section>
+  </main>
+  <nav class="chnav">
+    <a class="disabled" href="#"><span class="dir">上一章</span><span class="ch">已是第一章</span></a>
+    <a class="" href="ch02-data-basic-modeling.html"><span class="dir">下一章</span><span class="ch">第 2 章 数据与基础建模</span></a>
+  </nav>
+  <div class="footer">
+    <div>《Applied Machine Learning Using mlr3 in R》中文译本 · 非官方翻译</div>
+    <div class="lic">原文 © 2024 CRC Press（Bischl, Sonabend, Kotthoff &amp; Lang 主编，CC BY-NC-SA 4.0）· 本站由志愿翻译，仅供学习交流</div>
+  </div>
+</div>
+<script>
+MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] } };
+</script>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
+</body>
+</html>

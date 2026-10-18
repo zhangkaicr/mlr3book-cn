@@ -46,3 +46,11 @@
 
 - mlr3 官方文档：https://mlr3.mlr-org.com/
 - mlr3 生态 gallery：https://mlr-org.com/gallery.html
+
+## 📦 配套技能（WorkBuddy Skill）
+
+把全书方法论蒸馏成了可直接安装的 WorkBuddy 技能 [`mlr3book-skill`](skills/mlr3book-skill/SKILL.md)，方便在对话中按「用 mlr3 做分类/调参/管道/特征选择/模型解释/生存分析/公平」等意图自动调用，每张能力卡都内嵌书中真实 R 代码并附在线章节链接。
+
+- 技能目录：`skills/mlr3book-skill/`（`SKILL.md` + `DIGEST.md` + `INSTALL.md`）
+- 安装方式见 [`skills/mlr3book-skill/INSTALL.md`](skills/mlr3book-skill/INSTALL.md)：软链或复制该目录到 `~/.workbuddy/skills/` 即可；推荐软链，仓库更新后技能自动同步。
+- 在线安装：从 https://github.com/zhangkaicr/mlr3book-cn/tree/main/skills 取三个文件放入 `~/.workbuddy/skills/mlr3book-skill/`。
